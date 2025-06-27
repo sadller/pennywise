@@ -1,0 +1,15 @@
+# FastAPI and ASGI server
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# Data validation and serialization
+pydantic==2.10.4
+pydantic-settings==2.6.1
+
+# Environment and configuration
+python-dotenv==1.0.1
+
+# Development and testing
+pytest==8.2.2
+pytest-asyncio==0.24.0
+httpx==0.28.1 
