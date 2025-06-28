@@ -1,7 +1,13 @@
+'use client';
+
 import styles from "./page.module.css";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
 
 export default function Home() {
+  const { user, logout } = useAuth();
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -23,8 +29,25 @@ export default function Home() {
           <a href="#features">Features</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
-          <button className={styles.loginBtn}>Login</button>
-          <button className={styles.signupBtn}>Sign Up</button>
+          {user ? (
+            <>
+              <span className={styles.userInfo}>
+                Welcome, {user.full_name || user.email}
+              </span>
+              <button onClick={logout} className={styles.logoutBtn}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth" className={styles.loginBtn}>
+                Login
+              </Link>
+              <Link href="/auth" className={styles.signupBtn}>
+                Sign Up
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -37,7 +60,15 @@ export default function Home() {
               our intuitive expense tracking application.
             </p>
             <div className={styles.heroButtons}>
-              <button className={styles.primaryBtn}>Get Started Free</button>
+              {user ? (
+                <Link href="/dashboard" className={styles.primaryBtn}>
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <Link href="/auth" className={styles.primaryBtn}>
+                  Get Started Free
+                </Link>
+              )}
               <button className={styles.secondaryBtn}>Learn More</button>
             </div>
 
