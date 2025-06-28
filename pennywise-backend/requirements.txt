@@ -9,6 +9,11 @@ pydantic-settings==2.6.1
 # Environment and configuration
 python-dotenv==1.0.1
 
+# Database
+sqlalchemy==2.0.36
+pg8000==1.30.5
+alembic==1.14.1
+
 # Development and testing
 pytest==8.2.2
 pytest-asyncio==0.24.0

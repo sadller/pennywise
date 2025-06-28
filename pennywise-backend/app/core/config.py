@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -13,9 +13,19 @@ class Settings(BaseSettings):
     # API settings
     API_V1_STR: str = "/api/v1"
     
+    # Database settings
+    DATABASE_URL: str = Field(env="DATABASE_URL")
+    
     # CORS settings
     ALLOWED_ORIGINS: List[str] = Field(default=["http://localhost:3000"], env="ALLOWED_ORIGINS")
     ALLOWED_HOSTS: List[str] = Field(default=["*"], env="ALLOWED_HOSTS")
+    
+    @field_validator('ALLOWED_ORIGINS', mode='before')
+    @classmethod
+    def parse_allowed_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
     
     class Config:
         env_file = ".env"
