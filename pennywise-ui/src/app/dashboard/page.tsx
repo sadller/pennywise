@@ -13,9 +13,10 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
 import Avatar from '@mui/material/Avatar';
 import styles from '../page.module.css';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
@@ -33,6 +34,13 @@ export default function DashboardPage() {
     }
   }, [user, router, justLoggedOut]);
 
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress size={48} thickness={4} />
+      </div>
+    );
+  }
   if (!user) return null;
 
   const handleMenuOpen = () => {

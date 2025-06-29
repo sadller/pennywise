@@ -20,6 +20,10 @@ class AuthService:
         """Get user by Google ID."""
         return self.db.query(User).filter(User.google_id == google_id).first()
 
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        """Get user by ID."""
+        return self.db.query(User).filter(User.id == user_id).first()
+
     def create_user(self, user_data: UserCreate) -> User:
         """Create a new user."""
         hashed_password = None
