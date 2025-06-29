@@ -43,9 +43,6 @@ export default function Home() {
               <Link href="/auth" className={styles.loginBtn}>
                 Login
               </Link>
-              <Link href="/auth" className={styles.signupBtn}>
-                Sign Up
-              </Link>
             </>
           )}
         </nav>
