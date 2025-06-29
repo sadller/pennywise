@@ -97,7 +97,7 @@ For **Cash Out** (Expense):
 
 ### Transaction
 
-* id, group\_id, user\_id, amount, type (INCOME/EXPENSE), note, category, payment\_mode, date
+* id, group\_id, user\_id, amount, type (INCOME/EXPENSE), note, category, payment\_mode, date, paid\_by (user who paid)
 
 ---
 

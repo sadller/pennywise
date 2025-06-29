@@ -1,4 +1,3 @@
- 
 📘 Project Requirements & Architecture: Pennywise
 
 🧱 1. Project Overview
@@ -43,8 +42,8 @@ Preserves selected group and view type (monthly, weekly)
 Clean, minimalist layout
 Expense/income items listed with summary at top
 Two primary action buttons:
-“Cash In” (Income)
-“Cash Out” (Expense)
+"Cash In" (Income)
+"Cash Out" (Expense)
 3.5 Add Expense / Income
 Both forms will contain:
 Amount (required)
@@ -89,7 +88,7 @@ user_id, group_id, role (admin/member), permissions
 Transaction
 id, group_id, user_id, amount, note
 type: INCOME or EXPENSE
-category, payment_mode, date
+category, payment_mode, date, paid_by
 
 🔐 6. Auth Flow (Google OAuth)
 User logs in with Google (client-side)

@@ -1,10 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Menu from '@mui/material/Menu';
@@ -14,15 +12,24 @@ import Image from 'next/image';
 import Avatar from '@mui/material/Avatar';
 import styles from '../page.module.css';
 import CircularProgress from '@mui/material/CircularProgress';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Transactions from '@/components/transactions/Transactions';
+import { useQuery } from '@tanstack/react-query';
+import { groupService } from '@/services/groupService';
 
-export default function DashboardPage() {
-  const { user, logout, isLoading } = useAuth();
+// Create a client
+const queryClient = new QueryClient();
+
+function DashboardContent() {
+  const { user, token, logout, isLoading } = useAuth();
   const router = useRouter();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const closeMenuTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [selectedGroupName, setSelectedGroupName] = useState<string>('');
 
   useEffect(() => {
     if (!user) {
@@ -31,17 +38,40 @@ export default function DashboardPage() {
       } else {
         router.replace('/auth');
       }
+    } else {
+      // Check if user has selected a group
+      const storedGroupId = localStorage.getItem('selectedGroupId');
+      const storedGroupName = localStorage.getItem('selectedGroupName');
+      
+      if (!storedGroupId) {
+        // Redirect to groups page if no group is selected
+        router.replace('/groups');
+        return;
+      }
+      
+      setSelectedGroupId(parseInt(storedGroupId));
+      setSelectedGroupName(storedGroupName || '');
     }
   }, [user, router, justLoggedOut]);
 
-  if (isLoading) {
+  // Fetch group members
+  const {
+    data: groupMembers = [],
+    isLoading: membersLoading
+  } = useQuery({
+    queryKey: ['group-members', selectedGroupId],
+    queryFn: () => groupService.getGroupMembers(selectedGroupId!, token || undefined),
+    enabled: !!selectedGroupId && !!token,
+  });
+
+  if (isLoading || membersLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress size={48} thickness={4} />
       </div>
     );
   }
-  if (!user) return null;
+  if (!user || !selectedGroupId) return null;
 
   const handleMenuOpen = () => {
     if (userInfoRef.current) {
@@ -80,6 +110,12 @@ export default function DashboardPage() {
     logout();
     handleMenuClose();
     setJustLoggedOut(true);
+  };
+
+  const handleSwitchGroup = () => {
+    localStorage.removeItem('selectedGroupId');
+    localStorage.removeItem('selectedGroupName');
+    router.push('/groups');
   };
 
   return (
@@ -129,21 +165,33 @@ export default function DashboardPage() {
               }}
             >
               <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
+              <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>Switch Group</MenuItem>
               <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Logout</MenuItem>
             </Menu>
           </div>
         </Toolbar>
       </AppBar>
-      <main className={styles.main} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-        <Box sx={{ mt: 8, width: '100%', maxWidth: 600, textAlign: 'center', background: 'var(--background)', borderRadius: 4, boxShadow: '0 4px 24px rgba(25, 118, 210, 0.08)', p: 5 }}>
-          <Typography variant="h3" gutterBottom>
-            Welcome, {user.full_name || user.email}!
-          </Typography>
-          <Typography variant="h5" color="text.secondary" gutterBottom>
-            This is your dashboard.
-          </Typography>
-        </Box>
+      <main className={styles.main}>
+        <div style={{ padding: '16px', width: '100%' }}>
+          <div style={{ marginBottom: '16px', padding: '8px 16px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
+            <strong>Current Group:</strong> {selectedGroupName}
+          </div>
+          <Transactions 
+            currentUser={user}
+            groupId={selectedGroupId}
+            groupMembers={groupMembers}
+            token={token || undefined}
+          />
+        </div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DashboardContent />
+    </QueryClientProvider>
   );
 } 
