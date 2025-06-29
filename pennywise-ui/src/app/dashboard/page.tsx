@@ -7,42 +7,71 @@ import { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
+import Avatar from '@mui/material/Avatar';
 import styles from '../page.module.css';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const userInfoRef = React.useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const closeMenuTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const [justLoggedOut, setJustLoggedOut] = React.useState(false);
 
   useEffect(() => {
     if (!user) {
-      router.replace('/auth');
+      if (justLoggedOut) {
+        router.replace('/');
+      } else {
+        router.replace('/auth');
+      }
     }
-  }, [user, router]);
+  }, [user, router, justLoggedOut]);
 
   if (!user) return null;
 
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleMenuOpen = () => {
+    if (userInfoRef.current) {
+      setAnchorEl(userInfoRef.current);
+    }
+    if (closeMenuTimeout.current) {
+      clearTimeout(closeMenuTimeout.current);
+    }
+    setMenuOpen(true);
   };
 
-  const handleClose = () => {
+  const handleMenuClose = () => {
     setAnchorEl(null);
+    setMenuOpen(false);
+  };
+
+  const handleMouseLeave = () => {
+    closeMenuTimeout.current = setTimeout(() => {
+      setMenuOpen(false);
+      setAnchorEl(null);
+    }, 150);
+  };
+
+  const handleMouseEnter = () => {
+    if (closeMenuTimeout.current) {
+      clearTimeout(closeMenuTimeout.current);
+    }
   };
 
   const handleProfile = () => {
     // Placeholder for profile navigation
-    handleClose();
+    handleMenuClose();
   };
 
   const handleLogout = () => {
     logout();
-    handleClose();
+    handleMenuClose();
+    setJustLoggedOut(true);
   };
 
   return (
@@ -56,29 +85,43 @@ export default function DashboardPage() {
               <span>Smart Expense Tracking</span>
             </div>
           </div>
-          <div>
-            <IconButton
-              size="large"
-              edge="end"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={handleMenu}
-              color="inherit"
+          <div
+            onMouseEnter={handleMenuOpen}
+            onMouseLeave={handleMouseLeave}
+            style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
+          >
+            <div
+              className={styles.userInfo}
+              ref={userInfoRef}
+              style={{ cursor: 'pointer' }}
             >
-              <AccountCircle fontSize="large" />
-            </IconButton>
+              <span className={styles.avatar}>
+                {user.full_name ? (
+                  <Avatar sx={{ bgcolor: 'transparent', width: 40, height: 40, fontWeight: 600, fontSize: '1.2rem', color: 'white', background: 'none' }}>
+                    {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </Avatar>
+                ) : (
+                  <AccountCircle fontSize="large" />
+                )}
+              </span>
+              <span>{user.full_name || user.email}</span>
+            </div>
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}
-              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               keepMounted
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
+              open={Boolean(anchorEl) && menuOpen}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                onMouseEnter: handleMouseEnter,
+                onMouseLeave: handleMouseLeave,
+                style: { pointerEvents: 'auto' },
+              }}
             >
-              <MenuItem onClick={handleProfile}>Profile</MenuItem>
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
+              <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Logout</MenuItem>
             </Menu>
           </div>
         </Toolbar>
