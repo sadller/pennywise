@@ -20,12 +20,13 @@ import { groupService, GroupCreate } from '@/services/groupService';
 import { Group } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 // Create a client
 const queryClient = new QueryClient();
 
 function GroupsContent() {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
@@ -60,11 +61,6 @@ function GroupsContent() {
     router.push('/dashboard');
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
-
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -86,19 +82,6 @@ function GroupsContent() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Welcome to Pennywise!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {user?.full_name || user?.email}
-          </Typography>
-        </Box>
-        <Button variant="outlined" onClick={handleLogout}>
-          Logout
-        </Button>
-      </Box>
 
       {groups.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 6 }}>
@@ -205,7 +188,9 @@ function GroupsContent() {
 export default function GroupsPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <GroupsContent />
+      <AuthenticatedLayout>
+        <GroupsContent />
+      </AuthenticatedLayout>
     </QueryClientProvider>
   );
 } 
