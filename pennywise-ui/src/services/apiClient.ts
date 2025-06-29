@@ -122,8 +122,11 @@ class ApiClient {
       headers,
     };
 
+    // Construct the full URL
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(fullUrl, config);
 
       if (response.status === 401 && !this.isRefreshing) {
         this.isRefreshing = true;
@@ -137,7 +140,7 @@ class ApiClient {
             'Authorization': `Bearer ${tokens.access_token}`,
           };
           
-          const retryResponse = await fetch(url, {
+          const retryResponse = await fetch(fullUrl, {
             ...config,
             headers: newHeaders,
           });

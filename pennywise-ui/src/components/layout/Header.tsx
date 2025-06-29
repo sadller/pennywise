@@ -14,6 +14,8 @@ import {
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
 import styles from '../../app/page.module.css';
+import NotificationIcon from './NotificationIcon';
+import NotificationCenter from './NotificationCenter';
 
 interface HeaderProps {
   onSwitchGroup?: () => void;
@@ -28,6 +30,7 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const closeMenuTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
+  const [notificationCenterOpen, setNotificationCenterOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (justLoggedOut) {
@@ -89,96 +92,115 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
     router.push(path);
   };
 
+  const handleOpenNotifications = () => {
+    setNotificationCenterOpen(true);
+  };
+
+  const handleCloseNotifications = () => {
+    setNotificationCenterOpen(false);
+  };
+
   if (!user) return null;
 
   return (
-    <AppBar position="static" color="inherit" elevation={1} className={styles.header}>
-      <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div className={styles.logo}>
-            <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
-            <div>
-              <h1>Pennywise</h1>
-              <span>Smart Expense Tracking</span>
+    <>
+      <AppBar position="static" color="inherit" elevation={1} className={styles.header}>
+        <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div className={styles.logo}>
+              <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
+              <div>
+                <h1>Pennywise</h1>
+                <span>Smart Expense Tracking</span>
+              </div>
             </div>
+            
+            {/* Navigation Links */}
+            <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
+              <Button
+                color="inherit"
+                onClick={() => handleNavigation('/dashboard')}
+                sx={{
+                  backgroundColor: pathname === '/dashboard' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                Dashboard
+              </Button>
+              <Button
+                color="inherit"
+                onClick={() => handleNavigation('/transactions')}
+                sx={{
+                  backgroundColor: pathname === '/transactions' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                Transactions
+              </Button>
+              <Button
+                color="inherit"
+                onClick={() => handleNavigation('/groups')}
+                sx={{
+                  backgroundColor: pathname === '/groups' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                Groups
+              </Button>
+            </Box>
           </div>
           
-          {/* Navigation Links */}
-          <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
-            <Button
-              color="inherit"
-              onClick={() => handleNavigation('/dashboard')}
-              sx={{
-                backgroundColor: pathname === '/dashboard' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                }
-              }}
-            >
-              Dashboard
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => handleNavigation('/transactions')}
-              sx={{
-                backgroundColor: pathname === '/transactions' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                }
-              }}
-            >
-              Transactions
-            </Button>
-            <Button
-              color="inherit"
-              onClick={() => handleNavigation('/groups')}
-              sx={{
-                backgroundColor: pathname === '/groups' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                }
-              }}
-            >
-              Groups
-            </Button>
-          </Box>
-        </div>
-        
-        <div
-          onMouseEnter={handleMenuOpen}
-          onMouseLeave={handleMouseLeave}
-          style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
-        >
           <div
-            className={styles.userInfo}
-            ref={userInfoRef}
-            style={{ cursor: 'pointer' }}
+            onMouseEnter={handleMenuOpen}
+            onMouseLeave={handleMouseLeave}
+            style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
           >
-            <span className={styles.avatar}>
-              <AccountCircle fontSize="large" />
-            </span>
-            <span>{user.full_name || user.email}</span>
+            {/* Notification Icon */}
+            <NotificationIcon onOpenNotifications={handleOpenNotifications} />
+            
+            <div
+              className={styles.userInfo}
+              ref={userInfoRef}
+              style={{ cursor: 'pointer' }}
+            >
+              <span className={styles.avatar}>
+                <AccountCircle fontSize="large" />
+              </span>
+              <span>{user.full_name || user.email}</span>
+            </div>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorEl}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              keepMounted
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              open={Boolean(anchorEl) && menuOpen}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                onMouseEnter: handleMouseEnter,
+                onMouseLeave: handleMouseLeave,
+                style: { pointerEvents: 'auto' },
+              }}
+            >
+              <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
+              <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>Switch Group</MenuItem>
+              <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Logout</MenuItem>
+            </Menu>
           </div>
-          <Menu
-            id="menu-appbar"
-            anchorEl={anchorEl}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            keepMounted
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            open={Boolean(anchorEl) && menuOpen}
-            onClose={handleMenuClose}
-            MenuListProps={{
-              onMouseEnter: handleMouseEnter,
-              onMouseLeave: handleMouseLeave,
-              style: { pointerEvents: 'auto' },
-            }}
-          >
-            <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
-            <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>Switch Group</MenuItem>
-            <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Logout</MenuItem>
-          </Menu>
-        </div>
-      </Toolbar>
-    </AppBar>
+        </Toolbar>
+      </AppBar>
+
+      {/* Notification Center */}
+      <NotificationCenter
+        open={notificationCenterOpen}
+        onClose={handleCloseNotifications}
+      />
+    </>
   );
 } 

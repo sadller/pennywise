@@ -5,6 +5,7 @@ from app.models import Group, GroupMember, User
 from app.schemas import GroupCreate, GroupResponse
 from typing import List
 from app.api.api_v1.endpoints.auth import get_current_user
+from app.services.notification_service import NotificationService
 from pydantic import BaseModel
 
 class AddMemberRequest(BaseModel):
@@ -90,6 +91,14 @@ def add_group_member(
             detail="Only group admins can add members"
         )
     
+    # Get group details
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found"
+        )
+    
     # Find user by email
     user = db.query(User).filter(User.email == request.user_email).first()
     if not user:
@@ -117,6 +126,20 @@ def add_group_member(
         role="member"
     )
     db.add(new_member)
+    
+    # Create notification for the invited user
+    try:
+        NotificationService.create_group_invitation_notification(
+            db=db,
+            user_id=user.id,
+            group_name=group.name,
+            inviter_name=current_user.full_name or current_user.email,
+            group_id=group_id
+        )
+    except Exception as e:
+        # Log the error but don't fail the invitation
+        print(f"Error creating notification: {e}")
+    
     db.commit()
     
     return {"message": "User added to group successfully"}
