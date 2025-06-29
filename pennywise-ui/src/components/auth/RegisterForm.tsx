@@ -13,17 +13,26 @@ import {
   Container,
   Paper,
 } from '@mui/material';
+import { useRouter } from 'next/navigation';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
-  const { register, loginWithGoogle, isLoading, error } = useAuth();
+  const { register, loginWithGoogle, isLoading, error, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const router = useRouter();
+
+  // Redirect to dashboard if user is registered and logged in
+  React.useEffect(() => {
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

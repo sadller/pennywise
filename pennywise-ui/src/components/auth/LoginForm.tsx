@@ -13,15 +13,24 @@ import {
   Container,
   Paper,
 } from '@mui/material';
+import { useRouter } from 'next/navigation';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
-  const { login, loginWithGoogle, isLoading, error } = useAuth();
+  const { login, loginWithGoogle, isLoading, error, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const router = useRouter();
+
+  // Redirect to dashboard if user is logged in
+  React.useEffect(() => {
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +47,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleGoogleError = (error: any) => {
-    console.error('Google login failed:', error);
+  const handleGoogleError = () => {
+    console.error('Google login failed');
   };
 
   return (
