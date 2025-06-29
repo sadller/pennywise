@@ -3,7 +3,7 @@ import jwt
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.auth import UserCreate, UserLogin
-from app.utils.auth import verify_password, get_password_hash, create_access_token
+from app.utils.auth import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.core.config import settings
 from typing import Optional
 
@@ -51,19 +51,19 @@ class AuthService:
             return None
         return user
 
-    def create_google_user(self, google_data: dict) -> User:
-        """Create or update user from Google OAuth data."""
-        google_id = google_data.get("sub")
-        email = google_data.get("email")
-        full_name = google_data.get("name")
-        avatar_url = google_data.get("picture")
+    def create_google_user(self, google_user_info: dict) -> User:
+        """Create or update user from Google OAuth."""
+        google_id = google_user_info.get("sub")
+        email = google_user_info.get("email")
+        name = google_user_info.get("name")
+        picture = google_user_info.get("picture")
 
         # Check if user exists by Google ID
         user = self.get_user_by_google_id(google_id)
         if user:
-            # Update existing user
-            user.full_name = full_name
-            user.avatar_url = avatar_url
+            # Update existing user info
+            user.full_name = name
+            user.avatar_url = picture
             self.db.commit()
             self.db.refresh(user)
             return user
@@ -71,9 +71,10 @@ class AuthService:
         # Check if user exists by email
         user = self.get_user_by_email(email)
         if user:
-            # Link Google account to existing user
+            # Link existing user to Google
             user.google_id = google_id
-            user.avatar_url = avatar_url
+            user.full_name = name
+            user.avatar_url = picture
             user.auth_provider = "google"
             self.db.commit()
             self.db.refresh(user)
@@ -83,8 +84,8 @@ class AuthService:
         db_user = User(
             email=email,
             google_id=google_id,
-            full_name=full_name,
-            avatar_url=avatar_url,
+            full_name=name,
+            avatar_url=picture,
             auth_provider="google"
         )
         self.db.add(db_user)
@@ -145,10 +146,12 @@ class AuthService:
             return user_response.json()
 
     def create_user_token(self, user: User) -> dict:
-        """Create access token for user."""
+        """Create access and refresh tokens for user."""
         access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer",
             "user_id": user.id,
             "email": user.email,

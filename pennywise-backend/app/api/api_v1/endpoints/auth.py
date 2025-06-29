@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.config import settings
 from app.services.auth_service import AuthService
-from app.schemas.auth import UserCreate, UserLogin, Token, UserResponse, GoogleAuthRequest
-from app.utils.auth import verify_token
+from app.schemas.auth import UserCreate, UserLogin, Token, UserResponse, GoogleAuthRequest, TokenRefresh
+from app.utils.auth import verify_token, verify_refresh_token
 from typing import Optional
 
 router = APIRouter()
@@ -74,8 +74,14 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
+async def login(request: Request, user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Login with email and password."""
+    # Debug: Print the raw request body
+    body = await request.body()
+    print(f"Raw request body: {body}")
+    print(f"Content-Type: {request.headers.get('content-type')}")
+    print(f"User credentials: {user_credentials}")
+    
     auth_service = AuthService(db)
     
     user = auth_service.authenticate_user(user_credentials.email, user_credentials.password)
@@ -90,18 +96,55 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     return Token(**token_data)
 
 
-@router.get("/google/url")
-def get_google_auth_url():
-    """Get Google OAuth URL."""
-    google_auth_url = (
-        "https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={settings.GOOGLE_CLIENT_ID}&"
-        "response_type=code&"
-        "scope=openid email profile&"
-        f"redirect_uri={settings.GOOGLE_REDIRECT_URI}&"
-        "access_type=offline"
-    )
-    return {"auth_url": google_auth_url}
+@router.post("/refresh", response_model=Token)
+def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
+    """Refresh access token using refresh token."""
+    auth_service = AuthService(db)
+    
+    # Verify refresh token
+    payload = verify_refresh_token(token_data.refresh_token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get user
+    user = auth_service.get_user_by_id(user_id_int)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create new tokens
+    token_data = auth_service.create_user_token(user)
+    return Token(**token_data)
+
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(current_user: UserResponse = Depends(get_current_user)):
+    """Get current user information."""
+    return current_user
 
 
 @router.post("/google/callback", response_model=Token)
@@ -124,7 +167,15 @@ async def google_auth_callback(auth_request: GoogleAuthRequest, db: Session = De
     return Token(**token_data)
 
 
-@router.get("/me", response_model=UserResponse)
-def get_current_user_info(current_user: UserResponse = Depends(get_current_user)):
-    """Get current user information."""
-    return current_user 
+@router.get("/google/url")
+def get_google_auth_url():
+    """Get Google OAuth URL."""
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={settings.GOOGLE_CLIENT_ID}&"
+        "response_type=code&"
+        "scope=openid email profile&"
+        f"redirect_uri={settings.GOOGLE_REDIRECT_URI}&"
+        "access_type=offline"
+    )
+    return {"auth_url": google_auth_url} 

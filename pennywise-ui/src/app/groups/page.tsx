@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -26,7 +25,6 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 const queryClient = new QueryClient();
 
 function GroupsContent() {
-  const { token } = useAuth();
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
@@ -37,14 +35,13 @@ function GroupsContent() {
     error
   } = useQuery({
     queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(token || undefined),
-    enabled: !!token,
+    queryFn: () => groupService.getUserGroups(),
   });
 
   // Create group mutation
   const createGroupMutation = useMutation({
     mutationFn: (data: GroupCreate) => 
-      groupService.createGroup(data, token || undefined),
+      groupService.createGroup(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
     },

@@ -19,14 +19,12 @@ interface TransactionsProps {
   groupId?: number;
   currentUser: User;
   groupMembers?: User[];
-  token?: string;
 }
 
 export default function Transactions({ 
   groupId, 
   currentUser, 
-  groupMembers = [], 
-  token 
+  groupMembers = []
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -38,14 +36,14 @@ export default function Transactions({
     error
   } = useQuery({
     queryKey: ['transactions', groupId],
-    queryFn: () => transactionService.getTransactions(groupId, token),
-    enabled: !!token,
+    queryFn: () => transactionService.getTransactions(groupId),
+    enabled: !!groupId,
   });
 
   // Create transaction mutation
   const createTransactionMutation = useMutation({
     mutationFn: (data: TransactionCreate) => 
-      transactionService.createTransaction(data, token),
+      transactionService.createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },

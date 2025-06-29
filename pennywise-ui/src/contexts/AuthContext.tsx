@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { apiClient } from '@/services/apiClient';
 
 interface User {
   id: number;
@@ -57,38 +58,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const exp = decoded.exp as number;
           if (exp * 1000 > Date.now()) {
             setToken(storedToken);
-            fetchUserProfile(storedToken);
+            fetchUserProfile();
           } else {
-            localStorage.removeItem('auth_token');
+            // Token is expired, try to refresh
+            refreshTokenAndFetchUser();
           }
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const fetchUserProfile = async (authToken: string) => {
+  const refreshTokenAndFetchUser = async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
+        const tokens = await response.json();
+        localStorage.setItem('auth_token', tokens.access_token);
+        localStorage.setItem('refresh_token', tokens.refresh_token);
+        setToken(tokens.access_token);
+        await fetchUserProfile();
       } else {
         localStorage.removeItem('auth_token');
-        setToken(null);
-        setUser(null);
+        localStorage.removeItem('refresh_token');
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+    } catch {
+      console.error('Error refreshing token');
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+    }
+    setIsLoading(false);
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const userData = await apiClient.get<User>(`${API_BASE_URL}/auth/me`);
+      setUser(userData);
+    } catch {
+      console.error('Error fetching user profile');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
       setToken(null);
       setUser(null);
     }
@@ -99,32 +124,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const data = await apiClient.post<{
+        access_token: string;
+        refresh_token: string;
+        user_id: number;
+        email: string;
+        full_name?: string;
+      }>(`${API_BASE_URL}/auth/login`, { email, password });
+
+      setToken(data.access_token);
+      setUser({
+        id: data.user_id,
+        email: data.email,
+        full_name: data.full_name,
+        auth_provider: 'email',
+        is_active: true,
+        is_superuser: false,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setToken(data.access_token);
-        setUser({
-          id: data.user_id,
-          email: data.email,
-          full_name: data.full_name,
-          auth_provider: 'email',
-          is_active: true,
-          is_superuser: false,
-        });
-        localStorage.setItem('auth_token', data.access_token);
-      } else {
-        setError(data.detail || 'Login failed');
-      }
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
     } catch (error) {
-      setError('Network error occurred');
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Network error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -135,36 +159,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          full_name: fullName 
-        }),
+      const data = await apiClient.post<{
+        access_token: string;
+        refresh_token: string;
+        user_id: number;
+        email: string;
+        full_name?: string;
+      }>(`${API_BASE_URL}/auth/register`, { 
+        email, 
+        password, 
+        full_name: fullName 
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setToken(data.access_token);
-        setUser({
-          id: data.user_id,
-          email: data.email,
-          full_name: data.full_name,
-          auth_provider: 'email',
-          is_active: true,
-          is_superuser: false,
-        });
-        localStorage.setItem('auth_token', data.access_token);
-      } else {
-        setError(data.detail || 'Registration failed');
-      }
+      setToken(data.access_token);
+      setUser({
+        id: data.user_id,
+        email: data.email,
+        full_name: data.full_name,
+        auth_provider: 'email',
+        is_active: true,
+        is_superuser: false,
+      });
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
     } catch (error) {
-      setError('Network error occurred');
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Network error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -175,32 +198,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
+      const data = await apiClient.post<{
+        access_token: string;
+        refresh_token: string;
+        user_id: number;
+        email: string;
+        full_name?: string;
+      }>(`${API_BASE_URL}/auth/google/callback`, { code });
+
+      setToken(data.access_token);
+      setUser({
+        id: data.user_id,
+        email: data.email,
+        full_name: data.full_name,
+        auth_provider: 'google',
+        is_active: true,
+        is_superuser: false,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setToken(data.access_token);
-        setUser({
-          id: data.user_id,
-          email: data.email,
-          full_name: data.full_name,
-          auth_provider: 'google',
-          is_active: true,
-          is_superuser: false,
-        });
-        localStorage.setItem('auth_token', data.access_token);
-      } else {
-        setError(data.detail || 'Google login failed');
-      }
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
     } catch (error) {
-      setError('Network error occurred');
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Network error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -210,6 +232,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
   };
 
   const value: AuthContextType = {

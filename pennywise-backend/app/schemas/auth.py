@@ -4,12 +4,12 @@ from typing import Optional
 
 class UserBase(BaseModel):
     email: EmailStr
+    username: Optional[str] = None
     full_name: Optional[str] = None
 
 
 class UserCreate(UserBase):
-    username: Optional[str] = None
-    password: Optional[str] = None
+    password: str
 
 
 class UserLogin(BaseModel):
@@ -17,28 +17,32 @@ class UserLogin(BaseModel):
     password: str
 
 
-class GoogleAuthRequest(BaseModel):
-    code: str
+class UserResponse(UserBase):
+    id: int
+    auth_provider: str
+    is_active: bool
+    is_superuser: bool
+    avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     user_id: int
     email: str
     full_name: Optional[str] = None
 
 
-class UserResponse(UserBase):
-    id: int
-    username: Optional[str] = None
-    avatar_url: Optional[str] = None
-    auth_provider: str
-    is_active: bool
-    is_superuser: bool
+class TokenRefresh(BaseModel):
+    refresh_token: str
 
-    class Config:
-        from_attributes = True
+
+class GoogleAuthRequest(BaseModel):
+    code: str
 
 
 class TokenData(BaseModel):

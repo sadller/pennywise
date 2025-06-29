@@ -12,7 +12,7 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 const queryClient = new QueryClient();
 
 function DashboardContent() {
-  const { user, token, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -34,7 +34,6 @@ function DashboardContent() {
   return (
     <DashboardOverview 
       currentUser={user}
-      token={token || undefined}
     />
   );
 }
@@ -42,11 +41,7 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthenticatedLayout onSwitchGroup={() => {
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
-        window.location.href = '/groups';
-      }}>
+      <AuthenticatedLayout>
         <DashboardContent />
       </AuthenticatedLayout>
     </QueryClientProvider>

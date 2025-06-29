@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(env="SECRET_KEY", default="your-secret-key-change-in-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Google OAuth settings
     GOOGLE_CLIENT_ID: str = Field(env="GOOGLE_CLIENT_ID", default="")

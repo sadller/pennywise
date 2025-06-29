@@ -14,10 +14,9 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 const queryClient = new QueryClient();
 
 function TransactionsContent() {
-  const { user, token, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [selectedGroupName, setSelectedGroupName] = useState<string>('');
 
   useEffect(() => {
     if (!user) {
@@ -27,7 +26,6 @@ function TransactionsContent() {
     
     // Check if user has selected a group
     const storedGroupId = localStorage.getItem('selectedGroupId');
-    const storedGroupName = localStorage.getItem('selectedGroupName');
     
     if (!storedGroupId) {
       // Redirect to groups page if no group is selected
@@ -36,7 +34,6 @@ function TransactionsContent() {
     }
     
     setSelectedGroupId(parseInt(storedGroupId));
-    setSelectedGroupName(storedGroupName || '');
   }, [user, router]);
 
   // Fetch group members
@@ -45,8 +42,8 @@ function TransactionsContent() {
     isLoading: membersLoading
   } = useQuery({
     queryKey: ['group-members', selectedGroupId],
-    queryFn: () => groupService.getGroupMembers(selectedGroupId!, token || undefined),
-    enabled: !!selectedGroupId && !!token,
+    queryFn: () => groupService.getGroupMembers(selectedGroupId!),
+    enabled: !!selectedGroupId,
   });
 
   if (isLoading || membersLoading) {
@@ -56,33 +53,24 @@ function TransactionsContent() {
       </div>
     );
   }
-  if (!user || !selectedGroupId) return null;
+
+  if (!user) return null;
 
   return (
-    <div style={{ padding: '16px', width: '100%' }}>
-      <div style={{ marginBottom: '16px', padding: '8px 16px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-        <strong>Current Group:</strong> {selectedGroupName}
-      </div>
+    <AuthenticatedLayout>
       <Transactions 
         currentUser={user}
-        groupId={selectedGroupId}
+        groupId={selectedGroupId || undefined}
         groupMembers={groupMembers}
-        token={token || undefined}
       />
-    </div>
+    </AuthenticatedLayout>
   );
 }
 
 export default function TransactionsPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthenticatedLayout onSwitchGroup={() => {
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
-        window.location.href = '/groups';
-      }}>
-        <TransactionsContent />
-      </AuthenticatedLayout>
+      <TransactionsContent />
     </QueryClientProvider>
   );
 } 

@@ -32,7 +32,6 @@ import CreateGroupForm from '@/components/groups/CreateGroupForm';
 
 interface DashboardOverviewProps {
   currentUser: User;
-  token?: string;
 }
 
 interface GroupStats {
@@ -42,7 +41,7 @@ interface GroupStats {
   totalAmount: number;
 }
 
-export default function DashboardOverview({ currentUser, token }: DashboardOverviewProps) {
+export default function DashboardOverview({ currentUser }: DashboardOverviewProps) {
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
@@ -52,8 +51,7 @@ export default function DashboardOverview({ currentUser, token }: DashboardOverv
     isLoading: groupsLoading,
   } = useQuery({
     queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(token || undefined),
-    enabled: !!token,
+    queryFn: () => groupService.getUserGroups(),
   });
 
   // For now, we'll use an empty array for recent transactions
@@ -359,7 +357,7 @@ export default function DashboardOverview({ currentUser, token }: DashboardOverv
         onClose={() => setIsCreateFormOpen(false)}
         onSubmit={async (data) => {
           // Handle group creation
-          await groupService.createGroup(data, token);
+          await groupService.createGroup(data);
           setIsCreateFormOpen(false);
         }}
         isLoading={false}
