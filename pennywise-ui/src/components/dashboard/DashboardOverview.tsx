@@ -17,6 +17,8 @@ import {
   ListItemAvatar,
   CircularProgress,
   Container,
+  Skeleton,
+  IconButton,
 } from '@mui/material';
 import {
   Group as GroupIcon,
@@ -24,53 +26,56 @@ import {
   Person as PersonIcon,
   Add as AddIcon,
   Receipt as ReceiptIcon,
+  PersonAdd as PersonAddIcon,
+  CalendarToday as CalendarIcon,
+  Star as StarIcon,
 } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { User, Transaction } from '@/types/transaction';
+import { dashboardService, RecentTransaction } from '@/services/dashboardService';
+import { User } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 
 interface DashboardOverviewProps {
   currentUser: User;
 }
 
-interface GroupStats {
-  totalGroups: number;
-  totalMembers: number;
-  totalTransactions: number;
-  totalAmount: number;
-}
-
 export default function DashboardOverview({ currentUser }: DashboardOverviewProps) {
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Fetch user's groups
+  // Fetch groups with detailed statistics
   const {
-    data: groups = [],
+    data: groupsWithStats = [],
     isLoading: groupsLoading,
   } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(),
+    queryKey: ['groups-with-stats'],
+    queryFn: () => dashboardService.getGroupsWithStats(),
   });
 
-  // For now, we'll use an empty array for recent transactions
-  // This would need to be implemented in the backend
-  const recentTransactions: Transaction[] = [];
+  // Fetch recent transactions
+  const {
+    data: recentTransactions = [],
+    isLoading: transactionsLoading,
+  } = useQuery({
+    queryKey: ['recent-transactions'],
+    queryFn: () => dashboardService.getRecentTransactions(5),
+  });
 
-  // Calculate group statistics
-  const groupStats: GroupStats = React.useMemo(() => {
-    const stats = {
-      totalGroups: groups.length,
-      totalMembers: 0,
-      totalTransactions: 0,
-      totalAmount: 0,
-    };
-
-    // This would need to be calculated from the backend
-    // For now, we'll use placeholder data
-    return stats;
-  }, [groups]);
+  // Create group mutation
+  const createGroupMutation = useMutation({
+    mutationFn: (data: { name: string }) => groupService.createGroup(data),
+    onSuccess: () => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      setIsCreateFormOpen(false);
+    },
+    onError: (error) => {
+      console.error('Failed to create group:', error);
+    },
+  });
 
   const handleGroupSelect = (groupId: number, groupName: string) => {
     localStorage.setItem('selectedGroupId', groupId.toString());
@@ -89,6 +94,11 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
     } else {
       router.push('/groups');
     }
+  };
+
+  const handleAddMember = (groupId: number) => {
+    // TODO: Implement add member functionality
+    console.log('Add member to group:', groupId);
   };
 
   if (groupsLoading) {
@@ -111,223 +121,12 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
         </Typography>
       </Box>
 
-      {/* Statistics Cards */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-        gap: 3,
-        mb: 4
-      }}>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography color="text.secondary" gutterBottom>
-                  Total Groups
-                </Typography>
-                <Typography variant="h4">
-                  {groupStats.totalGroups}
-                </Typography>
-              </Box>
-              <GroupIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-            </Box>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography color="text.secondary" gutterBottom>
-                  Total Members
-                </Typography>
-                <Typography variant="h4">
-                  {groupStats.totalMembers}
-                </Typography>
-              </Box>
-              <PersonIcon sx={{ fontSize: 40, color: 'secondary.main' }} />
-            </Box>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography color="text.secondary" gutterBottom>
-                  Total Transactions
-                </Typography>
-                <Typography variant="h4">
-                  {groupStats.totalTransactions}
-                </Typography>
-              </Box>
-              <ReceiptIcon sx={{ fontSize: 40, color: 'success.main' }} />
-            </Box>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography color="text.secondary" gutterBottom>
-                  Total Amount
-                </Typography>
-                <Typography variant="h4">
-                  ₹{groupStats.totalAmount.toFixed(2)}
-                </Typography>
-              </Box>
-              <MoneyIcon sx={{ fontSize: 40, color: 'warning.main' }} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-        gap: 3
-      }}>
-        {/* Groups Section */}
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                Your Groups
-              </Typography>
-              <Button
-                size="small"
-                onClick={() => setIsCreateFormOpen(true)}
-                startIcon={<AddIcon />}
-              >
-                New Group
-              </Button>
-            </Box>
-            
-            {groups.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 3 }}>
-                <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  No groups yet
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setIsCreateFormOpen(true)}
-                >
-                  Create your first group
-                </Button>
-              </Box>
-            ) : (
-              <List sx={{ p: 0 }}>
-                {groups.slice(0, 3).map((group, index) => (
-                  <React.Fragment key={group.id}>
-                    <ListItem 
-                      sx={{ 
-                        cursor: 'pointer',
-                        '&:hover': { backgroundColor: 'action.hover' },
-                        borderRadius: 1,
-                        mb: 1
-                      }}
-                      onClick={() => handleGroupSelect(group.id, group.name)}
-                    >
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
-                          <GroupIcon />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={group.name}
-                        secondary={`Created ${new Date(group.created_at).toLocaleDateString()}`}
-                      />
-                      <Chip 
-                        label="Select" 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                      />
-                    </ListItem>
-                    {index < Math.min(2, groups.length - 1) && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
-            )}
-            
-            {groups.length > 3 && (
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={handleViewAllGroups}
-                >
-                  View all {groups.length} groups
-                </Button>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Transactions Section */}
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                Recent Transactions
-              </Typography>
-              <Button
-                size="small"
-                onClick={handleViewTransactions}
-              >
-                View All
-              </Button>
-            </Box>
-            
-            {recentTransactions.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 3 }}>
-                <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  No recent transactions
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={handleViewTransactions}
-                >
-                  Add your first transaction
-                </Button>
-              </Box>
-            ) : (
-              <List sx={{ p: 0 }}>
-                {recentTransactions.slice(0, 3).map((transaction: Transaction, index: number) => (
-                  <React.Fragment key={transaction.id}>
-                    <ListItem>
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'success.main' }}>
-                          <MoneyIcon />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={`₹${transaction.amount.toFixed(2)} - ${transaction.note || 'No description'}`}
-                        secondary={`${transaction.paid_by || 'Unknown'} • ${new Date(transaction.date).toLocaleDateString()}`}
-                      />
-                      <Chip 
-                        label={`Group ${transaction.group_id}`} 
-                        size="small" 
-                        variant="outlined"
-                      />
-                    </ListItem>
-                    {index < Math.min(2, recentTransactions.length - 1) && <Divider />}
-                  </React.Fragment>
-                ))}
-              </List>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Quick Actions */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Quick Actions
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      {/* Group Cards Section */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" fontWeight="bold">
+            Your Groups
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -335,32 +134,259 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
           >
             Create New Group
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<ReceiptIcon />}
-            onClick={handleViewTransactions}
-          >
-            View Transactions
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<GroupIcon />}
-            onClick={handleViewAllGroups}
-          >
-            Manage Groups
-          </Button>
         </Box>
+
+        {groupsLoading ? (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3
+          }}>
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <Box sx={{ ml: 2, flex: 1 }}>
+                      <Skeleton variant="text" width="60%" height={24} />
+                      <Skeleton variant="text" width="40%" height={20} />
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <Skeleton variant="text" width="100%" height={20} />
+                    <Skeleton variant="text" width="100%" height={20} />
+                    <Skeleton variant="text" width="100%" height={20} />
+                    <Skeleton variant="text" width="100%" height={20} />
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : groupsWithStats.length === 0 ? (
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 6 }}>
+              <GroupIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No groups yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Create your first group to start tracking expenses with friends or family.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setIsCreateFormOpen(true)}
+              >
+                Create Your First Group
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3
+          }}>
+            {groupsWithStats.map((group) => (
+              <Card 
+                key={group.id}
+                sx={{ 
+                  height: '100%',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  }
+                }}
+                onClick={() => handleGroupSelect(group.id, group.name)}
+              >
+                <CardContent>
+                  {/* Group Header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <GroupIcon />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" noWrap>
+                        {group.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {group.owner_name}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddMember(group.id);
+                      }}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <PersonAddIcon />
+                    </IconButton>
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  {/* Group Statistics */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                        <PersonIcon sx={{ fontSize: 20, color: 'secondary.main', mr: 1 }} />
+                        <Typography variant="h6" fontWeight="bold">
+                          {group.member_count}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Members
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                        <ReceiptIcon sx={{ fontSize: 20, color: 'success.main', mr: 1 }} />
+                        <Typography variant="h6" fontWeight="bold">
+                          {group.transaction_count}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Transactions
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Total Amount */}
+                  <Box sx={{ textAlign: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                      <MoneyIcon sx={{ fontSize: 24, color: 'warning.main', mr: 1 }} />
+                      <Typography variant="h5" fontWeight="bold" color="warning.main">
+                        ₹{group.total_amount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Total Amount
+                    </Typography>
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  {/* Group Footer */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(group.created_at).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                    <Chip 
+                      label="View Details" 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                      sx={{ cursor: 'pointer' }}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+
+        {!groupsLoading && groupsWithStats.length > 0 && (
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              onClick={handleViewAllGroups}
+            >
+              View All Groups
+            </Button>
+          </Box>
+        )}
       </Box>
+
+      {/* Recent Transactions Section */}
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Recent Transactions
+            </Typography>
+            <Button
+              size="small"
+              onClick={handleViewTransactions}
+            >
+              View All
+            </Button>
+          </Box>
+          
+          {transactionsLoading ? (
+            <Box sx={{ py: 2 }}>
+              {[1, 2, 3].map((i) => (
+                <Box key={i} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="70%" height={24} />
+                      <Skeleton variant="text" width="50%" height={20} />
+                    </Box>
+                    <Skeleton variant="rectangular" width={80} height={24} />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          ) : recentTransactions.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                No recent transactions
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleViewTransactions}
+              >
+                Add your first transaction
+              </Button>
+            </Box>
+          ) : (
+            <List sx={{ p: 0 }}>
+              {recentTransactions.slice(0, 5).map((transaction: RecentTransaction, index: number) => (
+                <React.Fragment key={transaction.id}>
+                  <ListItem>
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: 'success.main' }}>
+                        <MoneyIcon />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={`₹${transaction.amount.toFixed(2)} - ${transaction.note || 'No description'}`}
+                      secondary={`${transaction.paid_by_name || 'Unknown'} • ${new Date(transaction.date).toLocaleDateString()}`}
+                    />
+                    <Chip 
+                      label={transaction.group_name} 
+                      size="small" 
+                      variant="outlined"
+                    />
+                  </ListItem>
+                  {index < Math.min(4, recentTransactions.length - 1) && <Divider />}
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </CardContent>
+      </Card>
 
       <CreateGroupForm
         open={isCreateFormOpen}
         onClose={() => setIsCreateFormOpen(false)}
         onSubmit={async (data) => {
-          // Handle group creation
-          await groupService.createGroup(data);
-          setIsCreateFormOpen(false);
+          await createGroupMutation.mutateAsync(data);
         }}
-        isLoading={false}
+        isLoading={createGroupMutation.isPending}
       />
     </Container>
   );
