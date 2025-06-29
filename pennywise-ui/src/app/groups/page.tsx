@@ -26,7 +26,7 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 const queryClient = new QueryClient();
 
 function GroupsContent() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
@@ -58,7 +58,7 @@ function GroupsContent() {
     // Store selected group in localStorage or context
     localStorage.setItem('selectedGroupId', group.id.toString());
     localStorage.setItem('selectedGroupName', group.name);
-    router.push('/dashboard');
+    router.push('/transactions');
   };
 
   if (isLoading) {

@@ -2,13 +2,14 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   AppBar,
   Toolbar,
   Menu,
   MenuItem,
-  Avatar,
+  Button,
+  Box,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
@@ -21,6 +22,7 @@ interface HeaderProps {
 export default function Header({ onSwitchGroup }: HeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -83,18 +85,65 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
     handleMenuClose();
   };
 
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
+
   if (!user) return null;
 
   return (
     <AppBar position="static" color="inherit" elevation={1} className={styles.header}>
       <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-        <div className={styles.logo}>
-          <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
-          <div>
-            <h1>Pennywise</h1>
-            <span>Smart Expense Tracking</span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div className={styles.logo}>
+            <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
+            <div>
+              <h1>Pennywise</h1>
+              <span>Smart Expense Tracking</span>
+            </div>
           </div>
+          
+          {/* Navigation Links */}
+          <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
+            <Button
+              color="inherit"
+              onClick={() => handleNavigation('/dashboard')}
+              sx={{
+                backgroundColor: pathname === '/dashboard' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                }
+              }}
+            >
+              Dashboard
+            </Button>
+            <Button
+              color="inherit"
+              onClick={() => handleNavigation('/transactions')}
+              sx={{
+                backgroundColor: pathname === '/transactions' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                }
+              }}
+            >
+              Transactions
+            </Button>
+            <Button
+              color="inherit"
+              onClick={() => handleNavigation('/groups')}
+              sx={{
+                backgroundColor: pathname === '/groups' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                }
+              }}
+            >
+              Groups
+            </Button>
+          </Box>
         </div>
+        
         <div
           onMouseEnter={handleMenuOpen}
           onMouseLeave={handleMouseLeave}
@@ -106,13 +155,7 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
             style={{ cursor: 'pointer' }}
           >
             <span className={styles.avatar}>
-              {user.full_name ? (
-                <Avatar sx={{ bgcolor: 'transparent', width: 40, height: 40, fontWeight: 600, fontSize: '1.2rem', color: 'white', background: 'none' }}>
-                  {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                </Avatar>
-              ) : (
-                <AccountCircle fontSize="large" />
-              )}
+              <AccountCircle fontSize="large" />
             </span>
             <span>{user.full_name || user.email}</span>
           </div>
