@@ -164,8 +164,19 @@ export default function NotificationCenter({ open, onClose }: NotificationCenter
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      keepMounted
+      disableScrollLock={false}
       PaperProps={{
-        sx: { maxHeight: '80vh' }
+        sx: { 
+          maxHeight: '80vh',
+          margin: '16px',
+          position: 'relative'
+        }
+      }}
+      BackdropProps={{
+        sx: {
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }
       }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

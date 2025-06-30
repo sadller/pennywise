@@ -22,6 +22,11 @@ body {
   overflow-x: hidden;
 }
 
+/* Prevent layout shifts when dialogs/menus open */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -29,6 +34,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  /* Ensure consistent scrollbar behavior */
+  overflow-y: scroll;
 }
 
 * {
@@ -46,8 +53,47 @@ button {
   font-family: inherit;
 }
 
+/* Prevent layout shifts for Material-UI components */
+.MuiDialog-root {
+  /* Ensure dialog doesn't affect page layout */
+  position: fixed;
+  z-index: 1300;
+}
+
+.MuiMenu-root {
+  /* Ensure menu doesn't affect page layout */
+  position: fixed;
+  z-index: 1300;
+}
+
+/* Custom scrollbar styling for better consistency */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 }

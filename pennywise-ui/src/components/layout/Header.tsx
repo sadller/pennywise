@@ -27,8 +27,6 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
   const pathname = usePathname();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
-  const [menuOpen, setMenuOpen] = React.useState(false);
-  const closeMenuTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = React.useState(false);
 
@@ -38,32 +36,12 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
     }
   }, [justLoggedOut, router]);
 
-  const handleMenuOpen = () => {
-    if (userInfoRef.current) {
-      setAnchorEl(userInfoRef.current);
-    }
-    if (closeMenuTimeout.current) {
-      clearTimeout(closeMenuTimeout.current);
-    }
-    setMenuOpen(true);
+  const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setMenuOpen(false);
-  };
-
-  const handleMouseLeave = () => {
-    closeMenuTimeout.current = setTimeout(() => {
-      setMenuOpen(false);
-      setAnchorEl(null);
-    }, 150);
-  };
-
-  const handleMouseEnter = () => {
-    if (closeMenuTimeout.current) {
-      clearTimeout(closeMenuTimeout.current);
-    }
   };
 
   const handleProfile = () => {
@@ -156,36 +134,39 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
             </Box>
           </div>
           
-          <div
-            onMouseEnter={handleMenuOpen}
-            onMouseLeave={handleMouseLeave}
-            style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
-          >
-            {/* Notification Icon */}
+          {/* Right side - Notification and User Profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Notification Icon - Separate from user profile */}
             <NotificationIcon onOpenNotifications={handleOpenNotifications} />
             
+            {/* User Profile - Click to open menu */}
             <div
               className={styles.userInfo}
               ref={userInfoRef}
               style={{ cursor: 'pointer' }}
+              onClick={handleUserMenuClick}
             >
               <span className={styles.avatar}>
                 <AccountCircle fontSize="large" />
               </span>
               <span>{user.full_name || user.email}</span>
             </div>
+            
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               keepMounted
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              open={Boolean(anchorEl) && menuOpen}
+              open={Boolean(anchorEl)}
               onClose={handleMenuClose}
-              MenuListProps={{
-                onMouseEnter: handleMouseEnter,
-                onMouseLeave: handleMouseLeave,
-                style: { pointerEvents: 'auto' },
+              disableScrollLock={false}
+              PaperProps={{
+                sx: {
+                  marginTop: '8px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  border: '1px solid rgba(0, 0, 0, 0.12)'
+                }
               }}
             >
               <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
