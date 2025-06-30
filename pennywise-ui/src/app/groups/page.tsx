@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -12,8 +12,10 @@ import {
   CircularProgress,
   Alert,
   Container,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import GroupIcon from '@mui/icons-material/Group';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService, GroupCreate } from '@/services/groupService';
 import { Group } from '@/types/transaction';
@@ -27,6 +29,13 @@ const queryClient = new QueryClient();
 function GroupsContent() {
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
+
+  // Get current group name from localStorage
+  useEffect(() => {
+    const groupName = localStorage.getItem('selectedGroupName');
+    setCurrentGroupName(groupName);
+  }, []);
 
   // Fetch user's groups
   const {
@@ -55,6 +64,7 @@ function GroupsContent() {
     // Store selected group in localStorage or context
     localStorage.setItem('selectedGroupId', group.id.toString());
     localStorage.setItem('selectedGroupName', group.name);
+    setCurrentGroupName(group.name);
     router.push('/transactions');
   };
 
@@ -79,6 +89,41 @@ function GroupsContent() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
+      {/* Current Group Indicator */}
+      {currentGroupName && (
+        <Box sx={{ mb: 4 }}>
+          <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+            <CardContent sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <GroupIcon sx={{ fontSize: 28 }} />
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold">
+                      Currently Selected: {currentGroupName}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      You&apos;re viewing transactions for this group
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  variant="contained"
+                  color="inherit"
+                  onClick={() => router.push('/transactions')}
+                  sx={{ 
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
+                >
+                  View Transactions
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
 
       {groups.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 6 }}>
@@ -113,7 +158,10 @@ function GroupsContent() {
               <Card 
                 key={group.id}
                 sx={{ 
-                  cursor: 'pointer', 
+                  cursor: 'pointer',
+                  border: currentGroupName === group.name ? '2px solid' : 'none',
+                  borderColor: 'primary.main',
+                  bgcolor: currentGroupName === group.name ? 'primary.50' : 'background.paper',
                   '&:hover': { 
                     boxShadow: 4,
                     transform: 'translateY(-2px)',
@@ -129,17 +177,17 @@ function GroupsContent() {
                   <Typography variant="body2" color="text.secondary">
                     Created {new Date(group.created_at).toLocaleDateString()}
                   </Typography>
-                  <Button 
-                    variant="outlined" 
+                  <Chip 
+                    label={currentGroupName === group.name ? "Selected" : "Select Group"} 
                     size="small" 
-                    sx={{ mt: 2 }}
+                    color={currentGroupName === group.name ? "success" : "primary"} 
+                    variant={currentGroupName === group.name ? "filled" : "outlined"}
+                    sx={{ mt: 2, cursor: 'pointer' }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleGroupSelect(group);
                     }}
-                  >
-                    Select Group
-                  </Button>
+                  />
                 </CardContent>
               </Card>
             ))}

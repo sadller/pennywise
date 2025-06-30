@@ -43,7 +43,14 @@ interface DashboardOverviewProps {
 export default function DashboardOverview({ currentUser }: DashboardOverviewProps) {
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Get current group name from localStorage
+  React.useEffect(() => {
+    const groupName = localStorage.getItem('selectedGroupName');
+    setCurrentGroupName(groupName);
+  }, []);
 
   // Fetch groups with detailed statistics
   const {
@@ -121,6 +128,42 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
         </Typography>
       </Box>
 
+      {/* Current Group Indicator */}
+      {currentGroupName && (
+        <Box sx={{ mb: 4 }}>
+          <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+            <CardContent sx={{ py: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <GroupIcon sx={{ fontSize: 28 }} />
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold">
+                      Currently Selected: {currentGroupName}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      You&apos;re viewing transactions for this group
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  variant="contained"
+                  color="inherit"
+                  onClick={() => router.push('/transactions')}
+                  sx={{ 
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
+                >
+                  View Transactions
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+
       {/* Group Cards Section */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -194,6 +237,9 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
                   height: '100%',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out',
+                  border: currentGroupName === group.name ? '2px solid' : 'none',
+                  borderColor: 'primary.main',
+                  bgcolor: currentGroupName === group.name ? 'primary.50' : 'background.paper',
                   '&:hover': {
                     transform: 'translateY(-4px)',
                     boxShadow: 4,
@@ -283,10 +329,10 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
                       </Typography>
                     </Box>
                     <Chip 
-                      label="View Details" 
+                      label={currentGroupName === group.name ? "Selected" : "View Details"} 
                       size="small" 
-                      color="primary" 
-                      variant="outlined"
+                      color={currentGroupName === group.name ? "success" : "primary"} 
+                      variant={currentGroupName === group.name ? "filled" : "outlined"}
                       sx={{ cursor: 'pointer' }}
                     />
                   </Box>
