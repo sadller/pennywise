@@ -5,7 +5,6 @@ from .endpoints.transactions import router as transactions
 from .endpoints.groups import router as groups
 from .endpoints.dashboard import router as dashboard
 from .endpoints.notifications import router as notifications
-from .endpoints.archive import router as archive
 
 api_router = APIRouter()
 
@@ -25,7 +24,4 @@ api_router.include_router(groups, prefix="/groups", tags=["groups"])
 api_router.include_router(dashboard, prefix="/dashboard", tags=["dashboard"])
 
 # Include notifications endpoints
-api_router.include_router(notifications, prefix="/notifications", tags=["notifications"])
-
-# Include archive endpoints
-api_router.include_router(archive, prefix="/archive", tags=["archive"]) 
+api_router.include_router(notifications, prefix="/notifications", tags=["notifications"]) 

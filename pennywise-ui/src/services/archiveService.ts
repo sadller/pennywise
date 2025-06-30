@@ -22,31 +22,31 @@ export interface DeletedTransaction extends Transaction {
 export const archiveService = {
   // Delete a transaction (move to deleted transactions)
   deleteTransaction: async (transactionId: number): Promise<DeletedTransaction> => {
-    return apiClient.delete(`/archive/transactions/${transactionId}/delete`);
+    return apiClient.delete(`/transactions/${transactionId}/delete`);
   },
 
   // Archive a transaction (move to archived transactions)
   archiveTransaction: async (transactionId: number): Promise<ArchivedTransaction> => {
-    return apiClient.post(`/archive/transactions/${transactionId}/archive`);
+    return apiClient.post(`/transactions/${transactionId}/archive`);
   },
 
   // Get archived transactions
   getArchivedTransactions: async (): Promise<ArchivedTransaction[]> => {
-    return apiClient.get('/archive/archived-transactions');
+    return apiClient.get('/transactions/archived');
   },
 
   // Get deleted transactions
   getDeletedTransactions: async (): Promise<DeletedTransaction[]> => {
-    return apiClient.get('/archive/deleted-transactions');
+    return apiClient.get('/transactions/deleted');
   },
 
   // Restore an archived transaction
   restoreArchivedTransaction: async (archivedTransactionId: number): Promise<Transaction> => {
-    return apiClient.post(`/archive/archived-transactions/${archivedTransactionId}/restore`);
+    return apiClient.post(`/transactions/archived/${archivedTransactionId}/restore`);
   },
 
   // Restore a deleted transaction
   restoreDeletedTransaction: async (deletedTransactionId: number): Promise<Transaction> => {
-    return apiClient.post(`/archive/deleted-transactions/${deletedTransactionId}/restore`);
+    return apiClient.post(`/transactions/deleted/${deletedTransactionId}/restore`);
   }
 }; 
