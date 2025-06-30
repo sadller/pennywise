@@ -7,6 +7,11 @@ export interface GroupCreate {
   name: string;
 }
 
+export interface DeleteGroupResponse {
+  message: string;
+  archived_transactions_count: number;
+}
+
 export const groupService = {
   async createGroup(group: GroupCreate): Promise<Group> {
     return apiClient.post<Group>(`${API_BASE_URL}/groups/`, group);
@@ -22,5 +27,9 @@ export const groupService = {
 
   async addGroupMember(groupId: number, userEmail: string): Promise<void> {
     return apiClient.post<void>(`${API_BASE_URL}/groups/${groupId}/members`, { user_email: userEmail });
+  },
+
+  async deleteGroup(groupId: number): Promise<DeleteGroupResponse> {
+    return apiClient.delete<DeleteGroupResponse>(`${API_BASE_URL}/groups/${groupId}`);
   },
 }; 

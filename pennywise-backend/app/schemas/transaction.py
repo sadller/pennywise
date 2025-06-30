@@ -26,4 +26,40 @@ class TransactionResponse(TransactionBase):
     date: datetime
 
     class Config:
+        orm_mode = True
+
+class ArchivedTransactionBase(TransactionBase):
+    original_transaction_id: Optional[int] = None
+    archived_at: Optional[datetime] = None
+    archived_by: int
+    archive_reason: Optional[str] = None
+    group_name: Optional[str] = None
+
+class ArchivedTransactionCreate(ArchivedTransactionBase):
+    pass
+
+class ArchivedTransactionResponse(ArchivedTransactionBase):
+    id: int
+    date: datetime
+    archived_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class DeletedTransactionBase(TransactionBase):
+    original_transaction_id: Optional[int] = None
+    deleted_at: Optional[datetime] = None
+    deleted_by: int
+    deletion_reason: Optional[str] = None
+    group_name: Optional[str] = None
+
+class DeletedTransactionCreate(DeletedTransactionBase):
+    pass
+
+class DeletedTransactionResponse(DeletedTransactionBase):
+    id: int
+    date: datetime
+    deleted_at: datetime
+
+    class Config:
         orm_mode = True 

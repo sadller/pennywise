@@ -174,6 +174,12 @@ export default function Transactions({
         transactions={transactions} 
         isLoading={isLoading}
         groupMembers={groupMembers}
+        onTransactionDeleted={() => {
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        }}
+        onTransactionArchived={() => {
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        }}
       />
 
       <AddTransactionForm

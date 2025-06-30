@@ -6,6 +6,7 @@ from app.schemas import GroupCreate, GroupResponse
 from typing import List
 from app.api.api_v1.endpoints.auth import get_current_user
 from app.services.notification_service import NotificationService
+from app.services.archive_service import ArchiveService
 from pydantic import BaseModel
 
 class AddMemberRequest(BaseModel):
@@ -167,4 +168,51 @@ def get_group_members(
         GroupMember.group_id == group_id
     ).all()
     
-    return members 
+    return members
+
+@router.delete("/{group_id}")
+def delete_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a group and archive all its transactions (only group owner can do this)."""
+    # Check if current user is the owner of the group
+    group = db.query(Group).filter(
+        Group.id == group_id,
+        Group.owner_id == current_user.id
+    ).first()
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found or you don't have permission to delete it"
+        )
+    
+    try:
+        # Archive all transactions in the group
+        archived_transactions = ArchiveService.archive_group_transactions(
+            db=db,
+            group_id=group_id,
+            archived_by=current_user.id,
+            archive_reason="group_deleted"
+        )
+        
+        # Delete all group members
+        db.query(GroupMember).filter(GroupMember.group_id == group_id).delete()
+        
+        # Delete the group
+        db.delete(group)
+        db.commit()
+        
+        return {
+            "message": "Group deleted successfully",
+            "archived_transactions_count": len(archived_transactions)
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting group: {str(e)}"
+        ) 
