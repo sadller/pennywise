@@ -46,11 +46,19 @@ export default function Transactions({
   const {
     data: transactions = [],
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery({
     queryKey: ['transactions', groupId],
     queryFn: () => transactionService.getTransactions(groupId),
     enabled: !!groupId,
+    retry: (failureCount, error) => {
+      // Don't retry if it's a membership error (403)
+      if (error instanceof Error && error.message.includes('not a member')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   // Create transaction mutation
@@ -81,11 +89,35 @@ export default function Transactions({
   };
 
   if (error) {
+    // Check if it's a membership error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isMembershipError = errorMessage.includes('not a member') || errorMessage.includes('403');
+    
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity="error">
-          Failed to load transactions. Please try again.
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {isMembershipError 
+            ? "You are not a member of this group. Please select a different group."
+            : "Failed to load transactions. Please try again."
+          }
         </Alert>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {isMembershipError ? (
+            <Button 
+              variant="contained" 
+              onClick={handleSwitchGroup}
+            >
+              Switch Group
+            </Button>
+          ) : (
+            <Button 
+              variant="contained" 
+              onClick={() => refetch()}
+            >
+              Retry
+            </Button>
+          )}
+        </Box>
       </Box>
     );
   }

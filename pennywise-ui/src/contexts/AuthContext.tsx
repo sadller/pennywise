@@ -97,11 +97,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('refresh_token');
+        // Clear group selection data when authentication fails
+        localStorage.removeItem('selectedGroupId');
+        localStorage.removeItem('selectedGroupName');
       }
     } catch {
       console.error('Error refreshing token');
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
+      // Clear group selection data when authentication fails
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
     }
     setIsLoading(false);
   };
@@ -114,6 +120,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error fetching user profile');
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
+      // Clear group selection data when authentication fails
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
       setToken(null);
       setUser(null);
     }
@@ -122,6 +131,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
+    
+    // Clear any existing group data to ensure clean state
+    localStorage.removeItem('selectedGroupId');
+    localStorage.removeItem('selectedGroupName');
     
     try {
       const data = await apiClient.post<{
@@ -157,6 +170,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (email: string, password: string, fullName?: string) => {
     setIsLoading(true);
     setError(null);
+    
+    // Clear any existing group data to ensure clean state
+    localStorage.removeItem('selectedGroupId');
+    localStorage.removeItem('selectedGroupName');
     
     try {
       const data = await apiClient.post<{
@@ -197,6 +214,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     setError(null);
     
+    // Clear any existing group data to ensure clean state
+    localStorage.removeItem('selectedGroupId');
+    localStorage.removeItem('selectedGroupName');
+    
     try {
       const data = await apiClient.post<{
         access_token: string;
@@ -233,6 +254,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
+    // Clear group selection data to prevent data leakage between users
+    localStorage.removeItem('selectedGroupId');
+    localStorage.removeItem('selectedGroupName');
   };
 
   const value: AuthContextType = {

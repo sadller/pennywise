@@ -38,6 +38,26 @@ def list_transactions(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Transaction)
+    
     if group_id:
+        # First check if the current user is a member of the specified group
+        member = db.query(GroupMember).filter(
+            GroupMember.user_id == current_user.id,
+            GroupMember.group_id == group_id
+        ).first()
+        
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this group."
+            )
+        
         query = query.filter(Transaction.group_id == group_id)
+    else:
+        # If no group_id provided, only show transactions from groups the user is a member of
+        user_groups = db.query(GroupMember.group_id).filter(
+            GroupMember.user_id == current_user.id
+        ).subquery()
+        query = query.filter(Transaction.group_id.in_(user_groups))
+    
     return query.order_by(Transaction.date.desc()).all() 
