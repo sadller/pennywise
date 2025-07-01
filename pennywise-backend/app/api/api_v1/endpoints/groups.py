@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models import Group, GroupMember, User
+from app.models import Group, GroupMember, User, Transaction
 from app.schemas import GroupCreate, GroupResponse
 from typing import List
 from app.api.api_v1.endpoints.auth import get_current_user
 from app.services.notification_service import NotificationService
-from app.services.archive_service import ArchiveService
 from pydantic import BaseModel
 
 class AddMemberRequest(BaseModel):
@@ -190,13 +189,9 @@ def delete_group(
         )
     
     try:
-        # Archive all transactions in the group
-        archived_transactions = ArchiveService.archive_group_transactions(
-            db=db,
-            group_id=group_id,
-            archived_by=current_user.id,
-            archive_reason="group_deleted"
-        )
+        # Delete all transactions in the group
+        deleted_transactions_count = db.query(Transaction).filter(Transaction.group_id == group_id).count()
+        db.query(Transaction).filter(Transaction.group_id == group_id).delete()
         
         # Delete all group members
         db.query(GroupMember).filter(GroupMember.group_id == group_id).delete()
@@ -207,7 +202,7 @@ def delete_group(
         
         return {
             "message": "Group deleted successfully",
-            "archived_transactions_count": len(archived_transactions)
+            "deleted_transactions_count": deleted_transactions_count
         }
         
     except Exception as e:

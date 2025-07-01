@@ -19,6 +19,11 @@ import {
   Container,
   Skeleton,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
 } from '@mui/material';
 import {
   Group as GroupIcon,
@@ -29,10 +34,11 @@ import {
   PersonAdd as PersonAddIcon,
   CalendarToday as CalendarIcon,
   Star as StarIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { dashboardService, RecentTransaction } from '@/services/dashboardService';
+import { dashboardService, RecentTransaction, GroupStats } from '@/services/dashboardService';
 import { User } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 
@@ -44,6 +50,8 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<GroupStats | null>(null);
   const queryClient = useQueryClient();
 
   // Get current group name from localStorage
@@ -84,6 +92,29 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
     },
   });
 
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
+      
+      // If the deleted group was the currently selected group, clear the selection
+      if (groupToDelete && currentGroupName === groupToDelete.name) {
+        localStorage.removeItem('selectedGroupId');
+        localStorage.removeItem('selectedGroupName');
+        setCurrentGroupName(null);
+      }
+      
+      console.log(`Group deleted successfully. ${data.deleted_transactions_count} transactions deleted.`);
+    },
+    onError: (error) => {
+      console.error('Failed to delete group:', error);
+    },
+  });
+
   const handleGroupSelect = (groupId: number, groupName: string) => {
     localStorage.setItem('selectedGroupId', groupId.toString());
     localStorage.setItem('selectedGroupName', groupName);
@@ -106,6 +137,23 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
   const handleAddMember = (groupId: number) => {
     // TODO: Implement add member functionality
     console.log('Add member to group:', groupId);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, group: GroupStats) => {
+    e.stopPropagation();
+    setGroupToDelete(group);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (groupToDelete) {
+      await deleteGroupMutation.mutateAsync(groupToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setGroupToDelete(null);
   };
 
   if (groupsLoading) {
@@ -264,16 +312,35 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
                         </Typography>
                       </Box>
                     </Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddMember(group.id);
-                      }}
-                      sx={{ color: 'primary.main' }}
-                    >
-                      <PersonAddIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddMember(group.id);
+                        }}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <PersonAddIcon />
+                      </IconButton>
+                      {currentUser.id === group.owner_id && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={(e) => handleDeleteClick(e, group)}
+                          sx={{ 
+                            opacity: 0.7,
+                            '&:hover': { 
+                              opacity: 1,
+                              bgcolor: 'error.light',
+                              color: 'error.contrastText'
+                            }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                   </Box>
 
                   <Divider sx={{ my: 2 }} />
@@ -434,6 +501,44 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
         }}
         isLoading={createGroupMutation.isPending}
       />
+
+      {/* Delete Group Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete Group</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete the group &quot;{groupToDelete?.name}&quot;?
+          </Typography>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Warning:</strong> This action cannot be undone. All transactions in this group will be permanently deleted and the group will be permanently deleted.
+            </Typography>
+          </Alert>
+          {groupToDelete && (
+            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <strong>Group Name:</strong> {groupToDelete.name}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Created:</strong> {new Date(groupToDelete.created_at).toLocaleDateString()}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleteGroupMutation.isPending}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={deleteGroupMutation.isPending}
+          >
+            {deleteGroupMutation.isPending ? 'Deleting...' : 'Delete Group'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 } 

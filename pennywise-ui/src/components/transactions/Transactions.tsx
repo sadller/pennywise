@@ -177,9 +177,7 @@ export default function Transactions({
         onTransactionDeleted={() => {
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }}
-        onTransactionArchived={() => {
-          queryClient.invalidateQueries({ queryKey: ['transactions'] });
-        }}
+
       />
 
       <AddTransactionForm

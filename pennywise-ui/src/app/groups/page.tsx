@@ -13,8 +13,14 @@ import {
   Alert,
   Container,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService, GroupCreate } from '@/services/groupService';
@@ -22,14 +28,18 @@ import { Group } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Create a client
 const queryClient = new QueryClient();
 
 function GroupsContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
 
   // Get current group name from localStorage
   useEffect(() => {
@@ -56,6 +66,30 @@ function GroupsContent() {
     },
   });
 
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
+      
+      // If the deleted group was the currently selected group, clear the selection
+      if (groupToDelete && currentGroupName === groupToDelete.name) {
+        localStorage.removeItem('selectedGroupId');
+        localStorage.removeItem('selectedGroupName');
+        setCurrentGroupName(null);
+      }
+      
+      // Show success message (you could add a toast notification here)
+      console.log(`Group deleted successfully. ${data.deleted_transactions_count} transactions deleted.`);
+    },
+    onError: (error) => {
+      console.error('Failed to delete group:', error);
+      // You could add error toast notification here
+    },
+  });
+
   const handleCreateGroup = async (data: GroupCreate) => {
     await createGroupMutation.mutateAsync(data);
   };
@@ -66,6 +100,23 @@ function GroupsContent() {
     localStorage.setItem('selectedGroupName', group.name);
     setCurrentGroupName(group.name);
     router.push('/transactions');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, group: Group) => {
+    e.stopPropagation();
+    setGroupToDelete(group);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (groupToDelete) {
+      await deleteGroupMutation.mutateAsync(groupToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setGroupToDelete(null);
   };
 
   if (isLoading) {
@@ -171,18 +222,46 @@ function GroupsContent() {
                 onClick={() => handleGroupSelect(group)}
               >
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {group.name}
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" gutterBottom sx={{ flex: 1 }}>
+                      {group.name}
+                    </Typography>
+                    {user && group.owner_id === user.id && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={(e) => handleDeleteClick(e, group)}
+                        sx={{ 
+                          opacity: 0.7,
+                          '&:hover': { 
+                            opacity: 1,
+                            bgcolor: 'error.light',
+                            color: 'error.contrastText'
+                          }
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
                   <Typography variant="body2" color="text.secondary">
                     Created {new Date(group.created_at).toLocaleDateString()}
                   </Typography>
+                  {user && group.owner_id === user.id && (
+                    <Chip 
+                      label="Owner" 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                      sx={{ mt: 1, mr: 1 }}
+                    />
+                  )}
                   <Chip 
                     label={currentGroupName === group.name ? "Selected" : "Select Group"} 
                     size="small" 
                     color={currentGroupName === group.name ? "success" : "primary"} 
                     variant={currentGroupName === group.name ? "filled" : "outlined"}
-                    sx={{ mt: 2, cursor: 'pointer' }}
+                    sx={{ mt: 1, cursor: 'pointer' }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleGroupSelect(group);
@@ -211,6 +290,44 @@ function GroupsContent() {
         onSubmit={handleCreateGroup}
         isLoading={createGroupMutation.isPending}
       />
+
+      {/* Delete Group Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete Group</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete the group &quot;{groupToDelete?.name}&quot;?
+          </Typography>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Warning:</strong> This action cannot be undone. All transactions in this group will be permanently deleted and the group will be permanently deleted.
+            </Typography>
+          </Alert>
+          {groupToDelete && (
+            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <strong>Group Name:</strong> {groupToDelete.name}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Created:</strong> {new Date(groupToDelete.created_at).toLocaleDateString()}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleteGroupMutation.isPending}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={deleteGroupMutation.isPending}
+          >
+            {deleteGroupMutation.isPending ? 'Deleting...' : 'Delete Group'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Floating Action Button for mobile */}
       <Fab

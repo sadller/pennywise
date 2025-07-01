@@ -9,7 +9,7 @@ export interface GroupCreate {
 
 export interface DeleteGroupResponse {
   message: string;
-  archived_transactions_count: number;
+  deleted_transactions_count: number;
 }
 
 export const groupService = {

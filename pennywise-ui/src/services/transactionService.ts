@@ -16,4 +16,8 @@ export const transactionService = {
   async createTransaction(transaction: TransactionCreate): Promise<Transaction> {
     return apiClient.post<Transaction>(`${API_BASE_URL}/transactions/`, transaction);
   },
+
+  async deleteTransaction(transactionId: number): Promise<void> {
+    return apiClient.delete<void>(`${API_BASE_URL}/transactions/${transactionId}`);
+  },
 }; 

@@ -5,6 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 export interface GroupStats {
   id: number;
   name: string;
+  owner_id: number;
   owner_name: string;
   member_count: number;
   transaction_count: number;

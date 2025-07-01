@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import Transaction, User, GroupMember
 from app.schemas import TransactionCreate, TransactionResponse
-from app.schemas.transaction import ArchivedTransactionResponse, DeletedTransactionResponse
-from app.services.archive_service import ArchiveService
 from typing import List
 from app.api.api_v1.endpoints.auth import get_current_user
 
@@ -64,117 +62,35 @@ def list_transactions(
     
     return query.order_by(Transaction.date.desc()).all()
 
-# Archive and deletion endpoints
-@router.delete("/{transaction_id}/delete", response_model=DeletedTransactionResponse)
+@router.delete("/{transaction_id}")
 def delete_transaction(
     transaction_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a transaction (move to deleted transactions table)"""
-    try:
-        deleted_transaction = ArchiveService.delete_transaction(
-            db=db,
-            transaction_id=transaction_id,
-            deleted_by=current_user.id,
-            deletion_reason="user_deleted"
-        )
-        return deleted_transaction
-    except ValueError as e:
+    """Delete a transaction permanently"""
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    
+    if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="Transaction not found"
         )
-
-@router.post("/{transaction_id}/archive", response_model=ArchivedTransactionResponse)
-def archive_transaction(
-    transaction_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Archive a transaction (move to archived transactions table)"""
-    try:
-        archived_transaction = ArchiveService.archive_transaction(
-            db=db,
-            transaction_id=transaction_id,
-            archived_by=current_user.id,
-            archive_reason="manual_archive"
-        )
-        return archived_transaction
-    except ValueError as e:
+    
+    # Check if user has permission to delete this transaction
+    # (either they created it or they're a member of the group)
+    member = db.query(GroupMember).filter(
+        GroupMember.user_id == current_user.id,
+        GroupMember.group_id == transaction.group_id
+    ).first()
+    
+    if not member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this transaction"
         )
-
-@router.get("/archived", response_model=List[ArchivedTransactionResponse])
-def get_archived_transactions(
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get all archived transactions for the current user"""
-    archived_transactions = ArchiveService.get_archived_transactions(
-        db=db,
-        user_id=current_user.id,
-        skip=skip,
-        limit=limit
-    )
-    return archived_transactions
-
-@router.get("/deleted", response_model=List[DeletedTransactionResponse])
-def get_deleted_transactions(
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get all deleted transactions for the current user"""
-    deleted_transactions = ArchiveService.get_deleted_transactions(
-        db=db,
-        user_id=current_user.id,
-        skip=skip,
-        limit=limit
-    )
-    return deleted_transactions
-
-@router.post("/archived/{archived_transaction_id}/restore", response_model=TransactionResponse)
-def restore_archived_transaction(
-    archived_transaction_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Restore an archived transaction back to active transactions"""
-    try:
-        transaction = ArchiveService.restore_archived_transaction(
-            db=db,
-            archived_transaction_id=archived_transaction_id,
-            user_id=current_user.id
-        )
-        return transaction
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-
-@router.post("/deleted/{deleted_transaction_id}/restore", response_model=TransactionResponse)
-def restore_deleted_transaction(
-    deleted_transaction_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Restore a deleted transaction back to active transactions"""
-    try:
-        transaction = ArchiveService.restore_deleted_transaction(
-            db=db,
-            deleted_transaction_id=deleted_transaction_id,
-            user_id=current_user.id
-        )
-        return transaction
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        ) 
+    
+    db.delete(transaction)
+    db.commit()
+    
+    return {"message": "Transaction deleted successfully"} 

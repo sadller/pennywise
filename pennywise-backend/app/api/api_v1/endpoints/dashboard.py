@@ -10,6 +10,7 @@ from pydantic import BaseModel
 class GroupStats(BaseModel):
     id: int
     name: str
+    owner_id: int
     owner_name: str
     member_count: int
     transaction_count: int
@@ -39,6 +40,7 @@ def get_user_groups_with_stats(
         groups_with_stats = db.query(
             Group.id,
             Group.name,
+            Group.owner_id,
             Group.created_at,
             User.full_name.label('owner_name'),
             func.count(GroupMember.user_id.distinct()).label('member_count'),
@@ -48,13 +50,14 @@ def get_user_groups_with_stats(
          .join(User, Group.owner_id == User.id)\
          .outerjoin(Transaction, Group.id == Transaction.group_id)\
          .filter(GroupMember.user_id == current_user.id)\
-         .group_by(Group.id, Group.name, Group.created_at, User.full_name)\
+         .group_by(Group.id, Group.name, Group.owner_id, Group.created_at, User.full_name)\
          .order_by(Group.created_at.desc()).all()
         
         return [
             GroupStats(
                 id=group.id,
                 name=group.name,
+                owner_id=group.owner_id,
                 owner_name=group.owner_name,
                 member_count=group.member_count,
                 transaction_count=group.transaction_count,
