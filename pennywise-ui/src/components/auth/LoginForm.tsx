@@ -25,10 +25,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  // Redirect to groups if user is logged in
+  // Redirect to dashboard if user is logged in
   React.useEffect(() => {
     if (user) {
-      router.replace('/groups');
+      router.replace('/dashboard');
     }
   }, [user, router]);
 
