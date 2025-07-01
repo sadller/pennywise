@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Badge, IconButton, Tooltip } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import { useQuery } from '@tanstack/react-query';
 import { notificationService } from '@/services/notificationService';
 
 interface NotificationIconProps {
@@ -10,28 +11,14 @@ interface NotificationIconProps {
 }
 
 export default function NotificationIcon({ onOpenNotifications }: NotificationIconProps) {
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { data: unreadCountData, isLoading } = useQuery({
+    queryKey: ['notification-unread-count'],
+    queryFn: () => notificationService.getUnreadCount(),
+    refetchInterval: 30000, // Poll every 30 seconds
+    select: (data) => data.unread_count,
+  });
 
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await notificationService.getUnreadCount();
-      setUnreadCount(response.unread_count);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUnreadCount();
-    
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  const unreadCount = unreadCountData || 0;
 
   const handleClick = () => {
     onOpenNotifications();
@@ -43,7 +30,7 @@ export default function NotificationIcon({ onOpenNotifications }: NotificationIc
         color="inherit"
         onClick={handleClick}
         sx={{ mr: 1 }}
-        disabled={loading}
+        disabled={isLoading}
       >
         <Badge
           badgeContent={unreadCount}

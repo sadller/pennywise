@@ -118,8 +118,8 @@ def accept_group_invitation(
     ).first()
     
     if existing_member:
-        # Mark notification as read and return
-        notification.is_read = True
+        # Delete notification and return
+        db.delete(notification)
         db.commit()
         raise HTTPException(status_code=400, detail="You are already a member of this group")
     
@@ -131,8 +131,8 @@ def accept_group_invitation(
     )
     db.add(new_member)
     
-    # Mark notification as read
-    notification.is_read = True
+    # Delete the notification after successful action
+    db.delete(notification)
     
     db.commit()
     
@@ -156,8 +156,8 @@ def decline_group_invitation(
     if notification.notification_type != "group_invitation":
         raise HTTPException(status_code=400, detail="This notification is not a group invitation")
     
-    # Mark notification as read
-    notification.is_read = True
+    # Delete the notification after declining
+    db.delete(notification)
     db.commit()
     
     return {"message": "Invitation declined"} 

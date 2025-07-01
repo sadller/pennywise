@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AppBar,
   Toolbar,
@@ -25,6 +26,7 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
@@ -76,6 +78,16 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
 
   const handleCloseNotifications = () => {
     setNotificationCenterOpen(false);
+  };
+
+  const handleInvitationAccepted = () => {
+    // Invalidate relevant queries to refresh the data
+    queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+    queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+    // Also refresh notifications to update the count
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
   };
 
   if (!user) return null;
@@ -181,6 +193,7 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
       <NotificationCenter
         open={notificationCenterOpen}
         onClose={handleCloseNotifications}
+        onInvitationAccepted={handleInvitationAccepted}
       />
     </>
   );

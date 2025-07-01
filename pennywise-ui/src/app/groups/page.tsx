@@ -22,10 +22,12 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService, GroupCreate } from '@/services/groupService';
 import { Group } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
+import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +39,9 @@ function GroupsContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
+  const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
+  const [inviteGroupName, setInviteGroupName] = useState<string>('');
   const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
@@ -90,6 +95,21 @@ function GroupsContent() {
     },
   });
 
+  // Invite member mutation
+  const inviteMemberMutation = useMutation({
+    mutationFn: ({ groupId, email }: { groupId: number; email: string }) => 
+      groupService.inviteGroupMember(groupId, email),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      setIsInviteFormOpen(false);
+      setInviteGroupId(null);
+      setInviteGroupName('');
+    },
+    onError: (error) => {
+      console.error('Failed to invite member:', error);
+    },
+  });
+
   const handleCreateGroup = async (data: GroupCreate) => {
     await createGroupMutation.mutateAsync(data);
   };
@@ -117,6 +137,24 @@ function GroupsContent() {
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setGroupToDelete(null);
+  };
+
+  const handleInviteMember = (groupId: number, groupName: string) => {
+    setInviteGroupId(groupId);
+    setInviteGroupName(groupName);
+    setIsInviteFormOpen(true);
+  };
+
+  const handleInviteSubmit = async (email: string) => {
+    if (inviteGroupId) {
+      await inviteMemberMutation.mutateAsync({ groupId: inviteGroupId, email });
+    }
+  };
+
+  const handleCloseInviteForm = () => {
+    setIsInviteFormOpen(false);
+    setInviteGroupId(null);
+    setInviteGroupName('');
   };
 
   if (isLoading) {
@@ -226,23 +264,35 @@ function GroupsContent() {
                     <Typography variant="h6" gutterBottom sx={{ flex: 1 }}>
                       {group.name}
                     </Typography>
-                    {user && group.owner_id === user.id && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton
                         size="small"
-                        color="error"
-                        onClick={(e) => handleDeleteClick(e, group)}
-                        sx={{ 
-                          opacity: 0.7,
-                          '&:hover': { 
-                            opacity: 1,
-                            bgcolor: 'error.light',
-                            color: 'error.contrastText'
-                          }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleInviteMember(group.id, group.name);
                         }}
+                        sx={{ color: 'primary.main' }}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <PersonAddIcon />
                       </IconButton>
-                    )}
+                      {user && group.owner_id === user.id && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={(e) => handleDeleteClick(e, group)}
+                          sx={{ 
+                            opacity: 0.7,
+                            '&:hover': { 
+                              opacity: 1,
+                              bgcolor: 'error.light',
+                              color: 'error.contrastText'
+                            }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     Created {new Date(group.created_at).toLocaleDateString()}
@@ -289,6 +339,14 @@ function GroupsContent() {
         onClose={() => setIsCreateFormOpen(false)}
         onSubmit={handleCreateGroup}
         isLoading={createGroupMutation.isPending}
+      />
+
+      <InviteMemberForm
+        open={isInviteFormOpen}
+        onClose={handleCloseInviteForm}
+        onSubmit={handleInviteSubmit}
+        groupName={inviteGroupName}
+        isLoading={inviteMemberMutation.isPending}
       />
 
       {/* Delete Group Confirmation Dialog */}

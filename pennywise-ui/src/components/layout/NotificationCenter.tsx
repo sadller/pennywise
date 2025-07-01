@@ -30,9 +30,10 @@ import { Notification } from '@/types/notification';
 interface NotificationCenterProps {
   open: boolean;
   onClose: () => void;
+  onInvitationAccepted?: () => void;
 }
 
-export default function NotificationCenter({ open, onClose }: NotificationCenterProps) {
+export default function NotificationCenter({ open, onClose, onInvitationAccepted }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +93,10 @@ export default function NotificationCenter({ open, onClose }: NotificationCenter
       setNotifications(prev =>
         prev.filter(notification => notification.id !== notificationId)
       );
+      // Call the callback to refresh data
+      if (onInvitationAccepted) {
+        onInvitationAccepted();
+      }
     } catch (error) {
       console.error('Error accepting invitation:', error);
       setError('Failed to accept invitation');
@@ -112,6 +117,10 @@ export default function NotificationCenter({ open, onClose }: NotificationCenter
       setNotifications(prev =>
         prev.filter(notification => notification.id !== notificationId)
       );
+      // Call the callback to refresh data (in case we need to update notification counts)
+      if (onInvitationAccepted) {
+        onInvitationAccepted();
+      }
     } catch (error) {
       console.error('Error declining invitation:', error);
       setError('Failed to decline invitation');

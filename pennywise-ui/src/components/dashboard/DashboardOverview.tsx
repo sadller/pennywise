@@ -41,6 +41,7 @@ import { groupService } from '@/services/groupService';
 import { dashboardService, RecentTransaction, GroupStats } from '@/services/dashboardService';
 import { User } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
+import InviteMemberForm from '@/components/groups/InviteMemberForm';
 
 interface DashboardOverviewProps {
   currentUser: User;
@@ -49,6 +50,9 @@ interface DashboardOverviewProps {
 export default function DashboardOverview({ currentUser }: DashboardOverviewProps) {
   const router = useRouter();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
+  const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
+  const [inviteGroupName, setInviteGroupName] = useState<string>('');
   const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<GroupStats | null>(null);
@@ -115,6 +119,21 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
     },
   });
 
+  // Invite member mutation
+  const inviteMemberMutation = useMutation({
+    mutationFn: ({ groupId, email }: { groupId: number; email: string }) => 
+      groupService.inviteGroupMember(groupId, email),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+      setIsInviteFormOpen(false);
+      setInviteGroupId(null);
+      setInviteGroupName('');
+    },
+    onError: (error) => {
+      console.error('Failed to invite member:', error);
+    },
+  });
+
   const handleGroupSelect = (groupId: number, groupName: string) => {
     localStorage.setItem('selectedGroupId', groupId.toString());
     localStorage.setItem('selectedGroupName', groupName);
@@ -134,9 +153,22 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
     }
   };
 
-  const handleAddMember = (groupId: number) => {
-    // TODO: Implement add member functionality
-    console.log('Add member to group:', groupId);
+  const handleAddMember = (groupId: number, groupName: string) => {
+    setInviteGroupId(groupId);
+    setInviteGroupName(groupName);
+    setIsInviteFormOpen(true);
+  };
+
+  const handleInviteMember = async (email: string) => {
+    if (inviteGroupId) {
+      await inviteMemberMutation.mutateAsync({ groupId: inviteGroupId, email });
+    }
+  };
+
+  const handleCloseInviteForm = () => {
+    setIsInviteFormOpen(false);
+    setInviteGroupId(null);
+    setInviteGroupName('');
   };
 
   const handleDeleteClick = (e: React.MouseEvent, group: GroupStats) => {
@@ -317,7 +349,7 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddMember(group.id);
+                          handleAddMember(group.id, group.name);
                         }}
                         sx={{ color: 'primary.main' }}
                       >
@@ -500,6 +532,14 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
           await createGroupMutation.mutateAsync(data);
         }}
         isLoading={createGroupMutation.isPending}
+      />
+
+      <InviteMemberForm
+        open={isInviteFormOpen}
+        onClose={handleCloseInviteForm}
+        onSubmit={handleInviteMember}
+        groupName={inviteGroupName}
+        isLoading={inviteMemberMutation.isPending}
       />
 
       {/* Delete Group Confirmation Dialog */}

@@ -25,6 +25,10 @@ export const groupService = {
     return apiClient.get<User[]>(`${API_BASE_URL}/groups/${groupId}/members`);
   },
 
+  async inviteGroupMember(groupId: number, userEmail: string): Promise<void> {
+    return apiClient.post<void>(`${API_BASE_URL}/groups/${groupId}/invite`, { user_email: userEmail });
+  },
+
   async addGroupMember(groupId: number, userEmail: string): Promise<void> {
     return apiClient.post<void>(`${API_BASE_URL}/groups/${groupId}/members`, { user_email: userEmail });
   },
