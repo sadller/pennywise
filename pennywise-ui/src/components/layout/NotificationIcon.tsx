@@ -14,7 +14,8 @@ export default function NotificationIcon({ onOpenNotifications }: NotificationIc
   const { data: unreadCountData, isLoading } = useQuery({
     queryKey: ['notification-unread-count'],
     queryFn: () => notificationService.getUnreadCount(),
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchOnWindowFocus: true, // Refetch when user comes back to the tab
+    staleTime: 30000, // Consider data fresh for 30 seconds (shorter for notifications)
     select: (data) => data.unread_count,
   });
 

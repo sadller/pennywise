@@ -28,12 +28,10 @@ import { groupService, GroupCreate } from '@/services/groupService';
 import { Group } from '@/types/transaction';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Create a client
-const queryClient = new QueryClient();
+import { queryClient } from '@/lib/queryClient';
 
 function GroupsContent() {
   const router = useRouter();

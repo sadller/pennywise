@@ -4,12 +4,10 @@ import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import CircularProgress from '@mui/material/CircularProgress';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { DashboardOverview } from '@/components/dashboard';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-
-// Create a client
-const queryClient = new QueryClient();
+import { queryClient } from '@/lib/queryClient';
 
 function DashboardContent() {
   const { user, isLoading } = useAuth();

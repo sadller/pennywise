@@ -5,14 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Alert, Button, Box } from '@mui/material';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import Transactions from '@/components/transactions/Transactions';
 import { useQuery } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-
-// Create a client
-const queryClient = new QueryClient();
+import { queryClient } from '@/lib/queryClient';
 
 function TransactionsContent() {
   const { user, isLoading } = useAuth();
