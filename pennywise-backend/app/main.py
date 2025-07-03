@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import init_db, test_connection
 from app.api.api_v1 import api_router
 
 app = FastAPI(
@@ -30,8 +30,12 @@ async def startup_event():
     """
     Initialize database on startup
     """
-    init_db()
-    print("Successfully connected to database")
+    # Test database connection first
+    if test_connection():
+        init_db()
+        print("Successfully connected to database and initialized tables")
+    else:
+        print("Failed to connect to database")
 
 
 @app.get("/")

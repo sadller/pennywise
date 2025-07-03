@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Database settings
-    DATABASE_URL: str = Field(env="DATABASE_URL")
+    DB_USER: str = Field(env="DB_USER")
+    DB_PASSWORD: str = Field(env="DB_PASSWORD")
+    DB_HOST: str = Field(default="localhost", env="DB_HOST")
+    DB_PORT: str = Field(default="5432", env="DB_PORT")
+    DB_NAME: str = Field(env="DB_NAME")
     
     # CORS settings
     ALLOWED_ORIGINS: List[str] = Field(default=["http://localhost:3000"], env="ALLOWED_ORIGINS")
