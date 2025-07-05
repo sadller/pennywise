@@ -27,4 +27,7 @@ PyJWT==2.8.0
 
 # Development and testing
 pytest==8.2.2
-pytest-asyncio==0.24.0 
+pytest-asyncio==0.24.0
+
+# HTTP client for health polling
+aiohttp==3.10.11 

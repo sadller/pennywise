@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # API settings
     API_V1_STR: str = "/api/v1"
     
+    # Server settings
+    HOST: str = Field(default="0.0.0.0", env="HOST")
+    PORT: int = Field(default=8000, env="PORT")
+    
     # Database settings
     DB_USER: str = Field(env="DB_USER")
     DB_PASSWORD: str = Field(env="DB_PASSWORD")
@@ -34,6 +38,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = Field(env="GOOGLE_CLIENT_ID", default="")
     GOOGLE_CLIENT_SECRET: str = Field(env="GOOGLE_CLIENT_SECRET", default="")
     GOOGLE_REDIRECT_URI: str = Field(env="GOOGLE_REDIRECT_URI", default="http://localhost:8000/api/v1/auth/google/callback")
+    
+    # Health polling settings
+    HEALTH_POLLING_ENABLED: bool = Field(default=True, env="HEALTH_POLLING_ENABLED")
+    HEALTH_POLLING_INTERVAL: int = Field(default=300, env="HEALTH_POLLING_INTERVAL")  # 5 minutes in seconds
     
     @field_validator("ALLOWED_ORIGINS", mode="before")
     def split_origins(cls, v):
