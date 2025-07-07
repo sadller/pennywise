@@ -39,10 +39,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = Field(env="GOOGLE_CLIENT_SECRET", default="")
     GOOGLE_REDIRECT_URI: str = Field(env="GOOGLE_REDIRECT_URI", default="http://localhost:8000/api/v1/auth/google/callback")
     
-    # Health polling settings
-    HEALTH_POLLING_ENABLED: bool = Field(default=True, env="HEALTH_POLLING_ENABLED")
-    HEALTH_POLLING_INTERVAL: int = Field(default=300, env="HEALTH_POLLING_INTERVAL")  # 5 minutes in seconds
-    
     @field_validator("ALLOWED_ORIGINS", mode="before")
     def split_origins(cls, v):
         if isinstance(v, str):
