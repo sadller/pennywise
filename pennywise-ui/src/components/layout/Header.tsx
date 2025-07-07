@@ -2,16 +2,18 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AppBar,
   Toolbar,
   Menu,
   MenuItem,
-  Button,
-  Box,
+  IconButton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
 import styles from '../../app/page.module.css';
@@ -19,14 +21,16 @@ import NotificationIcon from './NotificationIcon';
 import NotificationCenter from './NotificationCenter';
 
 interface HeaderProps {
+  onMenuClick: () => void;
   onSwitchGroup?: () => void;
 }
 
-export default function Header({ onSwitchGroup }: HeaderProps) {
+export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const queryClient = useQueryClient();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
@@ -68,8 +72,8 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
     handleMenuClose();
   };
 
-  const handleNavigation = (path: string) => {
-    router.push(path);
+  const handleLogoClick = () => {
+    router.push('/dashboard');
   };
 
   const handleOpenNotifications = () => {
@@ -94,56 +98,43 @@ export default function Header({ onSwitchGroup }: HeaderProps) {
 
   return (
     <>
-      <AppBar position="static" color="inherit" elevation={1} className={styles.header}>
-        <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+      <AppBar 
+        position="fixed" 
+        color="inherit" 
+        elevation={1} 
+        className={styles.header}
+        sx={{ 
+          zIndex: theme.zIndex.drawer + 1,
+          height: '80px',
+        }}
+      >
+        <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '80px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div className={styles.logo}>
+            {/* Menu Button for Mobile */}
+            {isMobile && (
+              <IconButton
+                edge="start"
+                color="inherit"
+                aria-label="menu"
+                onClick={onMenuClick}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            
+            {/* Logo - Clickable to go to dashboard */}
+            <div 
+              className={styles.logo} 
+              style={{ cursor: 'pointer' }}
+              onClick={handleLogoClick}
+            >
               <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
               <div>
                 <h1>Pennywise</h1>
                 <span>Smart Expense Tracking</span>
               </div>
             </div>
-            
-            {/* Navigation Links */}
-            <Box sx={{ ml: 4, display: 'flex', gap: 1 }}>
-              <Button
-                color="inherit"
-                onClick={() => handleNavigation('/dashboard')}
-                sx={{
-                  backgroundColor: pathname === '/dashboard' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  }
-                }}
-              >
-                Dashboard
-              </Button>
-              <Button
-                color="inherit"
-                onClick={() => handleNavigation('/transactions')}
-                sx={{
-                  backgroundColor: pathname === '/transactions' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  }
-                }}
-              >
-                Transactions
-              </Button>
-              <Button
-                color="inherit"
-                onClick={() => handleNavigation('/groups')}
-                sx={{
-                  backgroundColor: pathname === '/groups' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  }
-                }}
-              >
-                Groups
-              </Button>
-            </Box>
           </div>
           
           {/* Right side - Notification and User Profile */}
