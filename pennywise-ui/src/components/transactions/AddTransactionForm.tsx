@@ -70,12 +70,21 @@ export default function AddTransactionForm({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<TransactionCreate>({
+  } = useForm<{
+    group_id: number;
+    user_id: number;
+    type: TransactionType;
+    amount: string;
+    note?: string;
+    category?: string;
+    payment_mode?: string;
+    paid_by?: number;
+  }>({
     defaultValues: {
       group_id: groupId,
       user_id: currentUser.id,
       type: TransactionType.EXPENSE,
-      amount: 0,
+      amount: '',
       note: '',
       category: '',
       payment_mode: '',
@@ -83,10 +92,23 @@ export default function AddTransactionForm({
     }
   });
 
-  const handleFormSubmit = async (data: TransactionCreate) => {
+  const handleFormSubmit = async (data: {
+    group_id: number;
+    user_id: number;
+    type: TransactionType;
+    amount: string;
+    note?: string;
+    category?: string;
+    payment_mode?: string;
+    paid_by?: number;
+  }) => {
     try {
       setError('');
-      await onSubmit(data);
+      const transactionData: TransactionCreate = {
+        ...data,
+        amount: parseFloat(data.amount)
+      };
+      await onSubmit(transactionData);
       reset();
       onClose();
     } catch (err) {
@@ -132,7 +154,16 @@ export default function AddTransactionForm({
               control={control}
               rules={{ 
                 required: 'Amount is required',
-                min: { value: 0.01, message: 'Amount must be greater than 0' }
+                validate: (value) => {
+                  if (!value || value.trim() === '') {
+                    return 'Amount is required';
+                  }
+                  const numValue = parseFloat(value);
+                  if (isNaN(numValue) || numValue <= 0) {
+                    return 'Amount must be greater than 0';
+                  }
+                  return true;
+                }
               }}
               render={({ field }) => (
                 <TextField
@@ -202,8 +233,9 @@ export default function AddTransactionForm({
           <Controller
             name="paid_by"
             control={control}
+            rules={{ required: 'Paid by is required' }}
             render={({ field }) => (
-              <FormControl fullWidth sx={{ mb: 2 }}>
+              <FormControl fullWidth error={!!errors.paid_by} sx={{ mb: 2 }}>
                 <InputLabel>Paid By</InputLabel>
                 <Select {...field} label="Paid By">
                   {groupMembers.length > 0 ? (
@@ -218,6 +250,11 @@ export default function AddTransactionForm({
                     </MenuItem>
                   )}
                 </Select>
+                {errors.paid_by && (
+                  <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5 }}>
+                    {errors.paid_by.message}
+                  </Box>
+                )}
               </FormControl>
             )}
           />
