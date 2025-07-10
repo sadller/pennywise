@@ -212,41 +212,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
         </Typography>
       </Box>
 
-      {/* Current Group Indicator */}
-      {ui.currentGroupName && (
-        <Box sx={{ mb: 4 }}>
-          <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-            <CardContent sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <GroupIcon sx={{ fontSize: 28 }} />
-                  <Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      Currently Selected: {ui.currentGroupName}
-                    </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      You&apos;re viewing transactions for this group
-                    </Typography>
-                  </Box>
-                </Box>
-                <Button
-                  variant="contained"
-                  color="inherit"
-                  onClick={() => router.push('/transactions')}
-                  sx={{ 
-                    bgcolor: 'rgba(255, 255, 255, 0.2)',
-                    '&:hover': {
-                      bgcolor: 'rgba(255, 255, 255, 0.3)'
-                    }
-                  }}
-                >
-                  View Transactions
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      )}
+
 
       {/* Group Cards Section */}
       <Box sx={{ mb: 4 }}>
