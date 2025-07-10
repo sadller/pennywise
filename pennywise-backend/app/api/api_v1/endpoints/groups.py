@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models import Group, GroupMember, User, Transaction
-from app.schemas import GroupCreate, GroupResponse
-from typing import List
+from app.schemas.auth import UserResponse
+from app.schemas.group import GroupCreate, GroupResponse
+from app.services.group_service import GroupService, GroupStats
 from app.api.api_v1.endpoints.auth import get_current_user
-from app.services.notification_service import NotificationService
+from typing import List
 from pydantic import BaseModel
 
 class AddMemberRequest(BaseModel):
@@ -13,54 +13,37 @@ class AddMemberRequest(BaseModel):
 
 router = APIRouter()
 
+
 @router.post("/", response_model=GroupResponse)
 def create_group(
     group: GroupCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Create a new group and add the creator as admin."""
-    db_group = Group(
-        name=group.name,
-        owner_id=current_user.id
-    )
-    db.add(db_group)
-    db.commit()
-    db.refresh(db_group)
-    
-    # Add creator as admin member
-    group_member = GroupMember(
-        user_id=current_user.id,
-        group_id=db_group.id,
-        role="admin"
-    )
-    db.add(group_member)
-    db.commit()
-    
-    return db_group
+    group_service = GroupService(db)
+    return group_service.create_group(group, current_user.id)
+
 
 @router.get("/", response_model=List[GroupResponse])
 def list_user_groups(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Get all groups where the current user is a member."""
-    groups = db.query(Group).join(GroupMember).filter(
-        GroupMember.user_id == current_user.id
-    ).all()
-    return groups
+    group_service = GroupService(db)
+    return group_service.get_user_groups(current_user.id)
+
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def get_group(
     group_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Get a specific group if user is a member."""
-    group = db.query(Group).join(GroupMember).filter(
-        Group.id == group_id,
-        GroupMember.user_id == current_user.id
-    ).first()
+    group_service = GroupService(db)
+    group = group_service.get_group_by_id(group_id, current_user.id)
     
     if not group:
         raise HTTPException(
@@ -70,197 +53,70 @@ def get_group(
     
     return group
 
+
+@router.get("/{group_id}/stats", response_model=GroupStats)
+def get_group_stats(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Get detailed statistics for a specific group."""
+    group_service = GroupService(db)
+    group_stats = group_service.get_group_with_stats(group_id, current_user.id)
+    
+    if not group_stats:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found or you don't have access"
+        )
+    
+    return group_stats
+
+
 @router.post("/{group_id}/invite")
 def invite_user_to_group(
     group_id: int,
     request: AddMemberRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Invite a user to a group (only group admin can do this)."""
-    # Check if current user is admin of the group
-    group_member = db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == current_user.id,
-        GroupMember.role == "admin"
-    ).first()
-    
-    if not group_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only group admins can invite members"
-        )
-    
-    # Get group details
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found"
-        )
-    
-    # Find user by email
-    user = db.query(User).filter(User.email == request.user_email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Check if user is already a member
-    existing_member = db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == user.id
-    ).first()
-    
-    if existing_member:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already a member of this group"
-        )
-    
-    # Create notification for the invited user
-    try:
-        NotificationService.create_group_invitation_notification(
-            db=db,
-            user_id=user.id,
-            group_name=group.name,
-            inviter_name=current_user.full_name or current_user.email,
-            group_id=group_id
-        )
-        db.commit()
-        return {"message": "Invitation sent successfully"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error sending invitation: {str(e)}"
-        )
+    group_service = GroupService(db)
+    group_service.invite_user_to_group(group_id, request.user_email, current_user.id)
+    return {"message": "Invitation sent successfully"}
+
 
 @router.post("/{group_id}/members")
 def add_group_member(
     group_id: int,
     request: AddMemberRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Add a user to a group (only group admin can do this)."""
-    # Check if current user is admin of the group
-    group_member = db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == current_user.id,
-        GroupMember.role == "admin"
-    ).first()
-    
-    if not group_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only group admins can add members"
-        )
-    
-    # Get group details
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found"
-        )
-    
-    # Find user by email
-    user = db.query(User).filter(User.email == request.user_email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Check if user is already a member
-    existing_member = db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == user.id
-    ).first()
-    
-    if existing_member:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already a member of this group"
-        )
-    
-    # Add user as member
-    new_member = GroupMember(
-        user_id=user.id,
-        group_id=group_id,
-        role="member"
-    )
-    db.add(new_member)
-    db.commit()
-    
+    group_service = GroupService(db)
+    group_service.add_group_member(group_id, request.user_email, current_user.id)
     return {"message": "User added to group successfully"}
+
 
 @router.get("/{group_id}/members")
 def get_group_members(
     group_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """Get all members of a group."""
-    # Check if user is a member of the group
-    group_member = db.query(GroupMember).filter(
-        GroupMember.group_id == group_id,
-        GroupMember.user_id == current_user.id
-    ).first()
-    
-    if not group_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this group"
-        )
-    
-    members = db.query(User).join(GroupMember).filter(
-        GroupMember.group_id == group_id
-    ).all()
-    
-    return members
+    """Get all members of a group if user is a member."""
+    group_service = GroupService(db)
+    return group_service.get_group_members(group_id, current_user.id)
+
 
 @router.delete("/{group_id}")
 def delete_group(
     group_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """Delete a group and archive all its transactions (only group owner can do this)."""
-    # Check if current user is the owner of the group
-    group = db.query(Group).filter(
-        Group.id == group_id,
-        Group.owner_id == current_user.id
-    ).first()
-    
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found or you don't have permission to delete it"
-        )
-    
-    try:
-        # Delete all transactions in the group
-        deleted_transactions_count = db.query(Transaction).filter(Transaction.group_id == group_id).count()
-        db.query(Transaction).filter(Transaction.group_id == group_id).delete()
-        
-        # Delete all group members
-        db.query(GroupMember).filter(GroupMember.group_id == group_id).delete()
-        
-        # Delete the group
-        db.delete(group)
-        db.commit()
-        
-        return {
-            "message": "Group deleted successfully",
-            "deleted_transactions_count": deleted_transactions_count
-        }
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting group: {str(e)}"
-        ) 
+    """Delete a group if user is the owner."""
+    group_service = GroupService(db)
+    group_service.delete_group(group_id, current_user.id)
+    return {"message": "Group deleted successfully"} 

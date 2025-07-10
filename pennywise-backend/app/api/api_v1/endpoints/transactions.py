@@ -1,96 +1,70 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models import Transaction, User, GroupMember
-from app.schemas import TransactionCreate, TransactionResponse
-from typing import List
+from app.schemas.auth import UserResponse
+from app.schemas.transaction import TransactionCreate, TransactionResponse
+from app.services.transaction_service import TransactionService
 from app.api.api_v1.endpoints.auth import get_current_user
+from typing import List, Optional
 
 router = APIRouter()
+
 
 @router.post("/", response_model=TransactionResponse)
 def create_transaction(
     transaction: TransactionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    # Ensure paid_by is a member of the group
-    if transaction.paid_by is not None:
-        member = db.query(GroupMember).filter(
-            GroupMember.user_id == transaction.paid_by,
-            GroupMember.group_id == transaction.group_id
-        ).first()
-        if not member:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The 'paid_by' user is not a member of the group."
-            )
-    db_transaction = Transaction(**transaction.dict())
-    db.add(db_transaction)
-    db.commit()
-    db.refresh(db_transaction)
-    return db_transaction
+    """Create a new transaction."""
+    transaction_service = TransactionService(db)
+    return transaction_service.create_transaction(transaction, current_user.id)
+
 
 @router.get("/", response_model=List[TransactionResponse])
 def list_transactions(
-    group_id: int = None,
+    group_id: Optional[int] = Query(None, description="Filter by group ID"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    query = db.query(Transaction)
-    
-    if group_id:
-        # First check if the current user is a member of the specified group
-        member = db.query(GroupMember).filter(
-            GroupMember.user_id == current_user.id,
-            GroupMember.group_id == group_id
-        ).first()
-        
-        if not member:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not a member of this group."
-            )
-        
-        query = query.filter(Transaction.group_id == group_id)
-    else:
-        # If no group_id provided, only show transactions from groups the user is a member of
-        user_groups = db.query(GroupMember.group_id).filter(
-            GroupMember.user_id == current_user.id
-        ).subquery()
-        query = query.filter(Transaction.group_id.in_(user_groups))
-    
-    return query.order_by(Transaction.date.desc()).all()
+    """Get transactions for the current user with optional group filtering."""
+    transaction_service = TransactionService(db)
+    return transaction_service.get_user_transactions(
+        user_id=current_user.id,
+        group_id=group_id,
+        skip=skip,
+        limit=limit
+    )
 
-@router.delete("/{transaction_id}")
-def delete_transaction(
+
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+def get_transaction(
     transaction_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """Delete a transaction permanently"""
-    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    """Get a specific transaction by ID."""
+    transaction_service = TransactionService(db)
+    transaction = transaction_service.get_transaction_by_id(transaction_id, current_user.id)
     
     if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
+            detail="Transaction not found or you don't have access"
         )
     
-    # Check if user has permission to delete this transaction
-    # (either they created it or they're a member of the group)
-    member = db.query(GroupMember).filter(
-        GroupMember.user_id == current_user.id,
-        GroupMember.group_id == transaction.group_id
-    ).first()
-    
-    if not member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to delete this transaction"
-        )
-    
-    db.delete(transaction)
-    db.commit()
-    
+    return transaction
+
+
+@router.delete("/{transaction_id}")
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Delete a transaction."""
+    transaction_service = TransactionService(db)
+    transaction_service.delete_transaction(transaction_id, current_user.id)
     return {"message": "Transaction deleted successfully"} 

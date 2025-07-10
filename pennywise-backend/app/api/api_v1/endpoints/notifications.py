@@ -5,9 +5,8 @@ from app.core.database import get_db
 from app.services.notification_service import NotificationService
 from app.schemas.notification import NotificationResponse, NotificationListResponse
 from app.api.api_v1.endpoints.auth import get_current_user
-from app.models.user import User
+from app.schemas.auth import UserResponse
 from app.models.notification import Notification
-from sqlalchemy import and_
 from app.models.group_member import GroupMember
 
 router = APIRouter()
@@ -19,7 +18,7 @@ def get_notifications(
     limit: int = Query(50, ge=1, le=100),
     unread_only: bool = Query(False),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Get notifications for the current user"""
     notifications, total_count, unread_count = NotificationService.get_user_notifications(
@@ -40,7 +39,7 @@ def get_notifications(
 @router.get("/unread-count")
 def get_unread_count(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Get the count of unread notifications"""
     count = NotificationService.get_unread_count(db, current_user.id)
@@ -50,7 +49,7 @@ def get_unread_count(
 @router.put("/mark-all-read")
 def mark_all_notifications_as_read(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Mark all notifications as read"""
     count = NotificationService.mark_all_notifications_as_read(db, current_user.id)
@@ -61,7 +60,7 @@ def mark_all_notifications_as_read(
 def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Mark a specific notification as read"""
     notification = NotificationService.mark_notification_as_read(
@@ -78,7 +77,7 @@ def mark_notification_as_read(
 def delete_notification(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Delete a specific notification"""
     success = NotificationService.delete_notification(db, notification_id, current_user.id)
@@ -93,12 +92,13 @@ def delete_notification(
 def accept_group_invitation(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Accept a group invitation from a notification"""
     # First, get the notification to check if it's a group invitation
     notification = db.query(Notification).filter(
-        and_(Notification.id == notification_id, Notification.user_id == current_user.id)
+        Notification.id == notification_id,
+        Notification.user_id == current_user.id
     ).first()
     
     if not notification:
@@ -114,7 +114,8 @@ def accept_group_invitation(
     
     # Check if user is already a member of the group
     existing_member = db.query(GroupMember).filter(
-        and_(GroupMember.user_id == current_user.id, GroupMember.group_id == group_id)
+        GroupMember.user_id == current_user.id,
+        GroupMember.group_id == group_id
     ).first()
     
     if existing_member:
@@ -143,11 +144,12 @@ def accept_group_invitation(
 def decline_group_invitation(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_user)
 ):
     """Decline a group invitation from a notification"""
     notification = db.query(Notification).filter(
-        and_(Notification.id == notification_id, Notification.user_id == current_user.id)
+        Notification.id == notification_id,
+        Notification.user_id == current_user.id
     ).first()
     
     if not notification:
