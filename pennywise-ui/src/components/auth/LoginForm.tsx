@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/stores/StoreProvider';
 import { GoogleLogin } from '@react-oauth/google';
 import {
   Box,
@@ -19,28 +20,28 @@ interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
-  const { login, loginWithGoogle, isLoading, error, user } = useAuth();
+const LoginForm: React.FC<LoginFormProps> = observer(({ onSwitchToRegister }) => {
+  const { auth } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
 
   // Redirect to dashboard if user is logged in
   React.useEffect(() => {
-    if (user) {
+    if (auth.user) {
       router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [auth.user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
+    await auth.login(email, password);
   };
 
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     if (credentialResponse.credential) {
       try {
-        await loginWithGoogle(credentialResponse.credential);
+        await auth.loginWithGoogle(credentialResponse.credential);
       } catch (error) {
         console.error('Google login error:', error);
       }
@@ -58,9 +59,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           Welcome Back
         </Typography>
         
-        {error && (
+        {auth.error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {auth.error}
           </Alert>
         )}
 
@@ -94,9 +95,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
-            disabled={isLoading}
+            disabled={auth.isLoading}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {auth.isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </Box>
 
@@ -132,6 +133,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       </Paper>
     </Container>
   );
-};
+});
 
 export default LoginForm; 

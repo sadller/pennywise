@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
-import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/stores/StoreProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -15,10 +16,10 @@ const DRAWER_WIDTH = 280;
 const COLLAPSED_WIDTH = 64;
 const HEADER_HEIGHT = 80;
 
-export default function AuthenticatedLayout({ children, onSwitchGroup }: AuthenticatedLayoutProps) {
+const AuthenticatedLayout = observer(({ children, onSwitchGroup }: AuthenticatedLayoutProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { sidebarCollapsed, setSidebarCollapsed } = useAuth();
+  const { auth } = useStore();
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
 
   const handleMenuClick = () => {
@@ -32,10 +33,10 @@ export default function AuthenticatedLayout({ children, onSwitchGroup }: Authent
   };
 
   const handleToggleCollapse = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
+    auth.setSidebarCollapsed(!auth.sidebarCollapsed);
   };
 
-  const currentSidebarWidth = sidebarCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
+  const currentSidebarWidth = auth.sidebarCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -43,7 +44,7 @@ export default function AuthenticatedLayout({ children, onSwitchGroup }: Authent
       <Sidebar
         open={sidebarOpen}
         onClose={handleSidebarClose}
-        collapsed={sidebarCollapsed}
+        collapsed={auth.sidebarCollapsed}
         onToggleCollapse={handleToggleCollapse}
       />
       
@@ -68,4 +69,6 @@ export default function AuthenticatedLayout({ children, onSwitchGroup }: Authent
       </Box>
     </Box>
   );
-} 
+});
+
+export default AuthenticatedLayout; 

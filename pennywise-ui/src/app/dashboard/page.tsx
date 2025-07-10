@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/stores/StoreProvider';
 import { useRouter } from 'next/navigation';
 import CircularProgress from '@mui/material/CircularProgress';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -9,32 +10,32 @@ import { DashboardOverview } from '@/components/dashboard';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { queryClient } from '@/lib/queryClient';
 
-function DashboardContent() {
-  const { user, isLoading } = useAuth();
+const DashboardContent = observer(() => {
+  const { auth } = useStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
+    if (!auth.user) {
       router.replace('/auth');
       return;
     }
-  }, [user, router]);
+  }, [auth.user, router]);
 
-  if (isLoading) {
+  if (auth.isLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress size={48} thickness={4} />
       </div>
     );
   }
-  if (!user) return null;
+  if (!auth.user) return null;
 
   return (
     <DashboardOverview 
-      currentUser={user}
+      currentUser={auth.user}
     />
   );
-}
+});
 
 export default function DashboardPage() {
   return (

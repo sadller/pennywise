@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/stores/StoreProvider';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -25,8 +26,8 @@ interface HeaderProps {
   onSwitchGroup?: () => void;
 }
 
-export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
-  const { user, logout } = useAuth();
+const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
+  const { auth, ui } = useStore();
   const router = useRouter();
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -34,7 +35,6 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
-  const [notificationCenterOpen, setNotificationCenterOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (justLoggedOut) {
@@ -56,7 +56,7 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
   };
 
   const handleLogout = () => {
-    logout();
+    auth.logout();
     handleMenuClose();
     setJustLoggedOut(true);
   };
@@ -77,11 +77,11 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
   };
 
   const handleOpenNotifications = () => {
-    setNotificationCenterOpen(true);
+    ui.openNotificationCenter();
   };
 
   const handleCloseNotifications = () => {
-    setNotificationCenterOpen(false);
+    ui.closeNotificationCenter();
   };
 
   const handleInvitationAccepted = () => {
@@ -94,7 +94,7 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
     queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
   };
 
-  if (!user) return null;
+  if (!auth.user) return null;
 
   return (
     <>
@@ -152,7 +152,7 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
               <span className={styles.avatar}>
                 <AccountCircle fontSize="large" />
               </span>
-              <span>{user.full_name || user.email}</span>
+              <span>{auth.user.full_name || auth.user.email}</span>
             </div>
             
             <Menu
@@ -182,10 +182,12 @@ export default function Header({ onMenuClick, onSwitchGroup }: HeaderProps) {
 
       {/* Notification Center */}
       <NotificationCenter
-        open={notificationCenterOpen}
+        open={ui.isNotificationCenterOpen}
         onClose={handleCloseNotifications}
         onInvitationAccepted={handleInvitationAccepted}
       />
     </>
   );
-} 
+});
+
+export default Header; 

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/stores/StoreProvider';
 import { GoogleLogin } from '@react-oauth/google';
 import {
   Box,
@@ -19,8 +20,8 @@ interface RegisterFormProps {
   onSwitchToLogin: () => void;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
-  const { register, loginWithGoogle, isLoading, error, user } = useAuth();
+const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin }) => {
+  const { auth } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,10 +30,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
 
   // Redirect to dashboard if user is registered and logged in
   React.useEffect(() => {
-    if (user) {
+    if (auth.user) {
       router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [auth.user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,12 +42,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       return;
     }
     
-    await register(email, password, fullName);
+    await auth.register(email, password, fullName);
   };
 
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     if (credentialResponse.credential) {
-      await loginWithGoogle(credentialResponse.credential);
+      await auth.loginWithGoogle(credentialResponse.credential);
     }
   };
 
@@ -61,9 +62,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           Create Account
         </Typography>
         
-        {error && (
+        {auth.error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {auth.error}
           </Alert>
         )}
 
@@ -118,9 +119,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
-            disabled={isLoading}
+            disabled={auth.isLoading}
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {auth.isLoading ? 'Creating account...' : 'Create Account'}
           </Button>
         </Box>
 
@@ -156,6 +157,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
       </Paper>
     </Container>
   );
-};
+});
 
 export default RegisterForm; 

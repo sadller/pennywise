@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -31,25 +32,18 @@ import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
 
-function GroupsContent() {
+const GroupsContent = observer(() => {
   const router = useRouter();
-  const { user } = useAuth();
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-  const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
-  const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
-  const [inviteGroupName, setInviteGroupName] = useState<string>('');
-  const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const { auth, ui } = useStore();
 
   // Get current group name from localStorage
   useEffect(() => {
     const groupName = localStorage.getItem('selectedGroupName');
-    setCurrentGroupName(groupName);
-  }, []);
+    ui.setCurrentGroupName(groupName);
+  }, [ui]);
 
   // Fetch user's groups
   const {
@@ -75,14 +69,13 @@ function GroupsContent() {
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
-      setDeleteDialogOpen(false);
-      setGroupToDelete(null);
+      ui.closeDeleteDialog();
       
       // If the deleted group was the currently selected group, clear the selection
-      if (groupToDelete && currentGroupName === groupToDelete.name) {
+      if (ui.groupToDelete && ui.currentGroupName === ui.groupToDelete.name) {
         localStorage.removeItem('selectedGroupId');
         localStorage.removeItem('selectedGroupName');
-        setCurrentGroupName(null);
+        ui.setCurrentGroupName(null);
       }
       
       // Show success message (you could add a toast notification here)
@@ -100,9 +93,7 @@ function GroupsContent() {
       groupService.inviteGroupMember(groupId, email),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
-      setIsInviteFormOpen(false);
-      setInviteGroupId(null);
-      setInviteGroupName('');
+      ui.closeInviteMemberForm();
     },
     onError: (error) => {
       console.error('Failed to invite member:', error);
@@ -117,43 +108,37 @@ function GroupsContent() {
     // Store selected group in localStorage or context
     localStorage.setItem('selectedGroupId', group.id.toString());
     localStorage.setItem('selectedGroupName', group.name);
-    setCurrentGroupName(group.name);
+    ui.setCurrentGroupName(group.name);
     router.push('/transactions');
   };
 
   const handleDeleteClick = (e: React.MouseEvent, group: Group) => {
     e.stopPropagation();
-    setGroupToDelete(group);
-    setDeleteDialogOpen(true);
+    ui.openDeleteDialog(group);
   };
 
   const handleDeleteConfirm = async () => {
-    if (groupToDelete) {
-      await deleteGroupMutation.mutateAsync(groupToDelete.id);
+    if (ui.groupToDelete) {
+      await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
     }
   };
 
   const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setGroupToDelete(null);
+    ui.closeDeleteDialog();
   };
 
   const handleInviteMember = (groupId: number, groupName: string) => {
-    setInviteGroupId(groupId);
-    setInviteGroupName(groupName);
-    setIsInviteFormOpen(true);
+    ui.openInviteMemberForm(groupId, groupName);
   };
 
   const handleInviteSubmit = async (email: string) => {
-    if (inviteGroupId) {
-      await inviteMemberMutation.mutateAsync({ groupId: inviteGroupId, email });
+    if (ui.inviteGroupId) {
+      await inviteMemberMutation.mutateAsync({ groupId: ui.inviteGroupId, email });
     }
   };
 
   const handleCloseInviteForm = () => {
-    setIsInviteFormOpen(false);
-    setInviteGroupId(null);
-    setInviteGroupName('');
+    ui.closeInviteMemberForm();
   };
 
   if (isLoading) {
@@ -178,7 +163,7 @@ function GroupsContent() {
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       {/* Current Group Indicator */}
-      {currentGroupName && (
+      {ui.currentGroupName && (
         <Box sx={{ mb: 4 }}>
           <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
             <CardContent sx={{ py: 2 }}>
@@ -187,7 +172,7 @@ function GroupsContent() {
                   <GroupIcon sx={{ fontSize: 28 }} />
                   <Box>
                     <Typography variant="h6" fontWeight="bold">
-                      Currently Selected: {currentGroupName}
+                      Currently Selected: {ui.currentGroupName}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
                       You&apos;re viewing transactions for this group
@@ -226,7 +211,7 @@ function GroupsContent() {
               variant="contained"
               size="large"
               startIcon={<AddIcon />}
-              onClick={() => setIsCreateFormOpen(true)}
+              onClick={() => ui.openCreateGroupForm()}
             >
               Create Your First Group
             </Button>
@@ -247,9 +232,9 @@ function GroupsContent() {
                 key={group.id}
                 sx={{ 
                   cursor: 'pointer',
-                  border: currentGroupName === group.name ? '2px solid' : 'none',
+                  border: ui.currentGroupName === group.name ? '2px solid' : 'none',
                   borderColor: 'primary.main',
-                  bgcolor: currentGroupName === group.name ? 'primary.50' : 'background.paper',
+                  bgcolor: ui.currentGroupName === group.name ? 'primary.50' : 'background.paper',
                   '&:hover': { 
                     boxShadow: 4,
                     transform: 'translateY(-2px)',
@@ -274,7 +259,7 @@ function GroupsContent() {
                       >
                         <PersonAddIcon />
                       </IconButton>
-                      {user && group.owner_id === user.id && (
+                      {auth.user && group.owner_id === auth.user.id && (
                         <IconButton
                           size="small"
                           color="error"
@@ -296,7 +281,7 @@ function GroupsContent() {
                   <Typography variant="body2" color="text.secondary">
                     Created {new Date(group.created_at).toLocaleDateString()}
                   </Typography>
-                  {user && group.owner_id === user.id && (
+                  {auth.user && group.owner_id === auth.user.id && (
                     <Chip 
                       label="Owner" 
                       size="small" 
@@ -306,10 +291,10 @@ function GroupsContent() {
                     />
                   )}
                   <Chip 
-                    label={currentGroupName === group.name ? "Selected" : "Select Group"} 
+                    label={ui.currentGroupName === group.name ? "Selected" : "Select Group"} 
                     size="small" 
-                    color={currentGroupName === group.name ? "success" : "primary"} 
-                    variant={currentGroupName === group.name ? "filled" : "outlined"}
+                    color={ui.currentGroupName === group.name ? "success" : "primary"} 
+                    variant={ui.currentGroupName === group.name ? "filled" : "outlined"}
                     sx={{ mt: 1, cursor: 'pointer' }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -325,7 +310,7 @@ function GroupsContent() {
             <Button
               variant="outlined"
               startIcon={<AddIcon />}
-              onClick={() => setIsCreateFormOpen(true)}
+              onClick={() => ui.openCreateGroupForm()}
             >
               Create New Group
             </Button>
@@ -334,39 +319,39 @@ function GroupsContent() {
       )}
 
       <CreateGroupForm
-        open={isCreateFormOpen}
-        onClose={() => setIsCreateFormOpen(false)}
+        open={ui.isCreateGroupFormOpen}
+        onClose={() => ui.closeCreateGroupForm()}
         onSubmit={handleCreateGroup}
         isLoading={createGroupMutation.isPending}
       />
 
       <InviteMemberForm
-        open={isInviteFormOpen}
+        open={ui.isInviteMemberFormOpen}
         onClose={handleCloseInviteForm}
         onSubmit={handleInviteSubmit}
-        groupName={inviteGroupName}
+        groupName={ui.inviteGroupName}
         isLoading={inviteMemberMutation.isPending}
       />
 
       {/* Delete Group Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
+      <Dialog open={ui.isDeleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
         <DialogTitle>Delete Group</DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to delete the group &quot;{groupToDelete?.name}&quot;?
+            Are you sure you want to delete the group &quot;{ui.groupToDelete?.name}&quot;?
           </Typography>
           <Alert severity="warning" sx={{ mb: 2 }}>
             <Typography variant="body2">
               <strong>Warning:</strong> This action cannot be undone. All transactions in this group will be permanently deleted and the group will be permanently deleted.
             </Typography>
           </Alert>
-          {groupToDelete && (
+          {ui.groupToDelete && (
             <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
               <Typography variant="body2">
-                <strong>Group Name:</strong> {groupToDelete.name}
+                <strong>Group Name:</strong> {ui.groupToDelete.name}
               </Typography>
               <Typography variant="body2">
-                <strong>Created:</strong> {new Date(groupToDelete.created_at).toLocaleDateString()}
+                <strong>Created:</strong> {new Date(ui.groupToDelete.created_at).toLocaleDateString()}
               </Typography>
             </Box>
           )}
@@ -396,13 +381,13 @@ function GroupsContent() {
           right: 16,
           display: { xs: 'flex', sm: 'none' }
         }}
-        onClick={() => setIsCreateFormOpen(true)}
+        onClick={() => ui.openCreateGroupForm()}
       >
         <AddIcon />
       </Fab>
     </Container>
   );
-}
+});
 
 export default function GroupsPage() {
   return (

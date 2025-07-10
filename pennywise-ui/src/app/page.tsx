@@ -2,11 +2,12 @@
 
 import styles from "./page.module.css";
 import Image from "next/image";
-import { useAuth } from "@/contexts/AuthContext";
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/stores/StoreProvider';
 import Link from "next/link";
 
-export default function Home() {
-  const { user, logout } = useAuth();
+const Home = observer(() => {
+  const { auth } = useStore();
 
   return (
     <div className={styles.container}>
@@ -29,12 +30,12 @@ export default function Home() {
           <a href="#features">Features</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
-          {user ? (
+          {auth.user ? (
             <>
               <span className={styles.userInfo}>
-                Welcome, {user.full_name || user.email}
+                Welcome, {auth.user.full_name || auth.user.email}
               </span>
-              <button onClick={logout} className={styles.logoutBtn}>
+              <button onClick={auth.logout} className={styles.logoutBtn}>
                 Logout
               </button>
             </>
@@ -57,7 +58,7 @@ export default function Home() {
               our intuitive expense tracking application.
             </p>
             <div className={styles.heroButtons}>
-              {user ? (
+              {auth.user ? (
                 <Link href="/dashboard" className={styles.primaryBtn}>
                   Go to Dashboard
                 </Link>
@@ -240,4 +241,6 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+});
+
+export default Home;
