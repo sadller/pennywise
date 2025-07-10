@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
@@ -17,8 +18,8 @@ const HEADER_HEIGHT = 80;
 export default function AuthenticatedLayout({ children, onSwitchGroup }: AuthenticatedLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { sidebarCollapsed, setSidebarCollapsed } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 
   const handleMenuClick = () => {
     setSidebarOpen(!sidebarOpen);

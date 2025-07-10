@@ -24,6 +24,9 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   error: string | null;
+  // Sidebar state management
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
@@ -125,6 +129,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('refresh_token');
       }
     }
+    
+    // Load sidebar collapsed state from localStorage
+    const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarCollapsed !== null) {
+      setSidebarCollapsed(JSON.parse(savedSidebarCollapsed));
+    }
+    
     setIsLoading(false);
   }, [fetchUserProfile, refreshTokenAndFetchUser]);
 
@@ -259,6 +270,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('selectedGroupName');
   };
 
+  const handleSetSidebarCollapsed = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -268,6 +284,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isLoading,
     error,
+    sidebarCollapsed,
+    setSidebarCollapsed: handleSetSidebarCollapsed,
   };
 
   return (
