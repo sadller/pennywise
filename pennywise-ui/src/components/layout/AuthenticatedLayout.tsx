@@ -12,8 +12,6 @@ interface AuthenticatedLayoutProps {
   onSwitchGroup?: () => void;
 }
 
-const DRAWER_WIDTH = 280;
-const COLLAPSED_WIDTH = 64;
 const HEADER_HEIGHT = 80;
 
 const AuthenticatedLayout = observer(({ children, onSwitchGroup }: AuthenticatedLayoutProps) => {
@@ -36,8 +34,6 @@ const AuthenticatedLayout = observer(({ children, onSwitchGroup }: Authenticated
     auth.setSidebarCollapsed(!auth.sidebarCollapsed);
   };
 
-  const currentSidebarWidth = auth.sidebarCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -49,7 +45,12 @@ const AuthenticatedLayout = observer(({ children, onSwitchGroup }: Authenticated
       />
       
       {/* Main Content */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        minWidth: 0, // This prevents flex items from overflowing
+      }}>
         {/* Header */}
         <Header onMenuClick={handleMenuClick} onSwitchGroup={onSwitchGroup} />
         
@@ -59,9 +60,9 @@ const AuthenticatedLayout = observer(({ children, onSwitchGroup }: Authenticated
           sx={{
             flex: 1,
             p: 3,
-            width: { sm: `calc(100% - ${currentSidebarWidth}px)` },
-            ml: { sm: `${currentSidebarWidth}px` },
             mt: `${HEADER_HEIGHT}px`, // Add margin top to account for fixed header
+            width: '100%', // Take full width of the flex container
+            minWidth: 0, // Prevent overflow
           }}
         >
           {children}
