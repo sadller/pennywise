@@ -16,7 +16,8 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { transactionService } from '@/services/transactionService';
-import { TransactionCreate, User } from '@/types/transaction';
+import { TransactionCreate } from '@/types/transaction';
+import { User } from '@/types/user';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
 

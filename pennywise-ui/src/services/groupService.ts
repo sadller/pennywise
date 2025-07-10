@@ -1,11 +1,8 @@
-import { Group, User } from '@/types/transaction';
+import { Group, GroupCreate } from '@/types/group';
+import { User } from '@/types/user';
 import { apiClient } from './apiClient';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
-export interface GroupCreate {
-  name: string;
-}
 
 export interface DeleteGroupResponse {
   message: string;

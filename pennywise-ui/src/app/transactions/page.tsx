@@ -62,13 +62,13 @@ function TransactionsContent() {
       if (!isMember) {
         // User is not a member of this group, clear the selection
         clearGroupData();
-        console.log('Cleared invalid group selection:', selectedGroupId);
+        // Cleared invalid group selection
       }
     } else if (selectedGroupId && !groupsLoading && userGroups.length === 0) {
       // User has no groups, so they can't be a member of any group
       setIsValidMember(false);
       clearGroupData();
-      console.log('User has no groups, cleared group selection');
+      // User has no groups, cleared group selection
     }
   }, [selectedGroupId, userGroups, groupsLoading]);
 

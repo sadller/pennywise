@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { GroupCreate } from '@/services/groupService';
+import { GroupCreate } from '@/types/group';
 
 interface CreateGroupFormProps {
   open: boolean;

@@ -28,20 +28,4 @@ export interface TransactionCreate {
   paid_by?: number;
 }
 
-export interface Group {
-  id: number;
-  name: string;
-  owner_id: number;
-  created_at: string;
-}
-
-export interface User {
-  id: number;
-  email: string;
-  full_name?: string;
-  username?: string;
-  avatar_url?: string;
-  auth_provider: string;
-  is_active: boolean;
-  is_superuser: boolean;
-} 
+ 

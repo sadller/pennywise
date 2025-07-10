@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { apiClient } from '@/services/apiClient';
 
@@ -48,31 +48,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-  useEffect(() => {
-    // Check for existing token on app load
-    const storedToken = localStorage.getItem('auth_token');
-    if (storedToken) {
-      try {
-        const decoded = jwtDecode(storedToken);
-        if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
-          const exp = decoded.exp as number;
-          if (exp * 1000 > Date.now()) {
-            setToken(storedToken);
-            fetchUserProfile();
-          } else {
-            // Token is expired, try to refresh
-            refreshTokenAndFetchUser();
-          }
-        }
-      } catch {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-      }
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const userData = await apiClient.get<User>(`${API_BASE_URL}/auth/me`);
+      setUser(userData);
+    } catch {
+      console.error('Error fetching user profile');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      // Clear group selection data when authentication fails
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+      setToken(null);
+      setUser(null);
     }
-    setIsLoading(false);
-  }, []);
+  }, [API_BASE_URL]);
 
-  const refreshTokenAndFetchUser = async () => {
+  const refreshTokenAndFetchUser = useCallback(async () => {
     const refreshToken = localStorage.getItem('refresh_token');
     if (!refreshToken) {
       setIsLoading(false);
@@ -110,23 +102,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('selectedGroupName');
     }
     setIsLoading(false);
-  };
+  }, [fetchUserProfile, API_BASE_URL]);
 
-  const fetchUserProfile = async () => {
-    try {
-      const userData = await apiClient.get<User>(`${API_BASE_URL}/auth/me`);
-      setUser(userData);
-    } catch {
-      console.error('Error fetching user profile');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      // Clear group selection data when authentication fails
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
-      setToken(null);
-      setUser(null);
+  useEffect(() => {
+    // Check for existing token on app load
+    const storedToken = localStorage.getItem('auth_token');
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode(storedToken);
+        if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
+          const exp = decoded.exp as number;
+          if (exp * 1000 > Date.now()) {
+            setToken(storedToken);
+            fetchUserProfile();
+          } else {
+            // Token is expired, try to refresh
+            refreshTokenAndFetchUser();
+          }
+        }
+      } catch {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+      }
     }
-  };
+    setIsLoading(false);
+  }, [fetchUserProfile, refreshTokenAndFetchUser]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);

@@ -24,8 +24,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon from '@mui/icons-material/Group';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { groupService, GroupCreate } from '@/services/groupService';
-import { Group } from '@/types/transaction';
+import { groupService } from '@/services/groupService';
+import { GroupCreate } from '@/types/group';
+import { Group } from '@/types/group';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -72,7 +73,7 @@ function GroupsContent() {
   // Delete group mutation
   const deleteGroupMutation = useMutation({
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
       setDeleteDialogOpen(false);
       setGroupToDelete(null);
@@ -85,7 +86,7 @@ function GroupsContent() {
       }
       
       // Show success message (you could add a toast notification here)
-      console.log(`Group deleted successfully. ${data.deleted_transactions_count} transactions deleted.`);
+      // Group deleted successfully
     },
     onError: (error) => {
       console.error('Failed to delete group:', error);

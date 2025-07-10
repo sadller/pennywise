@@ -16,7 +16,8 @@ import {
   Alert,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { TransactionType, TransactionCreate, User } from '@/types/transaction';
+import { TransactionType, TransactionCreate } from '@/types/transaction';
+import { User } from '@/types/user';
 
 interface AddTransactionFormProps {
   open: boolean;

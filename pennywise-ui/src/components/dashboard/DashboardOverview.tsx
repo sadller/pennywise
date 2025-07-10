@@ -39,7 +39,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
 import { dashboardService, RecentTransaction, GroupStats } from '@/services/dashboardService';
-import { User } from '@/types/transaction';
+import { User } from '@/types/user';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 
@@ -99,7 +99,7 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
   // Delete group mutation
   const deleteGroupMutation = useMutation({
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
       setDeleteDialogOpen(false);
@@ -112,7 +112,7 @@ export default function DashboardOverview({ currentUser }: DashboardOverviewProp
         setCurrentGroupName(null);
       }
       
-      console.log(`Group deleted successfully. ${data.deleted_transactions_count} transactions deleted.`);
+      // Group deleted successfully
     },
     onError: (error) => {
       console.error('Failed to delete group:', error);

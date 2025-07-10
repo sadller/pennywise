@@ -189,7 +189,7 @@ export default function NotificationCenter({ open, onClose, onInvitationAccepted
       }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Notifications</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>Notifications</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {notifications.some(n => !n.is_read) && (
             <Button size="small" onClick={handleMarkAllAsRead}>

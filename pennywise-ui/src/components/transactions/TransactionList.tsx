@@ -18,7 +18,8 @@ import {
   Tooltip,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { Transaction, TransactionType, User } from '@/types/transaction';
+import { Transaction, TransactionType } from '@/types/transaction';
+import { User } from '@/types/user';
 import { format } from 'date-fns';
 import { transactionService } from '@/services/transactionService';
 
