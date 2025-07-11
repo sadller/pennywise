@@ -103,10 +103,10 @@ class ApiClient {
           // Token refreshed successfully, retry the request
           this.processQueue(null, tokens.access_token);
         } else {
-          // Refresh failed, redirect to login
+          // Refresh failed, redirect to landing page
           this.processQueue(new Error('Authentication failed'));
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth';
+            window.location.href = '/';
           }
         }
       });
@@ -171,7 +171,7 @@ class ApiClient {
           this.isRefreshing = false;
           this.processQueue(new Error('Authentication failed'));
           if (typeof window !== 'undefined') {
-            window.location.href = '/auth';
+            window.location.href = '/';
           }
           throw new Error('Authentication failed');
         }

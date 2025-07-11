@@ -37,8 +37,6 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
   // Use window size instead of useMediaQuery to avoid function passing
   const [isMobile, setIsMobile] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [justLoggedOut, setJustLoggedOut] = React.useState(false);
-  
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 900); // md breakpoint
@@ -48,12 +46,6 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  React.useEffect(() => {
-    if (justLoggedOut) {
-      router.replace('/');
-    }
-  }, [justLoggedOut, router]);
 
   const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -69,9 +61,12 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
   };
 
   const handleLogout = () => {
+    // Clear auth state first
     auth.logout();
     handleMenuClose();
-    setJustLoggedOut(true);
+    
+    // Immediate redirect to landing page
+    router.replace('/');
   };
 
   const handleSwitchGroup = () => {

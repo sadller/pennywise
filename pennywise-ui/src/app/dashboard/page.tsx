@@ -16,7 +16,7 @@ const DashboardContent = observer(() => {
 
   useEffect(() => {
     if (!auth.user) {
-      router.replace('/auth');
+      router.replace('/');
       return;
     }
   }, [auth.user, router]);

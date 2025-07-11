@@ -33,7 +33,7 @@ const TransactionsContent = observer(() => {
 
   useEffect(() => {
     if (!auth.user) {
-      router.replace('/auth');
+      router.replace('/');
       return;
     }
     
