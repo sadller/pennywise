@@ -15,7 +15,6 @@ import {
   Box,
   Typography,
   Avatar,
-  Chip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
@@ -25,10 +24,9 @@ import NotificationCenter from './NotificationCenter';
 
 interface HeaderProps {
   onMenuClick: () => void;
-  onSwitchGroup?: () => void;
 }
 
-const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
+const Header = observer(({ onMenuClick }: HeaderProps) => {
   const { auth, ui } = useStore();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -67,19 +65,6 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
     
     // Immediate redirect to landing page
     router.replace('/');
-  };
-
-  const handleSwitchGroup = () => {
-    if (onSwitchGroup) {
-      onSwitchGroup();
-    } else {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
-      }
-      router.push('/groups');
-    }
-    handleMenuClose();
   };
 
   const handleLogoClick = () => {
@@ -173,20 +158,6 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
           
           {/* Right side - Notification and User Profile */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Current Group Display */}
-            {ui.currentGroupName && (
-              <Chip
-                label={ui.currentGroupName}
-                color="primary"
-                variant="outlined"
-                size="small"
-                sx={{ 
-                  borderRadius: 2,
-                  fontWeight: 500
-                }}
-              />
-            )}
-            
             {/* Notification Icon */}
             <NotificationIcon onOpenNotifications={handleOpenNotifications} />
             
@@ -243,9 +214,6 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
             >
               <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>
                 Profile
-              </MenuItem>
-              <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>
-                Switch Group
               </MenuItem>
               <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>
                 Logout
