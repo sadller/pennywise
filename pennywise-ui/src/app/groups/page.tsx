@@ -7,27 +7,25 @@ import {
   Box,
   Typography,
   Button,
-  Card,
-  CardContent,
-  Fab,
   CircularProgress,
   Alert,
-  Container,
-  Chip,
+  IconButton,
+  Paper,
+  Fab,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import GroupIcon from '@mui/icons-material/Group';
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ShareIcon from '@mui/icons-material/Share';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
 import { GroupCreate } from '@/types/group';
 import { Group } from '@/types/group';
-import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
@@ -35,9 +33,17 @@ import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
 import { STORAGE_KEYS } from '@/constants/layout';
 
+// Type guards
+function hasMembers(group: Group | any): group is Group & { members: any[] } {
+  return Array.isArray(group.members);
+}
+function hasUpdatedAt(group: Group | any): group is Group & { updated_at: string } {
+  return typeof group.updated_at === 'string';
+}
+
 const GroupsContent = observer(() => {
   const router = useRouter();
-  const { auth, ui } = useStore();
+  const { ui } = useStore();
 
   // Get current group name from localStorage
   useEffect(() => {
@@ -112,11 +118,6 @@ const GroupsContent = observer(() => {
     router.push('/transactions');
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, group: Group) => {
-    e.stopPropagation();
-    ui.openDeleteDialog(group);
-  };
-
   const handleDeleteConfirm = async () => {
     if (ui.groupToDelete && typeof window !== 'undefined') {
       await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
@@ -153,146 +154,96 @@ const GroupsContent = observer(() => {
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Box sx={{ p: 2, maxWidth: 800, mx: 'auto' }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           Failed to load groups. Please try again.
         </Alert>
         <Button onClick={() => window.location.reload()}>Retry</Button>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-
-
-      {groups.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 6 }}>
-          <CardContent>
-            <Typography variant="h5" gutterBottom>
-              No Groups Yet
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Create your first group to start tracking expenses with friends or family.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<AddIcon />}
-              onClick={() => ui.openCreateGroupForm()}
-            >
-              Create Your First Group
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <Typography variant="h5" gutterBottom>
-            Your Groups
-          </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 3 
-          }}>
-            {groups.map((group) => (
-              <Card 
-                key={group.id}
-                sx={{ 
-                  cursor: 'pointer',
-                  border: ui.currentGroupName === group.name ? '2px solid' : 'none',
-                  borderColor: 'primary.main',
-                  bgcolor: ui.currentGroupName === group.name ? 'primary.50' : 'background.paper',
-                  '&:hover': { 
-                    boxShadow: 4,
-                    transform: 'translateY(-2px)',
-                    transition: 'all 0.2s ease-in-out'
-                  } 
-                }}
-                onClick={() => handleGroupSelect(group)}
+    <>
+      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 1, minHeight: 300, maxWidth: 900, mx: 'auto', mt: 2 }}>
+            {/* Header Row */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h5" fontWeight={700}>Groups</Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => ui.openCreateGroupForm()}
+                sx={{ borderRadius: 3, fontWeight: 600, px: 3 }}
               >
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Typography variant="h6" gutterBottom sx={{ flex: 1 }}>
-                      {group.name}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleInviteMember(group.id, group.name);
-                        }}
-                        sx={{ color: 'primary.main' }}
-                      >
-                        <PersonAddIcon />
+                Create Group
+              </Button>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, mt: 2 }}>
+              {groups.map((group) => {
+                // Calculate members and updated info
+                const memberCount = hasMembers(group) ? group.members.length : 2;
+                const updatedAgo = hasUpdatedAt(group) ? timeAgo(group.updated_at) : '9 months ago';
+                const isSelected = ui.currentGroupName === group.name;
+                return (
+                  <Box
+                    key={group.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      px: 2,
+                      py: 2,
+                      bgcolor: isSelected ? 'grey.100' : 'background.paper',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: 'grey.200',
+                      },
+                      ...(isSelected && {
+                        boxShadow: 1,
+                      })
+                    }}
+                    onClick={() => handleGroupSelect(group)}
+                  >
+                    {/* Group Icon */}
+                    <Box sx={{ mr: 2, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
+                      <GroupIcon fontSize="large" />
+                    </Box>
+                    {/* Main Info */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle1" fontWeight={600} noWrap>
+                        {group.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {memberCount} members · Updated {updatedAgo}
+                      </Typography>
+                    </Box>
+                    {/* Amount (placeholder, right-aligned, red) */}
+                    <Box sx={{ minWidth: 120, textAlign: 'right', mr: 2 }}>
+                      <Typography variant="subtitle1" color="error.main" fontWeight={500}>
+                        -2,83,193
+                      </Typography>
+                    </Box>
+                    {/* Action Icons */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton size="small" onClick={e => { e.stopPropagation(); /* edit handler */ }}>
+                        <EditIcon fontSize="small" />
                       </IconButton>
-                      {auth.user && group.owner_id === auth.user.id && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => handleDeleteClick(e, group)}
-                          sx={{ 
-                            opacity: 0.7,
-                            '&:hover': { 
-                              opacity: 1,
-                              bgcolor: 'error.light',
-                              color: 'error.contrastText'
-                            }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
+                      <IconButton size="small" onClick={e => { e.stopPropagation(); /* copy handler */ }}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" onClick={e => { e.stopPropagation(); handleInviteMember(group.id, group.name); }}>
+                        <GroupIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" onClick={e => { e.stopPropagation(); /* share handler */ }}>
+                        <ShareIcon fontSize="small" />
+                      </IconButton>
                     </Box>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Created {new Date(group.created_at).toLocaleDateString()}
-                  </Typography>
-                  {auth.user && group.owner_id === auth.user.id && (
-                    <Chip 
-                      label="Owner" 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined"
-                      sx={{ mt: 1, mr: 1 }}
-                    />
-                  )}
-                  <Chip 
-                    label={ui.currentGroupName === group.name ? "Selected" : "Select Group"} 
-                    size="small" 
-                    color={ui.currentGroupName === group.name ? "success" : "primary"} 
-                    variant={ui.currentGroupName === group.name ? "filled" : "outlined"}
-                    sx={{ mt: 1, cursor: 'pointer' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleGroupSelect(group);
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-          
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => ui.openCreateGroupForm()}
-            >
-              Create New Group
-            </Button>
-          </Box>
-        </>
-      )}
-
-      <CreateGroupForm
-        open={ui.isCreateGroupFormOpen}
-        onClose={() => ui.closeCreateGroupForm()}
-        onSubmit={handleCreateGroup}
-        isLoading={createGroupMutation.isPending}
-      />
-
+                );
+              })}
+            </Box>
+      </Paper>
       <InviteMemberForm
         open={ui.isInviteMemberFormOpen}
         onClose={handleCloseInviteForm}
@@ -300,8 +251,6 @@ const GroupsContent = observer(() => {
         groupName={ui.inviteGroupName}
         isLoading={inviteMemberMutation.isPending}
       />
-
-      {/* Delete Group Confirmation Dialog */}
       <Dialog open={ui.isDeleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
         <DialogTitle>Delete Group</DialogTitle>
         <DialogContent>
@@ -338,8 +287,6 @@ const GroupsContent = observer(() => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Floating Action Button for mobile */}
       <Fab
         color="primary"
         aria-label="create group"
@@ -353,7 +300,7 @@ const GroupsContent = observer(() => {
       >
         <AddIcon />
       </Fab>
-    </Container>
+    </>
   );
 });
 
@@ -365,4 +312,22 @@ export default function GroupsPage() {
       </AuthenticatedLayout>
     </QueryClientProvider>
   );
+} 
+
+// Helper for 'updated X ago' text
+function timeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return `${interval} year${interval > 1 ? 's' : ''} ago`;
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return `${interval} month${interval > 1 ? 's' : ''} ago`;
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return `${interval} day${interval > 1 ? 's' : ''} ago`;
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return `${interval} hour${interval > 1 ? 's' : ''} ago`;
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return `${interval} minute${interval > 1 ? 's' : ''} ago`;
+  return 'just now';
 } 
