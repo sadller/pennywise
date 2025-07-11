@@ -1,26 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
   Typography,
   Fab,
   Alert,
-  Chip,
-  Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import GroupIcon from '@mui/icons-material/Group';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { transactionService } from '@/services/transactionService';
 import { TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
-import { STORAGE_KEYS } from '@/constants/layout';
 
 interface TransactionsProps {
   groupId?: number;
@@ -34,17 +28,7 @@ export default function Transactions({
   groupMembers = []
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
-  const [currentGroupName, setCurrentGroupName] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const router = useRouter();
-
-  // Get current group name from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-      setCurrentGroupName(groupName);
-    }
-  }, []);
 
   // Fetch transactions
   const {
@@ -86,14 +70,6 @@ export default function Transactions({
     setIsAddFormOpen(false);
   };
 
-  const handleSwitchGroup = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-    }
-    router.push('/groups');
-  };
-
   if (error) {
     // Check if it's a membership error
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -107,73 +83,30 @@ export default function Transactions({
             : "Failed to load transactions. Please try again."
           }
         </Alert>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {isMembershipError ? (
-            <Button 
-              variant="contained" 
-              onClick={handleSwitchGroup}
-            >
-              Switch Group
-            </Button>
-          ) : (
-            <Button 
-              variant="contained" 
-              onClick={() => refetch()}
-            >
-              Retry
-            </Button>
-          )}
-        </Box>
+        <Button 
+          variant="contained" 
+          onClick={() => refetch()}
+        >
+          Retry
+        </Button>
       </Box>
     );
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Group Header */}
-      {currentGroupName && (
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <Chip
-              icon={<GroupIcon />}
-              label={currentGroupName}
-              color="primary"
-              variant="filled"
-              sx={{ 
-                '& .MuiChip-icon': {
-                  fontSize: '20px'
-                }
-              }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              Group Transactions
-            </Typography>
-          </Box>
-          <Divider />
-        </Box>
-      )}
-
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" component="h2">
           Transactions
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<SwapHorizIcon />}
-            onClick={handleSwitchGroup}
-          >
-            Switch Group
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAddForm}
-            disabled={!groupId}
-          >
-            Add Transaction
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpenAddForm}
+          disabled={!groupId}
+        >
+          Add Transaction
+        </Button>
       </Box>
 
       <TransactionList 
