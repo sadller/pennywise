@@ -20,6 +20,7 @@ import { TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
+import { STORAGE_KEYS } from '@/constants/layout';
 
 interface TransactionsProps {
   groupId?: number;
@@ -39,7 +40,7 @@ export default function Transactions({
 
   // Get current group name from localStorage
   useEffect(() => {
-    const groupName = localStorage.getItem('selectedGroupName');
+    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     setCurrentGroupName(groupName);
   }, []);
 
@@ -84,8 +85,8 @@ export default function Transactions({
   };
 
   const handleSwitchGroup = () => {
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     router.push('/groups');
   };
 

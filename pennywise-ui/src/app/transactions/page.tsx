@@ -13,6 +13,7 @@ import { groupService } from '@/services/groupService';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { queryClient } from '@/lib/queryClient';
 import { Group as GroupIcon } from '@mui/icons-material';
+import { STORAGE_KEYS } from '@/constants/layout';
 
 const TransactionsContent = observer(() => {
   const { auth } = useStore();
@@ -20,9 +21,10 @@ const TransactionsContent = observer(() => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isValidMember, setIsValidMember] = useState<boolean | null>(null);
 
+  // Clear group selection data from localStorage and state
   const clearGroupData = () => {
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     setSelectedGroupId(null);
     setIsValidMember(null);
   };
@@ -34,14 +36,14 @@ const TransactionsContent = observer(() => {
     }
     
     // Check if user has selected a group
-    const storedGroupId = localStorage.getItem('selectedGroupId');
+    const storedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
     
     if (storedGroupId) {
       setSelectedGroupId(parseInt(storedGroupId));
     }
   }, [auth.user, router]);
 
-  // Fetch user's groups to validate membership
+  // Fetch user's groups to validate membership and group selection
   const {
     data: userGroups = [],
     isLoading: groupsLoading
@@ -60,13 +62,11 @@ const TransactionsContent = observer(() => {
       if (!isMember) {
         // User is not a member of this group, clear the selection
         clearGroupData();
-        // Cleared invalid group selection
       }
     } else if (selectedGroupId && !groupsLoading && userGroups.length === 0) {
       // User has no groups, so they can't be a member of any group
       setIsValidMember(false);
       clearGroupData();
-      // User has no groups, cleared group selection
     }
   }, [selectedGroupId, userGroups, groupsLoading]);
 

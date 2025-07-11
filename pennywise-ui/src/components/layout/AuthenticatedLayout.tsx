@@ -2,23 +2,35 @@
 
 import React from 'react';
 import { observer } from 'mobx-react-lite';
-import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { Box } from '@mui/material';
 import { useStore } from '@/stores/StoreProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { LAYOUT_CONSTANTS } from '@/constants/layout';
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
   onSwitchGroup?: () => void;
 }
 
-const HEADER_HEIGHT = 80;
-
 const AuthenticatedLayout = observer(({ children, onSwitchGroup }: AuthenticatedLayoutProps) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { auth } = useStore();
-  const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
+  
+  // Use window size instead of useMediaQuery to avoid function passing
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < LAYOUT_CONSTANTS.MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      setSidebarOpen(!mobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleMenuClick = () => {
     setSidebarOpen(!sidebarOpen);
@@ -35,37 +47,54 @@ const AuthenticatedLayout = observer(({ children, onSwitchGroup }: Authenticated
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <Sidebar
-        open={sidebarOpen}
-        onClose={handleSidebarClose}
-        collapsed={auth.sidebarCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-      />
-      
-      {/* Main Content */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Header - Fixed at top */}
       <Box sx={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        minWidth: 0, // This prevents flex items from overflowing
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 1100,
+        backgroundColor: 'background.paper',
+        borderBottom: 1,
+        borderColor: 'divider'
       }}>
-        {/* Header */}
         <Header onMenuClick={handleMenuClick} onSwitchGroup={onSwitchGroup} />
+      </Box>
+      
+      {/* Content Area - Sidebar and Main Content */}
+      <Box sx={{ 
+        display: 'flex', 
+        flex: 1,
+        minHeight: 0, // Important for proper flex behavior
+        overflow: 'hidden' // Prevent body scroll
+      }}>
+        {/* Sidebar */}
+        <Sidebar
+          open={sidebarOpen}
+          onClose={handleSidebarClose}
+          collapsed={auth.sidebarCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
         
         {/* Main Content Area */}
-        <Box
-          component="main"
-          sx={{
-            flex: 1,
-            p: 3,
-            mt: `${HEADER_HEIGHT}px`, // Add margin top to account for fixed header
-            width: '100%', // Take full width of the flex container
-            minWidth: 0, // Prevent overflow
-          }}
-        >
-          {children}
+        <Box sx={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0, // Prevent flex overflow
+          overflow: 'hidden'
+        }}>
+          <Box
+            component="main"
+            sx={{
+              flex: 1,
+              p: 3,
+              overflow: 'auto', // Independent scroll for main content
+              height: '100%',
+              paddingTop: `${LAYOUT_CONSTANTS.HEADER_HEIGHT}px`, // Ensure content starts below header
+            }}
+          >
+            {children}
+          </Box>
         </Box>
       </Box>
     </Box>

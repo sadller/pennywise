@@ -33,6 +33,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
+import { STORAGE_KEYS } from '@/constants/layout';
 
 const GroupsContent = observer(() => {
   const router = useRouter();
@@ -40,11 +41,11 @@ const GroupsContent = observer(() => {
 
   // Get current group name from localStorage
   useEffect(() => {
-    const groupName = localStorage.getItem('selectedGroupName');
+    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     ui.setCurrentGroupName(groupName);
   }, [ui]);
 
-  // Fetch user's groups
+  // Fetch user's groups for display and management
   const {
     data: groups = [],
     isLoading,
@@ -54,7 +55,7 @@ const GroupsContent = observer(() => {
     queryFn: () => groupService.getUserGroups(),
   });
 
-  // Create group mutation
+  // Mutation for creating new groups
   const createGroupMutation = useMutation({
     mutationFn: (data: GroupCreate) => 
       groupService.createGroup(data),
@@ -63,7 +64,7 @@ const GroupsContent = observer(() => {
     },
   });
 
-  // Delete group mutation
+  // Mutation for deleting groups (owner only)
   const deleteGroupMutation = useMutation({
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
     onSuccess: () => {
@@ -72,21 +73,17 @@ const GroupsContent = observer(() => {
       
       // If the deleted group was the currently selected group, clear the selection
       if (ui.groupToDelete && ui.currentGroupName === ui.groupToDelete.name) {
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
         ui.setCurrentGroupName(null);
       }
-      
-      // Show success message (you could add a toast notification here)
-      // Group deleted successfully
     },
     onError: (error) => {
       console.error('Failed to delete group:', error);
-      // You could add error toast notification here
     },
   });
 
-  // Invite member mutation
+  // Mutation for inviting members to groups
   const inviteMemberMutation = useMutation({
     mutationFn: ({ groupId, email }: { groupId: number; email: string }) => 
       groupService.inviteGroupMember(groupId, email),
@@ -105,8 +102,8 @@ const GroupsContent = observer(() => {
 
   const handleGroupSelect = (group: Group) => {
     // Store selected group in localStorage or context
-    localStorage.setItem('selectedGroupId', group.id.toString());
-    localStorage.setItem('selectedGroupName', group.name);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, group.id.toString());
+    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, group.name);
     ui.setCurrentGroupName(group.name);
     router.push('/transactions');
   };

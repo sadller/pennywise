@@ -5,14 +5,13 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Box, Container } from '@mui/material';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
+import { API_CONSTANTS } from '@/constants/layout';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
 
-  const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={API_CONSTANTS.GOOGLE_CLIENT_ID}>
       <Box
         sx={{
           minHeight: '100vh',

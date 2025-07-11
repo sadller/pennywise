@@ -12,12 +12,14 @@ import {
   MenuItem,
   IconButton,
   useTheme,
-  useMediaQuery,
+  Box,
+  Typography,
+  Avatar,
+  Chip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
-import styles from '../../app/page.module.css';
 import NotificationIcon from './NotificationIcon';
 import NotificationCenter from './NotificationCenter';
 
@@ -31,10 +33,21 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Use window size instead of useMediaQuery to avoid function passing
+  const [isMobile, setIsMobile] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const userInfoRef = React.useRef<HTMLDivElement>(null);
   const [justLoggedOut, setJustLoggedOut] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 900); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   React.useEffect(() => {
     if (justLoggedOut) {
@@ -101,15 +114,24 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
       <AppBar 
         position="fixed" 
         color="inherit" 
-        elevation={1} 
-        className={styles.header}
+        elevation={0}
         sx={{ 
           zIndex: theme.zIndex.drawer + 1,
           height: '80px',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
-        <Toolbar style={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '80px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Toolbar sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          width: '100%', 
+          height: '80px', 
+          alignItems: 'center',
+          px: 3
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Menu Button for Mobile */}
             {isMobile && (
               <IconButton
@@ -124,36 +146,83 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
             )}
             
             {/* Logo - Clickable to go to dashboard */}
-            <div 
-              className={styles.logo} 
-              style={{ cursor: 'pointer' }}
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2, 
+                cursor: 'pointer',
+                '&:hover': { opacity: 0.8 }
+              }}
               onClick={handleLogoClick}
             >
-              <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={36} height={36} className={styles.logoImg} priority />
-              <div>
-                <h1>Pennywise</h1>
-                <span>Smart Expense Tracking</span>
-              </div>
-            </div>
-          </div>
+              <Image 
+                src="/pennywise-logo.svg" 
+                alt="Pennywise Logo" 
+                width={40} 
+                height={40} 
+                priority 
+              />
+              <Box>
+                <Typography variant="h5" fontWeight="bold" color="primary.main">
+                  Pennywise
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Smart Expense Tracking
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
           
           {/* Right side - Notification and User Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Notification Icon - Separate from user profile */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Current Group Display */}
+            {ui.currentGroupName && (
+              <Chip
+                label={ui.currentGroupName}
+                color="primary"
+                variant="outlined"
+                size="small"
+                sx={{ 
+                  borderRadius: 2,
+                  fontWeight: 500
+                }}
+              />
+            )}
+            
+            {/* Notification Icon */}
             <NotificationIcon onOpenNotifications={handleOpenNotifications} />
             
-            {/* User Profile - Click to open menu */}
-            <div
-              className={styles.userInfo}
-              ref={userInfoRef}
-              style={{ cursor: 'pointer' }}
+            {/* User Profile */}
+            <Box
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2, 
+                cursor: 'pointer',
+                p: 1,
+                borderRadius: 2,
+                '&:hover': { bgcolor: 'grey.100' },
+                transition: 'all 0.2s ease'
+              }}
               onClick={handleUserMenuClick}
             >
-              <span className={styles.avatar}>
-                <AccountCircle fontSize="large" />
-              </span>
-              <span>{auth.user.full_name || auth.user.email}</span>
-            </div>
+              <Avatar sx={{ 
+                bgcolor: 'primary.main',
+                width: 36,
+                height: 36
+              }}>
+                <AccountCircle />
+              </Avatar>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="body2" fontWeight="500">
+                  {auth.user.full_name?.split(' ')[0] || auth.user.email?.split('@')[0]}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {auth.user.email}
+                </Typography>
+              </Box>
+            </Box>
             
             <Menu
               id="menu-appbar"
@@ -167,16 +236,25 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
               PaperProps={{
                 sx: {
                   marginTop: '8px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                  border: '1px solid rgba(0, 0, 0, 0.12)'
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  minWidth: 200,
                 }
               }}
             >
-              <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>Profile</MenuItem>
-              <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>Switch Group</MenuItem>
-              <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Logout</MenuItem>
+              <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>
+                Profile
+              </MenuItem>
+              <MenuItem onClick={() => { handleSwitchGroup(); handleMenuClose(); }}>
+                Switch Group
+              </MenuItem>
+              <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>
+                Logout
+              </MenuItem>
             </Menu>
-          </div>
+          </Box>
         </Toolbar>
       </AppBar>
 

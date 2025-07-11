@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { apiClient } from '@/services/apiClient';
+import { API_CONSTANTS, STORAGE_KEYS } from '@/constants/layout';
 
 interface User {
   id: number;
@@ -50,33 +51,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 
   const fetchUserProfile = useCallback(async () => {
     try {
-      const userData = await apiClient.get<User>(`${API_BASE_URL}/auth/me`);
+      const userData = await apiClient.get<User>(`${API_CONSTANTS.BASE_URL}/auth/me`);
       setUser(userData);
     } catch {
       console.error('Error fetching user profile');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       // Clear group selection data when authentication fails
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
       setToken(null);
       setUser(null);
     }
-  }, [API_BASE_URL]);
+  }, []);
 
   const refreshTokenAndFetchUser = useCallback(async () => {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) {
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${API_CONSTANTS.BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,31 +87,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const tokens = await response.json();
-        localStorage.setItem('auth_token', tokens.access_token);
-        localStorage.setItem('refresh_token', tokens.refresh_token);
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokens.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token);
         setToken(tokens.access_token);
         await fetchUserProfile();
       } else {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         // Clear group selection data when authentication fails
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
       }
     } catch {
       console.error('Error refreshing token');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       // Clear group selection data when authentication fails
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     }
     setIsLoading(false);
-  }, [fetchUserProfile, API_BASE_URL]);
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     // Check for existing token on app load
-    const storedToken = localStorage.getItem('auth_token');
+    const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (storedToken) {
       try {
         const decoded = jwtDecode(storedToken);
@@ -125,13 +126,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       }
     }
     
     // Load sidebar collapsed state from localStorage
-    const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+    const savedSidebarCollapsed = localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED);
     if (savedSidebarCollapsed !== null) {
       setSidebarCollapsed(JSON.parse(savedSidebarCollapsed));
     }
@@ -144,8 +145,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     
     try {
       const data = await apiClient.post<{
@@ -154,7 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${API_BASE_URL}/auth/login`, { email, password });
+      }>(`${API_CONSTANTS.BASE_URL}/auth/login`, { email, password });
 
       setToken(data.access_token);
       setUser({
@@ -165,8 +166,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         is_active: true,
         is_superuser: false,
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -183,8 +184,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     
     try {
       const data = await apiClient.post<{
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${API_BASE_URL}/auth/register`, { 
+      }>(`${API_CONSTANTS.BASE_URL}/auth/register`, { 
         email, 
         password, 
         full_name: fullName 
@@ -208,8 +209,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         is_active: true,
         is_superuser: false,
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -226,8 +227,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     
     try {
       const data = await apiClient.post<{
@@ -236,7 +237,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${API_BASE_URL}/auth/google/callback`, { code });
+      }>(`${API_CONSTANTS.BASE_URL}/auth/google/callback`, { code });
 
       setToken(data.access_token);
       setUser({
@@ -247,8 +248,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         is_active: true,
         is_superuser: false,
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -272,7 +273,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const handleSetSidebarCollapsed = (collapsed: boolean) => {
     setSidebarCollapsed(collapsed);
-    localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, JSON.stringify(collapsed));
   };
 
   const value: AuthContextType = {

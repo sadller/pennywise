@@ -44,6 +44,7 @@ import { dashboardService, RecentTransaction, GroupStats } from '@/services/dash
 import { User } from '@/types/user';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
+import { STORAGE_KEYS } from '@/constants/layout';
 
 interface DashboardOverviewProps {
   currentUser: User;
@@ -54,13 +55,13 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   const { ui } = useStore();
   const queryClient = useQueryClient();
 
-  // Get current group name from localStorage
+  // Initialize current group name from localStorage
   React.useEffect(() => {
-    const groupName = localStorage.getItem('selectedGroupName');
+    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     ui.setCurrentGroupName(groupName);
   }, [ui]);
 
-  // Fetch groups with detailed statistics
+  // Fetch groups with detailed statistics for dashboard overview
   const {
     data: groupsWithStats = [],
     isLoading: groupsLoading,
@@ -69,7 +70,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     queryFn: () => dashboardService.getGroupsWithStats(),
   });
 
-  // Fetch recent transactions
+  // Fetch recent transactions for activity feed
   const {
     data: recentTransactions = [],
     isLoading: transactionsLoading,
@@ -78,24 +79,24 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     queryFn: () => dashboardService.getRecentTransactions(5),
   });
 
-  // Auto-select most recently modified group if no group is currently selected
+  // Auto-select most recently created group if no group is currently selected
   React.useEffect(() => {
     if (!groupsLoading && groupsWithStats.length > 0 && !ui.currentGroupName) {
-      // Find the most recently modified group
+      // Find the most recently created group
       const mostRecentGroup = groupsWithStats.reduce((latest, current) => {
-        const latestDate = new Date(latest.updated_at);
-        const currentDate = new Date(current.updated_at);
+        const latestDate = new Date(latest.created_at);
+        const currentDate = new Date(current.created_at);
         return currentDate > latestDate ? current : latest;
       });
 
       // Auto-select the most recent group
-      localStorage.setItem('selectedGroupId', mostRecentGroup.id.toString());
-      localStorage.setItem('selectedGroupName', mostRecentGroup.name);
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, mostRecentGroup.id.toString());
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, mostRecentGroup.name);
       ui.setCurrentGroupName(mostRecentGroup.name);
     }
-  }, [groupsWithStats, groupsLoading, ui.currentGroupName]);
+  }, [groupsWithStats, groupsLoading, ui.currentGroupName, ui]);
 
-  // Create group mutation
+  // Mutation for creating new groups
   const createGroupMutation = useMutation({
     mutationFn: (data: { name: string }) => groupService.createGroup(data),
     onSuccess: () => {
@@ -109,7 +110,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     },
   });
 
-  // Delete group mutation
+  // Mutation for deleting groups
   const deleteGroupMutation = useMutation({
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
     onSuccess: () => {
@@ -119,8 +120,8 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
       
       // If the deleted group was the currently selected group, clear the selection
       if (ui.groupToDelete && ui.currentGroupName === ui.groupToDelete.name) {
-        localStorage.removeItem('selectedGroupId');
-        localStorage.removeItem('selectedGroupName');
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
         ui.setCurrentGroupName(null);
       }
       
@@ -131,7 +132,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     },
   });
 
-  // Invite member mutation
+  // Mutation for inviting members to groups
   const inviteMemberMutation = useMutation({
     mutationFn: ({ groupId, email }: { groupId: number; email: string }) => 
       groupService.inviteGroupMember(groupId, email),
@@ -145,8 +146,8 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   });
 
   const handleGroupSelect = (groupId: number, groupName: string) => {
-    localStorage.setItem('selectedGroupId', groupId.toString());
-    localStorage.setItem('selectedGroupName', groupName);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, groupId.toString());
+    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, groupName);
     router.push('/transactions');
   };
 
@@ -155,7 +156,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   const handleViewTransactions = () => {
-    const selectedGroupId = localStorage.getItem('selectedGroupId');
+    const selectedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
     if (selectedGroupId) {
       router.push('/transactions');
     } else {
@@ -201,40 +202,122 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Welcome Section */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Welcome back, {currentUser.full_name?.split(' ')[0] || currentUser.email}!
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h3" fontWeight="bold" gutterBottom>
+          Welcome back, {currentUser.full_name?.split(' ')[0] || currentUser.email}! 👋
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="h6" color="text.secondary">
           Here&apos;s an overview of your expense tracking groups and recent activity.
         </Typography>
       </Box>
 
-
+      {/* Quick Stats */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 6 }}>
+        <Card sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          '&:hover': { transform: 'translateY(-4px)' },
+          transition: 'all 0.3s ease'
+        }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="h4" fontWeight="bold">
+                  {groupsWithStats.length}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Total Groups
+                </Typography>
+              </Box>
+              <GroupIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+            </Box>
+          </CardContent>
+        </Card>
+        
+        <Card sx={{ 
+          bgcolor: 'success.main', 
+          color: 'white',
+          '&:hover': { transform: 'translateY(-4px)' },
+          transition: 'all 0.3s ease'
+        }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="h4" fontWeight="bold">
+                  {groupsWithStats.reduce((sum, group) => sum + group.transaction_count, 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Total Transactions
+                </Typography>
+              </Box>
+              <ReceiptIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+            </Box>
+          </CardContent>
+        </Card>
+        
+        <Card sx={{ 
+          bgcolor: 'warning.main', 
+          color: 'white',
+          '&:hover': { transform: 'translateY(-4px)' },
+          transition: 'all 0.3s ease'
+        }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="h4" fontWeight="bold">
+                  ₹{groupsWithStats.reduce((sum, group) => sum + group.total_amount, 0).toFixed(2)}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Total Amount
+                </Typography>
+              </Box>
+              <MoneyIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+            </Box>
+          </CardContent>
+        </Card>
+        
+        <Card sx={{ 
+          bgcolor: 'info.main', 
+          color: 'white',
+          '&:hover': { transform: 'translateY(-4px)' },
+          transition: 'all 0.3s ease'
+        }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="h4" fontWeight="bold">
+                  {groupsWithStats.reduce((sum, group) => sum + group.member_count, 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Total Members
+                </Typography>
+              </Box>
+              <PersonIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Group Cards Section */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" fontWeight="bold">
+      <Box sx={{ mb: 6 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" fontWeight="bold">
             Your Groups
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => ui.openCreateGroupForm()}
+            sx={{ borderRadius: 2, px: 3 }}
           >
             Create New Group
           </Button>
         </Box>
 
         {groupsLoading ? (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 3
-          }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {[1, 2, 3].map((i) => (
               <Card key={i}>
                 <CardContent>
@@ -256,51 +339,60 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
             ))}
           </Box>
         ) : groupsWithStats.length === 0 ? (
-          <Card>
-            <CardContent sx={{ textAlign: 'center', py: 6 }}>
-              <GroupIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Card sx={{ 
+            textAlign: 'center', 
+            py: 8,
+            bgcolor: 'grey.50',
+            border: '2px dashed',
+            borderColor: 'divider'
+          }}>
+            <CardContent>
+              <GroupIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
+              <Typography variant="h5" color="text.secondary" gutterBottom>
                 No groups yet
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
                 Create your first group to start tracking expenses with friends or family.
               </Typography>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => ui.openCreateGroupForm()}
+                size="large"
+                sx={{ borderRadius: 2, px: 4 }}
               >
                 Create Your First Group
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 3
-          }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {groupsWithStats.map((group) => (
               <Card 
                 key={group.id}
                 sx={{ 
                   height: '100%',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  border: ui.currentGroupName === group.name ? '2px solid' : 'none',
-                  borderColor: 'primary.main',
+                  transition: 'all 0.3s ease',
+                  border: ui.currentGroupName === group.name ? '2px solid' : '1px solid',
+                  borderColor: ui.currentGroupName === group.name ? 'primary.main' : 'divider',
                   bgcolor: ui.currentGroupName === group.name ? 'primary.50' : 'background.paper',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4,
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                   }
                 }}
                 onClick={() => handleGroupSelect(group.id, group.name)}
               >
                 <CardContent>
                   {/* Group Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <Avatar sx={{ 
+                      bgcolor: ui.currentGroupName === group.name ? 'primary.main' : 'primary.light', 
+                      mr: 2,
+                      width: 48,
+                      height: 48
+                    }}>
                       <GroupIcon />
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
@@ -321,7 +413,10 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                           e.stopPropagation();
                           handleAddMember(group.id, group.name);
                         }}
-                        sx={{ color: 'primary.main' }}
+                        sx={{ 
+                          color: 'primary.main',
+                          '&:hover': { bgcolor: 'primary.50' }
+                        }}
                       >
                         <PersonAddIcon />
                       </IconButton>
@@ -345,11 +440,11 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                     </Box>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 3 }} />
 
                   {/* Group Statistics */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
-                    <Box sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                         <PersonIcon sx={{ fontSize: 20, color: 'secondary.main', mr: 1 }} />
                         <Typography variant="h6" fontWeight="bold">
@@ -361,7 +456,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                       </Typography>
                     </Box>
                     
-                    <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                         <ReceiptIcon sx={{ fontSize: 20, color: 'success.main', mr: 1 }} />
                         <Typography variant="h6" fontWeight="bold">
@@ -375,9 +470,9 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                   </Box>
 
                   {/* Total Amount */}
-                  <Box sx={{ textAlign: 'center', mb: 2 }}>
+                  <Box sx={{ textAlign: 'center', mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                      <MoneyIcon sx={{ fontSize: 24, color: 'warning.main', mr: 1 }} />
+                      <MoneyIcon sx={{ fontSize: 28, color: 'warning.main', mr: 1 }} />
                       <Typography variant="h5" fontWeight="bold" color="warning.main">
                         ₹{group.total_amount.toFixed(2)}
                       </Typography>
@@ -387,7 +482,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                     </Typography>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 3 }} />
 
                   {/* Group Footer */}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -412,10 +507,11 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
         )}
 
         {!groupsLoading && groupsWithStats.length > 0 && (
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
             <Button
               variant="outlined"
               onClick={handleViewAllGroups}
+              sx={{ borderRadius: 2, px: 4 }}
             >
               View All Groups
             </Button>
@@ -424,22 +520,23 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
       </Box>
 
       {/* Recent Transactions Section */}
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" fontWeight="bold">
-              Recent Transactions
-            </Typography>
-            <Button
-              size="small"
-              onClick={handleViewTransactions}
-            >
-              View All
-            </Button>
-          </Box>
-          
+      <Card sx={{ 
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      }}>
+        <Box sx={{ bgcolor: 'primary.main', p: 3, color: 'white' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Recent Transactions
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            Latest activity across all your groups
+          </Typography>
+        </Box>
+        
+        <CardContent sx={{ p: 0 }}>
           {transactionsLoading ? (
-            <Box sx={{ py: 2 }}>
+            <Box sx={{ p: 3 }}>
               {[1, 2, 3].map((i) => (
                 <Box key={i} sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -454,15 +551,18 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
               ))}
             </Box>
           ) : recentTransactions.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 3 }}>
-              <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <ReceiptIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
                 No recent transactions
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Start adding transactions to see them here
               </Typography>
               <Button
                 variant="outlined"
-                size="small"
                 onClick={handleViewTransactions}
+                sx={{ borderRadius: 2 }}
               >
                 Add your first transaction
               </Button>
@@ -471,7 +571,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
             <List sx={{ p: 0 }}>
               {recentTransactions.slice(0, 5).map((transaction: RecentTransaction, index: number) => (
                 <React.Fragment key={transaction.id}>
-                  <ListItem>
+                  <ListItem sx={{ px: 3, py: 2 }}>
                     <ListItemAvatar>
                       <Avatar sx={{ bgcolor: 'success.main' }}>
                         <MoneyIcon />
@@ -485,12 +585,25 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                       label={transaction.group_name} 
                       size="small" 
                       variant="outlined"
+                      sx={{ borderRadius: 2 }}
                     />
                   </ListItem>
                   {index < Math.min(4, recentTransactions.length - 1) && <Divider />}
                 </React.Fragment>
               ))}
             </List>
+          )}
+          
+          {recentTransactions.length > 0 && (
+            <Box sx={{ p: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Button
+                fullWidth
+                onClick={handleViewTransactions}
+                sx={{ borderRadius: 2 }}
+              >
+                View All Transactions
+              </Button>
+            </Box>
           )}
         </CardContent>
       </Card>
