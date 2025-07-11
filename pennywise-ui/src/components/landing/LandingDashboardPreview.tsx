@@ -14,9 +14,21 @@ const transactions = [
 ];
 
 const LandingDashboardPreview = () => (
-  <Box sx={{ width: "100%", maxWidth: 700, minWidth: 450 }}>
-    <Card sx={{ borderRadius: 2, overflow: "hidden", boxShadow: 4, display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ bgcolor: "primary.main", p: 2.5, color: "white", borderTopLeftRadius: 8, borderTopRightRadius: 8 }}>
+  <Box sx={{ 
+    width: "100%", 
+    maxWidth: { xs: "100%", sm: 700 }, 
+    minWidth: { xs: "auto", sm: 450 },
+    px: { xs: 1, sm: 0 }
+  }}>
+    <Card sx={{ 
+      borderRadius: 2, 
+      overflow: "hidden", 
+      boxShadow: 4, 
+      display: 'flex', 
+      flexDirection: 'column',
+      width: "100%"
+    }}>
+      <Box sx={{ bgcolor: "primary.main", p: { xs: 2, sm: 2.5 }, color: "white", borderTopLeftRadius: 8, borderTopRightRadius: 8 }}>
         <Typography variant="h6" fontWeight={600}>
           Dashboard
         </Typography>
@@ -24,10 +36,10 @@ const LandingDashboardPreview = () => (
           December 2024
         </Typography>
       </Box>
-      <CardContent sx={{ p: 2, flex: 1 }}>
+      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, flex: 1 }}>
         {/* Stats Row */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <Box sx={{ flex: 1, textAlign: "center", p: 1.5, bgcolor: "grey.50", borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, mb: 2 }}>
+          <Box sx={{ flex: 1, textAlign: "center", p: { xs: 1, sm: 1.5 }, bgcolor: "grey.50", borderRadius: 2 }}>
             <Typography variant="h6" fontWeight="bold" color="error.main">
               ₹2,847
             </Typography>
@@ -38,7 +50,7 @@ const LandingDashboardPreview = () => (
               +12% vs last month
             </Typography>
           </Box>
-          <Box sx={{ flex: 1, textAlign: "center", p: 1.5, bgcolor: "grey.50", borderRadius: 2 }}>
+          <Box sx={{ flex: 1, textAlign: "center", p: { xs: 1, sm: 1.5 }, bgcolor: "grey.50", borderRadius: 2 }}>
             <Typography variant="h6" fontWeight="bold" color="success.main">
               ₹1,153
             </Typography>
@@ -57,17 +69,29 @@ const LandingDashboardPreview = () => (
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {categories.map((item, index) => (
-              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography variant="caption" sx={{ minWidth: 90, fontWeight: 500 }}>
+              <Box key={index} sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 2 } }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    width: { xs: 70, sm: 100 }, 
+                    fontWeight: 500,
+                    flexShrink: 0
+                  }}
+                >
                   {item.label}
                 </Typography>
-                <Box sx={{ flex: 1, position: 'relative' }}>
+                <Box sx={{ 
+                  flex: 1, 
+                  position: 'relative',
+                  minWidth: 0
+                }}>
                   <Box sx={{ 
                     height: 10, 
                     bgcolor: "grey.200", 
                     borderRadius: 5, 
                     overflow: "hidden",
-                    position: 'relative'
+                    position: 'relative',
+                    width: "100%"
                   }}>
                     <Box sx={{ 
                       height: "100%", 
@@ -78,7 +102,15 @@ const LandingDashboardPreview = () => (
                     }} />
                   </Box>
                 </Box>
-                <Typography variant="caption" fontWeight={600} sx={{ minWidth: 60, textAlign: 'right' }}>
+                <Typography 
+                  variant="caption" 
+                  fontWeight={600} 
+                  sx={{ 
+                    width: { xs: 50, sm: 70 }, 
+                    textAlign: 'right',
+                    flexShrink: 0
+                  }}
+                >
                   {item.amount}
                 </Typography>
               </Box>
@@ -93,18 +125,26 @@ const LandingDashboardPreview = () => (
           <Box>
             {transactions.map((item, index) => (
               <Box key={index} sx={{ display: "flex", alignItems: "center", py: 1, borderBottom: index < 2 ? "1px solid" : "none", borderColor: "divider" }}>
-                <Typography variant="body2" sx={{ mr: 2 }}>
+                <Typography variant="body2" sx={{ mr: { xs: 1, sm: 2 } }}>
                   {item.icon}
                 </Typography>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={500} sx={{ 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis', 
+                    whiteSpace: 'nowrap' 
+                  }}>
                     {item.name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis', 
+                    whiteSpace: 'nowrap' 
+                  }}>
                     {item.category}
                   </Typography>
                 </Box>
-                <Typography variant="body2" fontWeight={600} color="error.main">
+                <Typography variant="body2" fontWeight={600} color="error.main" sx={{ ml: 1 }}>
                   -{item.amount}
                 </Typography>
               </Box>

@@ -27,11 +27,12 @@ const LandingFeatureList = () => (
   <Box sx={{ 
     display: 'flex', 
     flexDirection: 'column', 
-    alignItems: 'flex-start', 
-    gap: 2,
+    alignItems: { xs: 'stretch', sm: 'flex-start' }, 
+    gap: { xs: 1.5, sm: 2 },
     height: '100%',
     justifyContent: 'space-between',
-    minHeight: 350
+    minHeight: 300,
+    width: '100%'
   }}>
     {features.map((feature) => (
       <LandingFeatureCard key={feature.title} {...feature} />

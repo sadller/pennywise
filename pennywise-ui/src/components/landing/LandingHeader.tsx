@@ -16,26 +16,58 @@ const LandingHeader = observer(() => {
   };
 
   return (
-    <Box sx={{ maxWidth: 480 }}>
-      <Typography variant="h2" fontWeight="bold" gutterBottom>
+    <Box sx={{ maxWidth: { xs: "100%", sm: 480 } }}>
+      <Typography 
+        variant="h2" 
+        fontWeight="bold" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+          lineHeight: { xs: 1.2, sm: 1.3 }
+        }}
+      >
         Take Control of Your {" "}
         <Box component="span" color="primary.main" display="inline">
           Finances
         </Box>
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography 
+        variant="body1" 
+        color="text.secondary" 
+        sx={{ 
+          mb: { xs: 3, sm: 4 },
+          fontSize: { xs: '0.875rem', sm: '1rem' }
+        }}
+      >
         Track expenses, manage budgets, and achieve your financial goals with our intuitive expense tracking application.
       </Typography>
-      <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+      <Box sx={{ 
+        display: "flex", 
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: { xs: 1.5, sm: 2 }, 
+        mb: { xs: 3, sm: 4 }
+      }}>
         <Button 
           variant="contained" 
           size="large" 
-          sx={{ borderRadius: 2, px: 4 }}
+          sx={{ 
+            borderRadius: 2, 
+            px: { xs: 3, sm: 4 },
+            py: { xs: 1.5, sm: 1.75 }
+          }}
           onClick={handleGetStarted}
         >
           {auth.user ? 'Dashboard' : 'Get Started'}
         </Button>
-        <Button variant="outlined" size="large" sx={{ borderRadius: 2, px: 4 }}>
+        <Button 
+          variant="outlined" 
+          size="large" 
+          sx={{ 
+            borderRadius: 2, 
+            px: { xs: 3, sm: 4 },
+            py: { xs: 1.5, sm: 1.75 }
+          }}
+        >
           Learn More
         </Button>
       </Box>
