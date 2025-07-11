@@ -57,8 +57,10 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
 
   // Initialize current group name from localStorage
   React.useEffect(() => {
-    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-    ui.setCurrentGroupName(groupName);
+    if (typeof window !== 'undefined') {
+      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      ui.setCurrentGroupName(groupName);
+    }
   }, [ui]);
 
   // Fetch groups with detailed statistics for dashboard overview
@@ -81,7 +83,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
 
   // Auto-select most recently created group if no group is currently selected
   React.useEffect(() => {
-    if (!groupsLoading && groupsWithStats.length > 0 && !ui.currentGroupName) {
+    if (typeof window !== 'undefined' && !groupsLoading && groupsWithStats.length > 0 && !ui.currentGroupName) {
       // Find the most recently created group
       const mostRecentGroup = groupsWithStats.reduce((latest, current) => {
         const latestDate = new Date(latest.created_at);
@@ -146,8 +148,10 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   });
 
   const handleGroupSelect = (groupId: number, groupName: string) => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, groupId.toString());
-    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, groupName);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, groupId.toString());
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, groupName);
+    }
     router.push('/transactions');
   };
 
@@ -156,9 +160,13 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   const handleViewTransactions = () => {
-    const selectedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    if (selectedGroupId) {
-      router.push('/transactions');
+    if (typeof window !== 'undefined') {
+      const selectedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      if (selectedGroupId) {
+        router.push('/transactions');
+      } else {
+        router.push('/groups');
+      }
     } else {
       router.push('/groups');
     }
@@ -184,8 +192,10 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   const handleDeleteConfirm = async () => {
-    if (ui.groupToDelete) {
+    if (ui.groupToDelete && typeof window !== 'undefined') {
       await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     }
   };
 

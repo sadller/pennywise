@@ -34,6 +34,9 @@ class ApiClient {
   }
 
   private async refreshToken(): Promise<AuthTokens | null> {
+    if (typeof window === 'undefined') {
+      return null;
+    }
     const refreshToken = localStorage.getItem('refresh_token');
     if (!refreshToken) {
       return null;
@@ -50,19 +53,25 @@ class ApiClient {
 
       if (response.ok) {
         const tokens = await response.json();
-        localStorage.setItem('auth_token', tokens.access_token);
-        localStorage.setItem('refresh_token', tokens.refresh_token);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_token', tokens.access_token);
+          localStorage.setItem('refresh_token', tokens.refresh_token);
+        }
         return tokens;
       } else {
         // Refresh token is invalid, clear storage
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('refresh_token');
+        }
         return null;
       }
     } catch (error) {
       console.error('Error refreshing token:', error);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+      }
       return null;
     }
   }
@@ -78,6 +87,9 @@ class ApiClient {
   }
 
   private getAuthHeaders(): Record<string, string> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
     const token = localStorage.getItem('auth_token');
     if (!token) {
       return {};
@@ -93,7 +105,9 @@ class ApiClient {
         } else {
           // Refresh failed, redirect to login
           this.processQueue(new Error('Authentication failed'));
-          window.location.href = '/auth';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth';
+          }
         }
       });
       
@@ -156,7 +170,9 @@ class ApiClient {
         } else {
           this.isRefreshing = false;
           this.processQueue(new Error('Authentication failed'));
-          window.location.href = '/auth';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth';
+          }
           throw new Error('Authentication failed');
         }
       }

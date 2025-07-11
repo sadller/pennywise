@@ -41,8 +41,10 @@ const GroupsContent = observer(() => {
 
   // Get current group name from localStorage
   useEffect(() => {
-    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-    ui.setCurrentGroupName(groupName);
+    if (typeof window !== 'undefined') {
+      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      ui.setCurrentGroupName(groupName);
+    }
   }, [ui]);
 
   // Fetch user's groups for display and management
@@ -102,8 +104,10 @@ const GroupsContent = observer(() => {
 
   const handleGroupSelect = (group: Group) => {
     // Store selected group in localStorage or context
-    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, group.id.toString());
-    localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, group.name);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, group.id.toString());
+      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, group.name);
+    }
     ui.setCurrentGroupName(group.name);
     router.push('/transactions');
   };
@@ -114,8 +118,10 @@ const GroupsContent = observer(() => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (ui.groupToDelete) {
+    if (ui.groupToDelete && typeof window !== 'undefined') {
       await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
     }
   };
 

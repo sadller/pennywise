@@ -59,17 +59,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
     } catch {
       console.error('Error fetching user profile');
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      // Clear group selection data when authentication fails
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        // Clear group selection data when authentication fails
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      }
       setToken(null);
       setUser(null);
     }
   }, []);
 
   const refreshTokenAndFetchUser = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
     const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) {
       setIsLoading(false);
@@ -100,16 +106,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch {
       console.error('Error refreshing token');
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      // Clear group selection data when authentication fails
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        // Clear group selection data when authentication fails
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      }
     }
     setIsLoading(false);
   }, [fetchUserProfile]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     // Check for existing token on app load
     const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (storedToken) {
@@ -143,10 +152,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
-    // Clear any existing group data to ensure clean state
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    if (typeof window !== 'undefined') {
+      // Clear any existing group data to ensure clean state
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    }
     
     try {
       const data = await apiClient.post<{
@@ -166,8 +176,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         is_active: true,
         is_superuser: false,
       });
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -182,10 +194,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (email: string, password: string, fullName?: string) => {
     setIsLoading(true);
     setError(null);
-    
-    // Clear any existing group data to ensure clean state
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    if (typeof window !== 'undefined') {
+      // Clear any existing group data to ensure clean state
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    }
     
     try {
       const data = await apiClient.post<{
@@ -209,8 +222,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         is_active: true,
         is_superuser: false,
       });
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -225,10 +240,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async (code: string) => {
     setIsLoading(true);
     setError(null);
-    
-    // Clear any existing group data to ensure clean state
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    if (typeof window !== 'undefined') {
+      // Clear any existing group data to ensure clean state
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    }
     
     try {
       const data = await apiClient.post<{

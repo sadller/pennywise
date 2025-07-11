@@ -22,7 +22,7 @@ class AuthStore {
 
   constructor() {
     makeAutoObservable(this);
-    this.initializeAuth();
+    // Don't initialize auth in constructor - will be called from client side
   }
 
   private API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -40,6 +40,12 @@ class AuthStore {
   }
 
   private async refreshTokenAndFetchUser() {
+    if (typeof window === 'undefined') {
+      runInAction(() => {
+        this.isLoading = false;
+      });
+      return;
+    }
     const refreshToken = localStorage.getItem('refresh_token');
     if (!refreshToken) {
       runInAction(() => {
@@ -59,8 +65,10 @@ class AuthStore {
 
       if (response.ok) {
         const tokens = await response.json();
-        localStorage.setItem('auth_token', tokens.access_token);
-        localStorage.setItem('refresh_token', tokens.refresh_token);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_token', tokens.access_token);
+          localStorage.setItem('refresh_token', tokens.refresh_token);
+        }
         runInAction(() => {
           this.token = tokens.access_token;
         });
@@ -78,17 +86,26 @@ class AuthStore {
   }
 
   private clearAuth() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+    }
     runInAction(() => {
       this.token = null;
       this.user = null;
     });
   }
 
-  private initializeAuth() {
+  initializeAuth() {
+    if (typeof window === 'undefined') {
+      runInAction(() => {
+        this.isLoading = false;
+      });
+      return;
+    }
+    
     // Check for existing token on app load
     const storedToken = localStorage.getItem('auth_token');
     if (storedToken) {
@@ -131,8 +148,10 @@ class AuthStore {
     });
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+    }
     
     try {
       const data = await apiClient.post<{
@@ -154,8 +173,10 @@ class AuthStore {
           is_superuser: false,
         };
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
@@ -178,8 +199,10 @@ class AuthStore {
     });
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+    }
     
     try {
       const data = await apiClient.post<{
@@ -205,8 +228,10 @@ class AuthStore {
           is_superuser: false,
         };
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
@@ -229,8 +254,10 @@ class AuthStore {
     });
     
     // Clear any existing group data to ensure clean state
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+    }
     
     try {
       const data = await apiClient.post<{
@@ -252,8 +279,10 @@ class AuthStore {
           is_superuser: false,
         };
       });
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
@@ -274,20 +303,25 @@ class AuthStore {
       this.user = null;
       this.token = null;
     });
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    // Clear group selection data to prevent data leakage between users
-    localStorage.removeItem('selectedGroupId');
-    localStorage.removeItem('selectedGroupName');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+    }
   }
 
   setSidebarCollapsed(collapsed: boolean) {
-    this.sidebarCollapsed = collapsed;
-    localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
+    runInAction(() => {
+      this.sidebarCollapsed = collapsed;
+    });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
+    }
   }
 
   get isAuthenticated() {
-    return this.user !== null && this.token !== null;
+    return !!this.token && !!this.user;
   }
 }
 

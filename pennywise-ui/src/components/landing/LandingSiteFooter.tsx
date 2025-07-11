@@ -1,11 +1,15 @@
-import { Box, Container, Typography, Grid } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import Image from "next/image";
 
 const LandingSiteFooter = () => (
   <Box sx={{ bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', py: 6, mt: 8 }}>
     <Container maxWidth="lg">
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' },
+        gap: 4 
+      }}>
+        <Box sx={{ gridColumn: { xs: '1', md: '1 / 3' } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
             <Image src="/pennywise-logo.svg" alt="Pennywise Logo" width={32} height={32} />
             <Typography variant="h6" fontWeight="bold" color="primary.main">
@@ -15,8 +19,8 @@ const LandingSiteFooter = () => (
           <Typography variant="body2" color="text.secondary">
             Smart expense tracking for everyone. Take control of your finances with our intuitive and secure platform.
           </Typography>
-        </Grid>
-        <Grid item xs={12} md={2}>
+        </Box>
+        <Box>
           <Typography variant="h6" fontWeight="600" gutterBottom>
             Product
           </Typography>
@@ -25,8 +29,8 @@ const LandingSiteFooter = () => (
             <Typography variant="body2" color="text.secondary">Pricing</Typography>
             <Typography variant="body2" color="text.secondary">API</Typography>
           </Box>
-        </Grid>
-        <Grid item xs={12} md={2}>
+        </Box>
+        <Box>
           <Typography variant="h6" fontWeight="600" gutterBottom>
             Company
           </Typography>
@@ -35,8 +39,8 @@ const LandingSiteFooter = () => (
             <Typography variant="body2" color="text.secondary">Blog</Typography>
             <Typography variant="body2" color="text.secondary">Careers</Typography>
           </Box>
-        </Grid>
-        <Grid item xs={12} md={2}>
+        </Box>
+        <Box>
           <Typography variant="h6" fontWeight="600" gutterBottom>
             Support
           </Typography>
@@ -45,8 +49,8 @@ const LandingSiteFooter = () => (
             <Typography variant="body2" color="text.secondary">Contact</Typography>
             <Typography variant="body2" color="text.secondary">Privacy</Typography>
           </Box>
-        </Grid>
-        <Grid item xs={12} md={2}>
+        </Box>
+        <Box>
           <Typography variant="h6" fontWeight="600" gutterBottom>
             Connect
           </Typography>
@@ -55,8 +59,8 @@ const LandingSiteFooter = () => (
             <Typography variant="body2" color="text.secondary">LinkedIn</Typography>
             <Typography variant="body2" color="text.secondary">GitHub</Typography>
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
       <Box sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 4, pt: 4, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
           &copy; 2024 Pennywise. All rights reserved.

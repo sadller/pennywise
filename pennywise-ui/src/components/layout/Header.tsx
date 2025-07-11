@@ -78,8 +78,10 @@ const Header = observer(({ onMenuClick, onSwitchGroup }: HeaderProps) => {
     if (onSwitchGroup) {
       onSwitchGroup();
     } else {
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('selectedGroupId');
+        localStorage.removeItem('selectedGroupName');
+      }
       router.push('/groups');
     }
     handleMenuClose();

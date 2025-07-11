@@ -40,8 +40,10 @@ export default function Transactions({
 
   // Get current group name from localStorage
   useEffect(() => {
-    const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-    setCurrentGroupName(groupName);
+    if (typeof window !== 'undefined') {
+      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      setCurrentGroupName(groupName);
+    }
   }, []);
 
   // Fetch transactions
@@ -85,8 +87,10 @@ export default function Transactions({
   };
 
   const handleSwitchGroup = () => {
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    }
     router.push('/groups');
   };
 

@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Box, Container } from "@mui/material";
-import Grid from '@mui/material/Grid';
 import LandingSiteHeader from "@/components/landing/LandingSiteHeader";
 import LandingHeader from "@/components/landing/LandingHeader";
 import LandingFeatureList from "@/components/landing/LandingFeatureList";
@@ -14,19 +13,25 @@ export default function Home() {
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafbfc" }}>
       <LandingSiteHeader />
       <Container maxWidth="lg" sx={{ py: 10 }}>
-        <Grid container spacing={6} alignItems="flex-start" justifyContent="center">
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', md: '7fr 5fr' },
+          gap: 6,
+          alignItems: 'flex-start',
+          justifyContent: 'center'
+        }}>
           {/* Left Column: Header + Features */}
-          <Grid item xs={12} md={7} lg={7}>
+          <Box>
             <LandingHeader />
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
               <LandingFeatureList />
             </Box>
-          </Grid>
+          </Box>
           {/* Right Column: Dashboard Preview */}
-          <Grid item xs={12} md={5} lg={5} sx={{ display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+          <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
             <LandingDashboardPreview />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
       <LandingSiteFooter />
     </Box>

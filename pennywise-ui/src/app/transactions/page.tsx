@@ -23,8 +23,10 @@ const TransactionsContent = observer(() => {
 
   // Clear group selection data from localStorage and state
   const clearGroupData = () => {
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+    }
     setSelectedGroupId(null);
     setIsValidMember(null);
   };
@@ -36,10 +38,12 @@ const TransactionsContent = observer(() => {
     }
     
     // Check if user has selected a group
-    const storedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-    
-    if (storedGroupId) {
-      setSelectedGroupId(parseInt(storedGroupId));
+    if (typeof window !== 'undefined') {
+      const storedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
+      
+      if (storedGroupId) {
+        setSelectedGroupId(parseInt(storedGroupId));
+      }
     }
   }, [auth.user, router]);
 
