@@ -13,7 +13,9 @@ import {
   Divider,
   Container,
   Paper,
+  IconButton,
 } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
 interface RegisterFormProps {
@@ -55,9 +57,29 @@ const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin })
     console.error('Google registration failed');
   };
 
+  const handleCancel = () => {
+    router.push('/');
+  };
+
   return (
     <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, mt: 4, position: 'relative' }}>
+        {/* Cancel Button */}
+        <IconButton
+          onClick={handleCancel}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'text.primary',
+            },
+          }}
+        >
+          <ArrowBack />
+        </IconButton>
+
         <Typography variant="h4" component="h1" align="center" gutterBottom>
           Create Account
         </Typography>
