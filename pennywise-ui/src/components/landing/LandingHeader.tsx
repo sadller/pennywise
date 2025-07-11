@@ -1,13 +1,14 @@
 import { Box, Typography, Button } from "@mui/material";
-import { useAuth } from "@/contexts/AuthContext";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/StoreProvider";
 import { useRouter } from "next/navigation";
 
-const LandingHeader = () => {
-  const { user } = useAuth();
+const LandingHeader = observer(() => {
+  const { auth } = useStore();
   const router = useRouter();
 
   const handleGetStarted = () => {
-    if (user) {
+    if (auth.user) {
       router.push('/dashboard');
     } else {
       router.push('/auth');
@@ -32,7 +33,7 @@ const LandingHeader = () => {
           sx={{ borderRadius: 2, px: 4 }}
           onClick={handleGetStarted}
         >
-          {user ? 'Dashboard' : 'Get Started'}
+          {auth.user ? 'Dashboard' : 'Get Started'}
         </Button>
         <Button variant="outlined" size="large" sx={{ borderRadius: 2, px: 4 }}>
           Learn More
@@ -40,6 +41,6 @@ const LandingHeader = () => {
       </Box>
     </Box>
   );
-};
+});
 
 export default LandingHeader; 

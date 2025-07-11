@@ -1,10 +1,11 @@
 import { AppBar, Toolbar, Box, Typography, Button, Container } from "@mui/material";
 import Image from "next/image";
-import { useAuth } from "@/contexts/AuthContext";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/StoreProvider";
 import { useRouter } from "next/navigation";
 
-const LandingSiteHeader = () => {
-  const { user } = useAuth();
+const LandingSiteHeader = observer(() => {
+  const { auth } = useStore();
   const router = useRouter();
 
   const handleLogin = () => {
@@ -30,7 +31,7 @@ const LandingSiteHeader = () => {
             <Button color="inherit" sx={{ textTransform: 'none' }}>Features</Button>
             <Button color="inherit" sx={{ textTransform: 'none' }}>About</Button>
             <Button color="inherit" sx={{ textTransform: 'none' }}>Contact</Button>
-            {!user && (
+            {!auth.user && (
               <Button 
                 variant="contained"
                 sx={{ textTransform: 'none', borderRadius: 2 }}
@@ -44,6 +45,6 @@ const LandingSiteHeader = () => {
       </Container>
     </AppBar>
   );
-};
+});
 
 export default LandingSiteHeader; 
