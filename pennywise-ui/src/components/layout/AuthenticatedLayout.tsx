@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { observer } from 'mobx-react-lite';
-import { Box } from '@mui/material';
+import { Box, Fade } from '@mui/material';
 import { useStore } from '@/stores/StoreProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -92,7 +92,12 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
               paddingTop: `${LAYOUT_CONSTANTS.HEADER_HEIGHT}px`, // Ensure content starts below header
             }}
           >
-            {children}
+            {/* Content Transition Wrapper */}
+            <Fade in={true} timeout={300}>
+              <Box>
+                {children}
+              </Box>
+            </Fade>
           </Box>
         </Box>
       </Box>

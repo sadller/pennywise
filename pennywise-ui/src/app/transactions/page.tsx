@@ -92,60 +92,56 @@ const TransactionsContent = observer(() => {
   // Show message if no group is selected
   if (!selectedGroupId) {
     return (
-      <AuthenticatedLayout>
-        <EmptyState
-          icon={GroupIcon}
-          title="No Group Selected"
-          description={`To view transactions, you need to select a group first. ${
-            userGroups.length === 0 
-              ? "You don't have any groups yet. Create your first group to get started!"
-              : "Choose from your existing groups or create a new one."
-          }`}
-          actions={[
-            {
-              label: userGroups.length === 0 ? 'Create Your First Group' : 'Select a Group',
-              onClick: () => router.push('/groups'),
-              variant: 'contained' as const
-            },
-            ...(userGroups.length > 0 ? [{
-              label: 'Back to Dashboard',
-              onClick: () => router.push('/dashboard'),
-              variant: 'outlined' as const
-            }] : [])
-          ]}
-        />
-      </AuthenticatedLayout>
+      <EmptyState
+        icon={GroupIcon}
+        title="No Group Selected"
+        description={`To view transactions, you need to select a group first. ${
+          userGroups.length === 0 
+            ? "You don't have any groups yet. Create your first group to get started!"
+            : "Choose from your existing groups or create a new one."
+        }`}
+        actions={[
+          {
+            label: userGroups.length === 0 ? 'Create Your First Group' : 'Select a Group',
+            onClick: () => router.push('/groups'),
+            variant: 'contained' as const
+          },
+          ...(userGroups.length > 0 ? [{
+            label: 'Back to Dashboard',
+            onClick: () => router.push('/dashboard'),
+            variant: 'outlined' as const
+          }] : [])
+        ]}
+      />
     );
   }
 
   // Show error if user is not a member of the selected group
   if (isValidMember === false) {
     return (
-      <AuthenticatedLayout>
-        <ErrorAlert
-          message="You are not a member of the selected group. Please select a different group."
-          onRetry={() => router.push('/groups')}
-          retryLabel="Go to Groups"
-        />
-      </AuthenticatedLayout>
+      <ErrorAlert
+        message="You are not a member of the selected group. Please select a different group."
+        onRetry={() => router.push('/groups')}
+        retryLabel="Go to Groups"
+      />
     );
   }
 
   return (
-    <AuthenticatedLayout>
-      <Transactions 
-        currentUser={auth.user}
-        groupId={selectedGroupId || undefined}
-        groupMembers={groupMembers}
-      />
-    </AuthenticatedLayout>
+    <Transactions 
+      currentUser={auth.user}
+      groupId={selectedGroupId || undefined}
+      groupMembers={groupMembers}
+    />
   );
 });
 
 export default function TransactionsPage() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TransactionsContent />
+      <AuthenticatedLayout>
+        <TransactionsContent />
+      </AuthenticatedLayout>
     </QueryClientProvider>
   );
 } 
