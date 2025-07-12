@@ -24,7 +24,6 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { GroupCreate } from '@/types/group';
 import { Group } from '@/types/group';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -34,10 +33,10 @@ import { queryClient } from '@/lib/queryClient';
 import { STORAGE_KEYS } from '@/constants/layout';
 
 // Type guards
-function hasMembers(group: Group | any): group is Group & { members: any[] } {
+function hasMembers(group: Group & { members?: unknown }): group is Group & { members: unknown[] } {
   return Array.isArray(group.members);
 }
-function hasUpdatedAt(group: Group | any): group is Group & { updated_at: string } {
+function hasUpdatedAt(group: Group & { updated_at?: unknown }): group is Group & { updated_at: string } {
   return typeof group.updated_at === 'string';
 }
 
@@ -63,14 +62,7 @@ const GroupsContent = observer(() => {
     queryFn: () => groupService.getUserGroups(),
   });
 
-  // Mutation for creating new groups
-  const createGroupMutation = useMutation({
-    mutationFn: (data: GroupCreate) => 
-      groupService.createGroup(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-groups'] });
-    },
-  });
+
 
   // Mutation for deleting groups (owner only)
   const deleteGroupMutation = useMutation({
@@ -104,9 +96,7 @@ const GroupsContent = observer(() => {
     },
   });
 
-  const handleCreateGroup = async (data: GroupCreate) => {
-    await createGroupMutation.mutateAsync(data);
-  };
+
 
   const handleGroupSelect = (group: Group) => {
     // Store selected group in localStorage or context

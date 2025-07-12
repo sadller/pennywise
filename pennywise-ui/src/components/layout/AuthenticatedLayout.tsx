@@ -10,10 +10,9 @@ import { LAYOUT_CONSTANTS } from '@/constants/layout';
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
-  onSwitchGroup?: () => void;
 }
 
-const AuthenticatedLayout = observer(({ children, onSwitchGroup }: AuthenticatedLayoutProps) => {
+const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) => {
   const { auth } = useStore();
   
   // Use window size instead of useMediaQuery to avoid function passing
@@ -57,7 +56,7 @@ const AuthenticatedLayout = observer(({ children, onSwitchGroup }: Authenticated
         borderBottom: 1,
         borderColor: 'divider'
       }}>
-        <Header onMenuClick={handleMenuClick} onSwitchGroup={onSwitchGroup} />
+        <Header onMenuClick={handleMenuClick} />
       </Box>
       
       {/* Content Area - Sidebar and Main Content */}
