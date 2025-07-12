@@ -1,41 +1,22 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Button, 
-  Alert,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  Divider,
-  IconButton
-} from '@mui/material';
-import { 
-  Upload as UploadIcon, 
-  CheckCircle as CheckIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-  FileUpload as FileUploadIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material';
+import { Box } from '@mui/material';
 import PageHeader from '@/components/common/PageHeader';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
+import { groupService } from '@/services/groupService';
+import {
+  ImportStepper,
+  StepOneContent,
+  StepTwoContent,
+  FileListSection,
+  InstructionsSection
+} from '@/components/utilities';
 
-interface ImportResult {
-  success: boolean;
-  message: string;
-  count?: number;
-  errors?: string[];
-}
+
 
 interface FileWithProgress {
   file: File;
@@ -43,26 +24,55 @@ interface FileWithProgress {
   progress: number;
   status: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
+  metadata?: {
+    rowCount: number;
+    columnCount: number;
+    fileSize: string;
+    lastModified: string;
+  };
 }
 
 const SUPPORTED_FIELDS = ['Date', 'Amount', 'Description', 'Category', 'Payment Mode'] as const;
 const MAX_FILES = 20;
 const FILE_SIZE_DISPLAY_PRECISION = 1; // Decimal places for file size display
 
+const STEPS = [
+  'Select Group & Files',
+  'Review & Import'
+] as const;
+
 const CashbookImportContent = () => {
   const [files, setFiles] = useState<FileWithProgress[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch user's groups
+  const {
+    data: userGroups = [],
+    isLoading: groupsLoading
+  } = useQuery({
+    queryKey: ['user-groups'],
+    queryFn: () => groupService.getUserGroups(),
+  });
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (selectedFiles) {
-      handleFileSelect(selectedFiles);
+      await handleFileSelect(selectedFiles);
     }
   };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
+    if (!selectedGroupId) {
+      // setImportResult({
+      //   success: false,
+      //   message: 'Please select a group before importing files.',
+      //   errors: ['Group selection is required']
+      // });
+      return;
+    }
 
     setIsUploading(true);
     
@@ -71,29 +81,29 @@ const CashbookImportContent = () => {
       // This is where you would:
       // 1. Upload multiple files to your backend
       // 2. Process the CSV data from each file
-      // 3. Import transactions into the database
+      // 3. Import transactions into the database with selected group
       // 4. Return the results
       
       // For now, show a placeholder message
-      setImportResult({
-        success: false,
-        message: `Import functionality is not yet implemented. ${files.length} files selected.`,
-        errors: [
-          'Backend API integration required',
-          'CSV parsing logic needed',
-          'Database import functionality pending'
-        ]
-      });
+      // setImportResult({
+      //   success: false,
+      //   message: `Import functionality is not yet implemented. ${files.length} files selected for group ID: ${selectedGroupId}.`,
+      //   errors: [
+      //     'Backend API integration required',
+      //     'CSV parsing logic needed',
+      //     'Database import functionality pending'
+      //   ]
+      // });
     } catch {
-      setImportResult({
-        success: false,
-        message: 'An error occurred during import.',
-        errors: [
-          'Network error',
-          'Server unavailable',
-          'Please try again later'
-        ]
-      });
+      // setImportResult({
+      //   success: false,
+      //   message: 'An error occurred during import.',
+      //   errors: [
+      //     'Network error',
+      //     'Server unavailable',
+      //     'Please try again later'
+      //   ]
+      // });
     } finally {
       setIsUploading(false);
     }
@@ -123,18 +133,18 @@ const CashbookImportContent = () => {
     return { isValid: true, csvFiles };
   };
 
-  const handleFileSelect = (selectedFiles: FileList | File[]) => {
+  const handleFileSelect = async (selectedFiles: FileList | File[]) => {
     const fileArray = Array.from(selectedFiles);
     const validation = validateFiles(fileArray);
     
     if (!validation.isValid) {
-      setImportResult({
-        success: false,
-        message: validation.error === 'Only CSV files are supported' 
-          ? 'No CSV files found. Please select CSV files only.'
-          : `Maximum ${MAX_FILES} files allowed. You can add ${MAX_FILES - files.length} more files.`,
-        errors: [validation.error!]
-      });
+      // setImportResult({
+      //   success: false,
+      //   message: validation.error === 'Only CSV files are supported' 
+      //     ? 'No CSV files found. Please select CSV files only.'
+      //     : `Maximum ${MAX_FILES} files allowed. You can add ${MAX_FILES - files.length} more files.`,
+      //   errors: [validation.error!]
+      // });
       return;
     }
 
@@ -146,26 +156,38 @@ const CashbookImportContent = () => {
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
-    setImportResult(null);
+    // setImportResult(null);
+
+    // Extract metadata for new files immediately
+    for (const fileItem of newFiles) {
+      try {
+        const metadata = await extractFileMetadata(fileItem.file);
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id ? { ...f, metadata } : f
+        ));
+      } catch (error) {
+        console.error('Error extracting metadata for file:', fileItem.file.name, error);
+      }
+    }
   };
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
   };
 
-  const handleDrop = (event: React.DragEvent) => {
+  const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     try {
       const droppedFiles = event.dataTransfer.files;
       if (droppedFiles.length > 0) {
-        handleFileSelect(droppedFiles);
+        await handleFileSelect(droppedFiles);
       }
     } catch {
-      setImportResult({
-        success: false,
-        message: 'Error processing dropped files.',
-        errors: ['Invalid file format or corrupted files']
-      });
+      // setImportResult({
+      //   success: false,
+      //   message: 'Error processing dropped files.',
+      //   errors: ['Invalid file format or corrupted files']
+      // });
     }
   };
 
@@ -173,231 +195,128 @@ const CashbookImportContent = () => {
     setFiles(prev => prev.filter(f => f.id !== fileId));
   }, []);
 
+  const clearAllFiles = useCallback(() => {
+    setFiles([]);
+  }, []);
+
+  const extractFileMetadata = useCallback(async (file: File): Promise<FileWithProgress['metadata']> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const lines = content.split('\n');
+        const rowCount = lines.length - 1; // Exclude header
+        const columnCount = lines[0]?.split(',').length || 0;
+        
+        resolve({
+          rowCount: Math.max(0, rowCount),
+          columnCount,
+          fileSize: formatFileSize(file.size),
+          lastModified: new Date(file.lastModified).toLocaleDateString()
+        });
+      };
+      reader.readAsText(file);
+    });
+  }, []);
+
+  const handleNext = () => {
+    if (selectedGroupId && files.length > 0) {
+      setActiveStep(1);
+      // Extract metadata for all files
+      files.forEach(async (fileItem) => {
+        if (!fileItem.metadata) {
+          const metadata = await extractFileMetadata(fileItem.file);
+          setFiles(prev => prev.map(f => 
+            f.id === fileItem.id ? { ...f, metadata } : f
+          ));
+        }
+      });
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep(0);
+  };
+
+  const canProceedToNext = Boolean(selectedGroupId && files.length > 0);
+
 
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ 
+      p: { xs: 2, sm: 3 },
+      maxWidth: '100%',
+      overflow: 'hidden'
+    }}>
       <PageHeader
         title="Cashbook Import"
         subtitle="Import your transactions from Cashbook application"
       />
       
+            <ImportStepper activeStep={activeStep} steps={STEPS} />
+
       <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' },
-        gap: 4,
-        mt: 2 
+        mt: 4,
+        width: '100%',
+        overflow: 'hidden'
       }}>
-        {/* Main Import Area */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Upload Cashbook Export
-            </Typography>
-            
-            <Box
-              sx={{
-                border: '2px dashed',
-                borderColor: files.length > 0 ? 'success.main' : 'divider',
-                borderRadius: 2,
-                p: 4,
-                textAlign: 'center',
-                bgcolor: files.length > 0 ? 'success.50' : 'grey.50',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: 'primary.50',
-                },
-              }}
+        {activeStep === 0 && (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: { xs: 2, md: 3 },
+            width: '100%'
+          }}>
+            {/* Main Import Section */}
+            <StepOneContent
+              selectedGroupId={selectedGroupId}
+              onGroupChange={setSelectedGroupId}
+              userGroups={userGroups}
+              groupsLoading={groupsLoading}
+              files={files.map(f => f.file)}
+              maxFiles={MAX_FILES}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              onClick={() => document.getElementById('file-input')?.click()}
-            >
-              <FileUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                {files.length > 0 
-                  ? `Drop more CSV files here or click to browse (${files.length}/${MAX_FILES})`
-                  : 'Drop your CSV files here or click to browse'
-                }
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {files.length > 0 
-                  ? `Selected ${files.length} file(s). Max ${MAX_FILES} files allowed.`
-                  : 'Supported format: CSV files exported from Cashbook'
-                }
-              </Typography>
-              <input
-                id="file-input"
-                type="file"
-                accept=".csv"
-                multiple
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
+              onFileInputClick={() => document.getElementById('file-input')?.click()}
+              canProceedToNext={canProceedToNext}
+              onNext={handleNext}
+            />
+
+            {/* Right Section - Instructions or File List */}
+            {files.length === 0 ? (
+              <InstructionsSection supportedFields={SUPPORTED_FIELDS} />
+            ) : (
+              <FileListSection
+                files={files}
+                maxFiles={MAX_FILES}
+                onRemoveFile={removeFile}
+                onClearAllFiles={clearAllFiles}
+                formatFileSize={formatFileSize}
               />
-            </Box>
-
-            {/* File List */}
-            {files.length > 0 && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Selected Files ({files.length}/{MAX_FILES})
-                </Typography>
-                <List dense>
-                  {files.map((fileItem) => (
-                    <ListItem
-                      key={fileItem.id}
-                      sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        mb: 1,
-                        bgcolor: 'background.paper'
-                      }}
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          aria-label="remove file"
-                          onClick={() => removeFile(fileItem.id)}
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemIcon>
-                        <UploadIcon />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={fileItem.file.name}
-                        secondary={formatFileSize(fileItem.file.size)}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-
-                <Button
-                  variant="contained"
-                  startIcon={<UploadIcon />}
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                  fullWidth
-                  size="large"
-                  sx={{ mt: 2 }}
-                >
-                  {isUploading ? 'Importing...' : `Import ${files.length} File(s)`}
-                </Button>
-                
-                {isUploading && (
-                  <Box sx={{ mt: 2 }}>
-                    <LinearProgress />
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Processing your files...
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Import Results */}
-        {importResult && (
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Import Results
-              </Typography>
-              
-              <Alert 
-                severity={importResult.success ? 'success' : 'error'}
-                icon={importResult.success ? <CheckIcon /> : <ErrorIcon />}
-                sx={{ mb: 2 }}
-              >
-                {importResult.message}
-              </Alert>
-
-              {importResult.success && importResult.count && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Successfully imported {importResult.count} transactions
-                  </Typography>
-                </Box>
-              )}
-
-              {importResult.errors && importResult.errors.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Errors found:
-                  </Typography>
-                  <List dense>
-                    {importResult.errors.map((error, index) => (
-                      <ListItem key={index} sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <WarningIcon color="warning" fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={error}
-                          primaryTypographyProps={{ variant: 'body2' }}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+            <input
+              id="file-input"
+              type="file"
+              accept=".csv"
+              multiple
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </Box>
         )}
 
-        {/* Instructions */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              How to Export from Cashbook
-            </Typography>
-            
-            <List dense>
-              <ListItem>
-                <ListItemText 
-                  primary="1. Open Cashbook application"
-                  secondary="Navigate to the export or backup section"
-                />
-              </ListItem>
-              <Divider />
-              <ListItem>
-                <ListItemText 
-                  primary="2. Select Export Format"
-                  secondary="Choose CSV format for compatibility"
-                />
-              </ListItem>
-              <Divider />
-              <ListItem>
-                <ListItemText 
-                  primary="3. Download Export File"
-                  secondary="Save the CSV file to your device"
-                />
-              </ListItem>
-              <Divider />
-              <ListItem>
-                <ListItemText 
-                  primary="4. Upload Here"
-                  secondary="Drag and drop or click to upload"
-                />
-              </ListItem>
-            </List>
-
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Supported Fields:
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {SUPPORTED_FIELDS.map((field) => (
-                  <Chip key={field} label={field} size="small" variant="outlined" />
-                ))}
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
+        {activeStep === 1 && (
+          <StepTwoContent
+            files={files}
+            selectedGroupId={selectedGroupId}
+            userGroups={userGroups}
+            isUploading={isUploading}
+            onRemoveFile={removeFile}
+            onBack={handleBack}
+            onUpload={handleUpload}
+          />
+        )}
       </Box>
     </Box>
   );
