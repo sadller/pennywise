@@ -23,9 +23,11 @@ import {
   Check as CheckIcon,
   Clear as ClearIcon,
   Delete as DeleteIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService';
 import { Notification } from '@/types/notification';
+import { EmptyState } from '@/components/common';
 
 interface NotificationCenterProps {
   open: boolean;
@@ -214,11 +216,13 @@ export default function NotificationCenter({ open, onClose, onInvitationAccepted
             <CircularProgress />
           </Box>
         ) : notifications.length === 0 ? (
-          <Box sx={{ textAlign: 'center', p: 3 }}>
-            <Typography color="text.secondary">
-              No notifications
-            </Typography>
-          </Box>
+          <EmptyState
+            icon={NotificationsIcon}
+            title="No notifications"
+            description="You're all caught up!"
+            maxWidth={300}
+            iconSize={48}
+          />
         ) : (
           <List>
             {notifications.map((notification, index) => (

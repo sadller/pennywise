@@ -17,7 +17,6 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  CircularProgress,
   Container,
   Skeleton,
   IconButton,
@@ -45,6 +44,7 @@ import { User } from '@/types/user';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import { STORAGE_KEYS } from '@/constants/layout';
+import { LoadingSpinner, EmptyState } from '@/components/common';
 
 interface DashboardOverviewProps {
   currentUser: User;
@@ -204,11 +204,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   if (groupsLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress size={48} thickness={4} />
-      </Box>
-    );
+    return <LoadingSpinner fullHeight={false} />;
   }
 
   return (
@@ -349,32 +345,28 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
             ))}
           </Box>
         ) : groupsWithStats.length === 0 ? (
-          <Card sx={{ 
-            textAlign: 'center', 
-            py: 8,
-            bgcolor: 'grey.50',
-            border: '2px dashed',
-            borderColor: 'divider'
-          }}>
-            <CardContent>
-              <GroupIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
-              <Typography variant="h5" color="text.secondary" gutterBottom>
-                No groups yet
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                Create your first group to start tracking expenses with friends or family.
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => ui.openCreateGroupForm()}
-                size="large"
-                sx={{ borderRadius: 2, px: 4 }}
-              >
-                Create Your First Group
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={GroupIcon}
+            title="No groups yet"
+            description="Create your first group to start tracking expenses with friends or family."
+            actions={[
+              {
+                label: 'Create Your First Group',
+                onClick: () => ui.openCreateGroupForm(),
+                variant: 'contained' as const,
+                size: 'large'
+              }
+            ]}
+            iconSize={80}
+            iconColor="text.secondary"
+            sx={{ 
+              '& .MuiCard-root': {
+                bgcolor: 'grey.50',
+                border: '2px dashed',
+                borderColor: 'divider'
+              }
+            }}
+          />
         ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {groupsWithStats.map((group) => (

@@ -4,11 +4,11 @@ import React, { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/stores/StoreProvider';
 import { useRouter } from 'next/navigation';
-import CircularProgress from '@mui/material/CircularProgress';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { DashboardOverview } from '@/components/dashboard';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { queryClient } from '@/lib/queryClient';
+import { LoadingSpinner } from '@/components/common';
 
 const DashboardContent = observer(() => {
   const { auth } = useStore();
@@ -22,11 +22,7 @@ const DashboardContent = observer(() => {
   }, [auth.user, router]);
 
   if (auth.isLoading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={48} thickness={4} />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
   if (!auth.user) return null;
 

@@ -17,11 +17,12 @@ import {
   Button,
   Tooltip,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { User } from '@/types/user';
 import { format } from 'date-fns';
 import { transactionService } from '@/services/transactionService';
+import { EmptyState } from '@/components/common';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -91,14 +92,12 @@ export default function TransactionList({
 
   if (transactions.length === 0) {
     return (
-      <Paper sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary" gutterBottom>
-          No transactions found
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Add your first transaction to get started.
-        </Typography>
-      </Paper>
+      <EmptyState
+        icon={ReceiptIcon}
+        title="No transactions found"
+        description="Add your first transaction to get started."
+        maxWidth={400}
+      />
     );
   }
 

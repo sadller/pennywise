@@ -7,8 +7,6 @@ import {
   Box,
   Typography,
   Button,
-  CircularProgress,
-  Alert,
   IconButton,
   Paper,
   Fab,
@@ -16,6 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import GroupIcon from '@mui/icons-material/Group';
@@ -31,6 +30,7 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
 import { STORAGE_KEYS } from '@/constants/layout';
+import { LoadingSpinner, ErrorAlert } from '@/components/common';
 
 // Type guards
 function hasMembers(group: Group & { members?: unknown }): group is Group & { members: unknown[] } {
@@ -135,21 +135,16 @@ const GroupsContent = observer(() => {
   };
 
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress size={48} thickness={4} />
-      </Box>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 2, maxWidth: 800, mx: 'auto' }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load groups. Please try again.
-        </Alert>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
-      </Box>
+      <ErrorAlert
+        message="Failed to load groups. Please try again."
+        onRetry={() => window.location.reload()}
+        retryLabel="Retry"
+      />
     );
   }
 
