@@ -14,6 +14,7 @@ import {
   Tooltip,
   Typography,
   Avatar,
+  Collapse,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -22,6 +23,9 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   AccountBalance as AccountBalanceIcon,
+  Build as BuildIcon,
+  ExpandMore as ExpandMoreIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import { LAYOUT_CONSTANTS } from '@/constants/layout';
 
@@ -38,6 +42,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   
   // Use window size instead of useMediaQuery to avoid function passing
   const [isMobile, setIsMobile] = React.useState(false);
+  const [utilitiesExpanded, setUtilitiesExpanded] = React.useState(false);
   
   React.useEffect(() => {
     const checkMobile = () => {
@@ -53,6 +58,22 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
     router.push(path);
     if (isMobile) {
       onClose();
+    }
+  };
+
+  const handleUtilitiesClick = () => {
+    handleNavigation('/utilities');
+  };
+
+  const handleUtilitiesHover = () => {
+    if (!collapsed) {
+      setUtilitiesExpanded(true);
+    }
+  };
+
+  const handleUtilitiesLeave = () => {
+    if (!collapsed) {
+      setUtilitiesExpanded(false);
     }
   };
 
@@ -74,6 +95,15 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
       icon: <GroupsIcon />,
       path: '/groups',
       description: 'Group Management'
+    },
+  ];
+
+  const utilitiesItems = [
+    {
+      text: 'Cashbook Import',
+      icon: <UploadIcon />,
+      path: '/utilities/cashbook-import',
+      description: 'Import from Cashbook'
     },
   ];
 
@@ -172,6 +202,139 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
               </ListItemButton>
             </ListItem>
           ))}
+
+          {/* Utilities Section */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={handleUtilitiesClick}
+              onMouseEnter={handleUtilitiesHover}
+              onMouseLeave={handleUtilitiesLeave}
+              sx={{
+                mx: 1,
+                borderRadius: 2,
+                minHeight: 56,
+                mb: 0.5,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                '&:hover': {
+                  backgroundColor: 'grey.100',
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  color: 'text.secondary',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              >
+                <BuildIcon />
+              </ListItemIcon>
+              <Box
+                sx={{
+                  width: collapsed ? 0 : 160,
+                  opacity: collapsed ? 0 : 1,
+                  overflow: 'hidden',
+                  transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s',
+                  whiteSpace: 'nowrap',
+                  ml: collapsed ? 0 : 2,
+                  pointerEvents: collapsed ? 'none' : 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <ListItemText
+                  primary="Utilities"
+                  secondary="Tools & Imports"
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      fontWeight: 500,
+                      fontSize: '0.95rem',
+                    },
+                    '& .MuiListItemText-secondary': {
+                      fontSize: '0.75rem',
+                      opacity: 0.6,
+                      color: 'text.secondary',
+                    },
+                  }}
+                />
+                {!collapsed && (
+                  <Box
+                    sx={{
+                      transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transform: utilitiesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      color: 'text.secondary',
+                    }}
+                  >
+                    <ExpandMoreIcon />
+                  </Box>
+                )}
+              </Box>
+            </ListItemButton>
+          </ListItem>
+
+          {/* Utilities Submenu */}
+          {!collapsed && (
+            <Collapse in={utilitiesExpanded} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding onMouseEnter={handleUtilitiesHover} onMouseLeave={handleUtilitiesLeave}>
+                {utilitiesItems.map((item) => (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton
+                      onClick={() => handleNavigation(item.path)}
+                      selected={pathname === item.path}
+                      sx={{
+                        mx: 1,
+                        ml: 4, // indent submenu items
+                        borderRadius: 2,
+                        minHeight: 48,
+                        mb: 0.5,
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.main',
+                          color: 'primary.contrastText',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                          '& .MuiListItemIcon-root': {
+                            color: 'primary.contrastText',
+                          },
+                        },
+                        '&:hover': {
+                          backgroundColor: 'grey.100',
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 32,
+                          color: pathname === item.path ? 'primary.contrastText' : 'text.secondary',
+                          display: 'flex',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.text}
+                        secondary={item.description}
+                        sx={{
+                          '& .MuiListItemText-primary': {
+                            fontWeight: pathname === item.path ? 600 : 500,
+                            fontSize: '0.9rem',
+                          },
+                          '& .MuiListItemText-secondary': {
+                            fontSize: '0.7rem',
+                            opacity: pathname === item.path ? 1 : 0.6,
+                            color: pathname === item.path ? 'primary.contrastText' : 'text.secondary',
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          )}
         </List>
 
         {/* Quick Stats Section (when not collapsed) */}
