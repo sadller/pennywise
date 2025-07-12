@@ -199,17 +199,56 @@ const CashbookImportContent = () => {
     setFiles([]);
   }, []);
 
+  // Helper function to parse CSV line properly
+  const parseCSVLine = useCallback((line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const char = line[i];
+      
+      if (char === '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          // Handle escaped quotes
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        // Regular character
+        current += char;
+        i++;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  }, []);
+
   const extractFileMetadata = useCallback(async (file: File): Promise<FileWithProgress['metadata']> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        const lines = content.split('\n');
-        const rowCount = lines.length - 1; // Exclude header
-        const columnCount = lines[0]?.split(',').length || 0;
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        const rowCount = Math.max(0, lines.length - 1); // Exclude header
+        
+        // Parse the header line to get accurate column count
+        const columnCount = lines.length > 0 ? parseCSVLine(lines[0]).length : 0;
         
         resolve({
-          rowCount: Math.max(0, rowCount),
+          rowCount,
           columnCount,
           fileSize: formatFileSize(file.size),
           lastModified: new Date(file.lastModified).toLocaleDateString()
@@ -217,7 +256,7 @@ const CashbookImportContent = () => {
       };
       reader.readAsText(file);
     });
-  }, []);
+  }, [parseCSVLine]);
 
   const handleNext = () => {
     if (selectedGroupId && files.length > 0) {

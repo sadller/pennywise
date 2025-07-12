@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, Typography, Paper, IconButton, LinearProgress, Stack, Chip } from '@mui/material';
-import { Description as DescriptionIcon, CheckCircle as CheckIcon, Error as ErrorIcon, RemoveCircle as RemoveIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Box, Typography, Paper, IconButton, LinearProgress, Stack, Chip, Button, Fade } from '@mui/material';
+import { Description as DescriptionIcon, CheckCircle as CheckIcon, Error as ErrorIcon, RemoveCircle as RemoveIcon, Visibility as PreviewIcon } from '@mui/icons-material';
+import CSVPreviewModal from './CSVPreviewModal';
 
 interface FileMetadata {
   rowCount: number;
@@ -24,6 +25,9 @@ interface CSVFileCardProps {
 }
 
 const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
+  const [showPreview, setShowPreview] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
   const getStatusColor = () => {
     switch (fileItem.status) {
       case 'completed': return 'success.main';
@@ -41,23 +45,65 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
     }
   };
 
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPreview(true);
+  };
+
   return (
-    <Paper
-      elevation={1}
-      sx={{
-        p: 1,
-        position: 'relative',
-        border: '1px solid',
-        borderColor: 'divider',
-        minHeight: 100,
-        width: '100%',
-        height: 'fit-content',
-        '&:hover': {
-          elevation: 2,
-          borderColor: 'primary.main',
-        }
-      }}
-    >
+    <>
+      <Paper
+        elevation={1}
+        sx={{
+          p: 1,
+          position: 'relative',
+          border: '1px solid',
+          borderColor: 'divider',
+          minHeight: 100,
+          width: '100%',
+          height: 'fit-content',
+          cursor: 'pointer',
+          '&:hover': {
+            elevation: 2,
+            borderColor: 'primary.main',
+          }
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Preview Overlay */}
+        <Fade in={isHovered}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2,
+              borderRadius: 1
+            }}
+          >
+            <Button
+              variant="contained"
+              startIcon={<PreviewIcon />}
+              onClick={handlePreviewClick}
+              sx={{
+                backgroundColor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'primary.dark'
+                }
+              }}
+            >
+              Preview
+            </Button>
+          </Box>
+        </Fade>
       {/* Remove Button */}
       <IconButton
         size="small"
@@ -162,7 +208,15 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
             Analyzing...
           </Typography>
         )}
-    </Paper>
+      </Paper>
+
+      {/* CSV Preview Modal */}
+      <CSVPreviewModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        file={fileItem.file}
+      />
+    </>
   );
 };
 
