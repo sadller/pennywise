@@ -25,6 +25,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
 import { Group } from '@/types/group';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
+import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
@@ -80,6 +81,18 @@ const GroupsContent = observer(() => {
     },
     onError: (error) => {
       console.error('Failed to delete group:', error);
+    },
+  });
+
+  // Mutation for creating new groups
+  const createGroupMutation = useMutation({
+    mutationFn: (data: { name: string }) => groupService.createGroup(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      ui.closeCreateGroupForm();
+    },
+    onError: (error) => {
+      console.error('Failed to create group:', error);
     },
   });
 
@@ -235,6 +248,15 @@ const GroupsContent = observer(() => {
         onSubmit={handleInviteSubmit}
         groupName={ui.inviteGroupName}
         isLoading={inviteMemberMutation.isPending}
+      />
+      
+      <CreateGroupForm
+        open={ui.isCreateGroupFormOpen}
+        onClose={() => ui.closeCreateGroupForm()}
+        onSubmit={async (data) => {
+          await createGroupMutation.mutateAsync(data);
+        }}
+        isLoading={createGroupMutation.isPending}
       />
       <Dialog open={ui.isDeleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
         <DialogTitle>Delete Group</DialogTitle>
