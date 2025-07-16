@@ -18,7 +18,6 @@ class AuthStore {
   token: string | null = null;
   isLoading = true;
   error: string | null = null;
-  sidebarCollapsed = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -103,7 +102,14 @@ class AuthStore {
       });
       return;
     }
-
+    
+    // Clean up old localStorage entries
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('selectedGroupId');
+      localStorage.removeItem('selectedGroupName');
+      localStorage.removeItem('sidebarCollapsed');
+    }
+    
     // Check for existing token on app load
     const storedToken = localStorage.getItem('auth_token');
     if (storedToken) {
@@ -126,13 +132,7 @@ class AuthStore {
       }
     }
     
-    // Load sidebar collapsed state from localStorage
-    const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed');
-    if (savedSidebarCollapsed !== null) {
-      runInAction(() => {
-        this.sidebarCollapsed = JSON.parse(savedSidebarCollapsed);
-      });
-    }
+
     
     runInAction(() => {
       this.isLoading = false;
@@ -289,14 +289,7 @@ class AuthStore {
     }
   }
 
-  setSidebarCollapsed(collapsed: boolean) {
-    runInAction(() => {
-      this.sidebarCollapsed = collapsed;
-    });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebarCollapsed', JSON.stringify(collapsed));
-    }
-  }
+
 
   get isAuthenticated() {
     return !!this.token && !!this.user;

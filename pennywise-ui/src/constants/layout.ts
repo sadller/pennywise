@@ -17,5 +17,4 @@ export const API_CONSTANTS = {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   REFRESH_TOKEN: 'refresh_token',
-  SIDEBAR_COLLAPSED: 'sidebarCollapsed',
 } as const; 

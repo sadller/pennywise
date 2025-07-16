@@ -18,6 +18,9 @@ class UIStore {
   selectedTransaction: Transaction | null = null;
   groupToDelete: GroupStats | null = null;
   
+  // Sidebar state
+  sidebarCollapsed = false;
+  
   // Loading states
   isDeleting = false;
   processingActions = new Set<number>();
@@ -107,6 +110,15 @@ class UIStore {
 
   clearGroupSelection() {
     this.setSelectedGroup(null, null);
+  }
+
+  // Sidebar actions
+  setSidebarCollapsed(collapsed: boolean) {
+    this.sidebarCollapsed = collapsed;
+  }
+
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
   // Loading actions

@@ -13,7 +13,7 @@ interface AuthenticatedLayoutProps {
 }
 
 const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) => {
-  const { auth } = useStore();
+  const { ui } = useStore();
   
   // Use window size instead of useMediaQuery to avoid function passing
   const [isMobile, setIsMobile] = React.useState(false);
@@ -42,7 +42,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
   };
 
   const handleToggleCollapse = () => {
-    auth.setSidebarCollapsed(!auth.sidebarCollapsed);
+    ui.toggleSidebar();
   };
 
   return (
@@ -70,7 +70,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
         <Sidebar
           open={sidebarOpen}
           onClose={handleSidebarClose}
-          collapsed={auth.sidebarCollapsed}
+          collapsed={ui.sidebarCollapsed}
           onToggleCollapse={handleToggleCollapse}
         />
         
