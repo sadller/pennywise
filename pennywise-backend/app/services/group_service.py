@@ -20,6 +20,7 @@ class GroupStats(BaseModel):
     transaction_count: int
     total_amount: float
     created_at: str
+    last_transaction_at: Optional[str] = None
 
 
 class GroupService:
@@ -81,7 +82,8 @@ class GroupService:
             User.full_name.label('owner_name'),
             func.count(GroupMember.user_id.distinct()).label('member_count'),
             func.count(Transaction.id).label('transaction_count'),
-            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount')
+            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount'),
+            func.max(Transaction.date).label('last_transaction_at')
         ).join(GroupMember, Group.id == GroupMember.group_id)\
          .join(User, Group.owner_id == User.id)\
          .outerjoin(Transaction, Group.id == Transaction.group_id)\
@@ -100,7 +102,8 @@ class GroupService:
             member_count=result.member_count,
             transaction_count=result.transaction_count,
             total_amount=float(result.total_amount),
-            created_at=result.created_at.isoformat()
+            created_at=result.created_at.isoformat(),
+            last_transaction_at=result.last_transaction_at.isoformat() if result.last_transaction_at else None
         )
 
     def get_user_groups_with_stats(self, user_id: int) -> List[GroupStats]:
@@ -113,7 +116,8 @@ class GroupService:
             User.full_name.label('owner_name'),
             func.count(GroupMember.user_id.distinct()).label('member_count'),
             func.count(Transaction.id).label('transaction_count'),
-            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount')
+            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount'),
+            func.max(Transaction.date).label('last_transaction_at')
         ).join(GroupMember, Group.id == GroupMember.group_id)\
          .join(User, Group.owner_id == User.id)\
          .outerjoin(Transaction, Group.id == Transaction.group_id)\
@@ -130,7 +134,8 @@ class GroupService:
                 member_count=group.member_count,
                 transaction_count=group.transaction_count,
                 total_amount=float(group.total_amount),
-                created_at=group.created_at.isoformat()
+                created_at=group.created_at.isoformat(),
+                last_transaction_at=group.last_transaction_at.isoformat() if group.last_transaction_at else None
             )
             for group in groups_with_stats
         ]
