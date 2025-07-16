@@ -18,6 +18,4 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   REFRESH_TOKEN: 'refresh_token',
   SIDEBAR_COLLAPSED: 'sidebarCollapsed',
-  SELECTED_GROUP_ID: 'selectedGroupId',
-  SELECTED_GROUP_NAME: 'selectedGroupName',
 } as const; 

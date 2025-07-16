@@ -1,51 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useStore } from '@/stores/StoreProvider';
 import { useRouter } from 'next/navigation';
-
-import { QueryClientProvider } from '@tanstack/react-query';
-import Transactions from '@/components/transactions/Transactions';
 import { useQuery } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-import { queryClient } from '@/lib/queryClient';
-import { Group as GroupIcon } from '@mui/icons-material';
-import { STORAGE_KEYS } from '@/constants/layout';
+import { useStore } from '@/stores/StoreProvider';
 import { LoadingSpinner, EmptyState, ErrorAlert } from '@/components/common';
+import { Transactions } from '@/components/transactions';
+import GroupIcon from '@mui/icons-material/Group';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
-const TransactionsContent = observer(() => {
-  const { auth } = useStore();
+const TransactionsPage = observer(() => {
+  const { auth, ui } = useStore();
   const router = useRouter();
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [isValidMember, setIsValidMember] = useState<boolean | null>(null);
-
-  // Clear group selection data from localStorage and state
-  const clearGroupData = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-    }
-    setSelectedGroupId(null);
-    setIsValidMember(null);
-  };
-
-  useEffect(() => {
-    if (!auth.user) {
-      router.replace('/');
-      return;
-    }
-    
-    // Check if user has selected a group
-    if (typeof window !== 'undefined') {
-      const storedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      
-      if (storedGroupId) {
-        setSelectedGroupId(parseInt(storedGroupId));
-      }
-    }
-  }, [auth.user, router]);
 
   // Fetch user's groups to validate membership and group selection
   const {
@@ -59,38 +29,36 @@ const TransactionsContent = observer(() => {
 
   // Validate that user is a member of the selected group
   useEffect(() => {
-    if (selectedGroupId && userGroups.length > 0) {
-      const isMember = userGroups.some(group => group.id === selectedGroupId);
-      setIsValidMember(isMember);
+    if (ui.selectedGroupId && userGroups.length > 0) {
+      const isMember = userGroups.some(group => group.id === ui.selectedGroupId);
       
       if (!isMember) {
         // User is not a member of this group, clear the selection
-        clearGroupData();
+        ui.clearGroupSelection();
       }
-    } else if (selectedGroupId && !groupsLoading && userGroups.length === 0) {
+    } else if (ui.selectedGroupId && !groupsLoading && userGroups.length === 0) {
       // User has no groups, so they can't be a member of any group
-      setIsValidMember(false);
-      clearGroupData();
+      ui.clearGroupSelection();
     }
-  }, [selectedGroupId, userGroups, groupsLoading]);
+  }, [ui.selectedGroupId, userGroups, groupsLoading, ui]);
 
   // Fetch group members
   const {
     data: groupMembers = [],
   } = useQuery({
-    queryKey: ['group-members', selectedGroupId],
-    queryFn: () => groupService.getGroupMembers(selectedGroupId!),
-    enabled: !!selectedGroupId && isValidMember === true,
+    queryKey: ['group-members', ui.selectedGroupId],
+    queryFn: () => groupService.getGroupMembers(ui.selectedGroupId!),
+    enabled: !!ui.selectedGroupId && userGroups.some(group => group.id === ui.selectedGroupId),
   });
 
-  if (auth.isLoading || groupsLoading || (selectedGroupId && isValidMember === null)) {
+  if (auth.isLoading || groupsLoading) {
     return <LoadingSpinner />;
   }
 
   if (!auth.user) return null;
 
   // Show message if no group is selected
-  if (!selectedGroupId) {
+  if (!ui.selectedGroupId) {
     return (
       <EmptyState
         icon={GroupIcon}
@@ -117,7 +85,8 @@ const TransactionsContent = observer(() => {
   }
 
   // Show error if user is not a member of the selected group
-  if (isValidMember === false) {
+  const isMember = userGroups.some(group => group.id === ui.selectedGroupId);
+  if (!isMember) {
     return (
       <ErrorAlert
         message="You are not a member of the selected group. Please select a different group."
@@ -130,17 +99,17 @@ const TransactionsContent = observer(() => {
   return (
     <Transactions 
       currentUser={auth.user}
-      groupId={selectedGroupId || undefined}
+      groupId={ui.selectedGroupId}
       groupMembers={groupMembers}
     />
   );
 });
 
-export default function TransactionsPage() {
+export default function TransactionsPageWrapper() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthenticatedLayout>
-        <TransactionsContent />
+        <TransactionsPage />
       </AuthenticatedLayout>
     </QueryClientProvider>
   );

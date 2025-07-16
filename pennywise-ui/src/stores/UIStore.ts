@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 import { Transaction } from '@/types/transaction';
-import { Group } from '@/types/group';
+import { GroupStats } from '@/services/dashboardService';
 
 class UIStore {
   // Modal states
@@ -14,8 +14,9 @@ class UIStore {
   inviteGroupId: number | null = null;
   inviteGroupName = '';
   currentGroupName: string | null = null;
+  selectedGroupId: number | null = null;
   selectedTransaction: Transaction | null = null;
-  groupToDelete: Group | null = null;
+  groupToDelete: GroupStats | null = null;
   
   // Loading states
   isDeleting = false;
@@ -54,11 +55,11 @@ class UIStore {
     this.inviteGroupName = '';
   }
 
-  openDeleteDialog(item: Transaction | Group) {
+  openDeleteDialog(item: Transaction | GroupStats) {
     if ('amount' in item) {
       this.selectedTransaction = item as Transaction;
     } else {
-      this.groupToDelete = item as Group;
+      this.groupToDelete = item as GroupStats;
     }
     this.isDeleteDialogOpen = true;
   }
@@ -77,9 +78,35 @@ class UIStore {
     this.isNotificationCenterOpen = false;
   }
 
-  // Form actions
+  // Group selection actions
   setCurrentGroupName(name: string | null) {
     this.currentGroupName = name;
+  }
+
+  setSelectedGroup(groupId: number | null, groupName: string | null) {
+    this.selectedGroupId = groupId;
+    this.currentGroupName = groupName;
+  }
+
+  selectMostRecentGroup(groups: GroupStats[]) {
+    if (groups.length === 0) {
+      this.setSelectedGroup(null, null);
+      return;
+    }
+
+    // Sort groups by last_transaction_at in descending order
+    const sortedGroups = [...groups].sort((a, b) => {
+      const aDate = a.last_transaction_at ? new Date(a.last_transaction_at).getTime() : 0;
+      const bDate = b.last_transaction_at ? new Date(b.last_transaction_at).getTime() : 0;
+      return bDate - aDate; // Descending order
+    });
+
+    const mostRecentGroup = sortedGroups[0];
+    this.setSelectedGroup(mostRecentGroup.id, mostRecentGroup.name);
+  }
+
+  clearGroupSelection() {
+    this.setSelectedGroup(null, null);
   }
 
   // Loading actions

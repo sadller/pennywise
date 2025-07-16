@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import {
@@ -23,47 +23,39 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { Group } from '@/types/group';
+import { dashboardService, GroupStats } from '@/services/dashboardService';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import { QueryClientProvider } from '@tanstack/react-query';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
-import { STORAGE_KEYS } from '@/constants/layout';
 import { LoadingSpinner, ErrorAlert } from '@/components/common';
 
-// Type guards
-function hasMembers(group: Group & { members?: unknown }): group is Group & { members: unknown[] } {
-  return Array.isArray(group.members);
-}
-function hasUpdatedAt(group: Group & { updated_at?: unknown }): group is Group & { updated_at: string } {
-  return typeof group.updated_at === 'string';
-}
+
 
 const GroupsContent = observer(() => {
   const router = useRouter();
   const { ui } = useStore();
 
-  // Get current group name from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-      ui.setCurrentGroupName(groupName);
-    }
-  }, [ui]);
-
-  // Fetch user's groups for display and management
+  // Fetch user's groups with stats for display and management
   const {
     data: groups = [],
     isLoading,
     error
   } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(),
+    queryKey: ['groups-with-stats'],
+    queryFn: () => dashboardService.getGroupsWithStats(),
   });
 
-
+  // Sort groups by last_transaction_at in descending order
+  const sortedGroups = React.useMemo(() => {
+    return [...groups].sort((a, b) => {
+      const aDate = a.last_transaction_at ? new Date(a.last_transaction_at).getTime() : 0;
+      const bDate = b.last_transaction_at ? new Date(b.last_transaction_at).getTime() : 0;
+      return bDate - aDate; // Descending order
+    });
+  }, [groups]);
 
   // Mutation for deleting groups (owner only)
   const deleteGroupMutation = useMutation({
@@ -73,10 +65,8 @@ const GroupsContent = observer(() => {
       ui.closeDeleteDialog();
       
       // If the deleted group was the currently selected group, clear the selection
-      if (ui.groupToDelete && ui.currentGroupName === ui.groupToDelete.name) {
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-        ui.setCurrentGroupName(null);
+      if (ui.groupToDelete && ui.selectedGroupId === ui.groupToDelete.id) {
+        ui.clearGroupSelection();
       }
     },
     onError: (error) => {
@@ -109,23 +99,18 @@ const GroupsContent = observer(() => {
     },
   });
 
-
-
-  const handleGroupSelect = (group: Group) => {
-    // Store selected group in localStorage or context
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, group.id.toString());
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, group.name);
-    }
-    ui.setCurrentGroupName(group.name);
+  const handleGroupSelect = (group: GroupStats) => {
+    // Store selected group in store
+    ui.setSelectedGroup(group.id, group.name);
     router.push('/transactions');
   };
 
   const handleDeleteConfirm = async () => {
-    if (ui.groupToDelete && typeof window !== 'undefined') {
+    if (ui.groupToDelete) {
       await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      if (ui.selectedGroupId === ui.groupToDelete.id) {
+        ui.clearGroupSelection();
+      }
     }
   };
 
@@ -176,12 +161,11 @@ const GroupsContent = observer(() => {
                 Create Group
               </Button>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, mt: 2 }}>
-              {groups.map((group) => {
-                // Calculate members and updated info
-                const memberCount = hasMembers(group) ? group.members.length : 2;
-                const updatedAgo = hasUpdatedAt(group) ? timeAgo(group.updated_at) : '9 months ago';
-                const isSelected = ui.currentGroupName === group.name;
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, mt: 2 }}>
+                {sortedGroups.map((group) => {
+                  // Use stats from GroupStats
+                  const memberCount = group.member_count;
+                  const isSelected = ui.selectedGroupId === group.id;
                 return (
                   <Box
                     key={group.id}
@@ -213,7 +197,7 @@ const GroupsContent = observer(() => {
                         {group.name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" noWrap>
-                        {memberCount} members · Updated {updatedAgo}
+                        {memberCount} members · {group.transaction_count} transactions
                       </Typography>
                     </Box>
                     {/* Amount (placeholder, right-aligned, red) */}
@@ -319,22 +303,4 @@ export default function GroupsPage() {
       </AuthenticatedLayout>
     </QueryClientProvider>
   );
-} 
-
-// Helper for 'updated X ago' text
-function timeAgo(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  let interval = Math.floor(seconds / 31536000);
-  if (interval >= 1) return `${interval} year${interval > 1 ? 's' : ''} ago`;
-  interval = Math.floor(seconds / 2592000);
-  if (interval >= 1) return `${interval} month${interval > 1 ? 's' : ''} ago`;
-  interval = Math.floor(seconds / 86400);
-  if (interval >= 1) return `${interval} day${interval > 1 ? 's' : ''} ago`;
-  interval = Math.floor(seconds / 3600);
-  if (interval >= 1) return `${interval} hour${interval > 1 ? 's' : ''} ago`;
-  interval = Math.floor(seconds / 60);
-  if (interval >= 1) return `${interval} minute${interval > 1 ? 's' : ''} ago`;
-  return 'just now';
 } 

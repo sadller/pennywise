@@ -89,8 +89,6 @@ class AuthStore {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
     }
     runInAction(() => {
       this.token = null;
@@ -105,7 +103,7 @@ class AuthStore {
       });
       return;
     }
-    
+
     // Check for existing token on app load
     const storedToken = localStorage.getItem('auth_token');
     if (storedToken) {
@@ -146,12 +144,6 @@ class AuthStore {
       this.isLoading = true;
       this.error = null;
     });
-    
-    // Clear any existing group data to ensure clean state
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
-    }
     
     try {
       const data = await apiClient.post<{
@@ -197,12 +189,6 @@ class AuthStore {
       this.isLoading = true;
       this.error = null;
     });
-    
-    // Clear any existing group data to ensure clean state
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
-    }
     
     try {
       const data = await apiClient.post<{
@@ -253,12 +239,6 @@ class AuthStore {
       this.error = null;
     });
     
-    // Clear any existing group data to ensure clean state
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
-    }
-    
     try {
       const data = await apiClient.post<{
         access_token: string;
@@ -306,8 +286,6 @@ class AuthStore {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
     }
   }
 

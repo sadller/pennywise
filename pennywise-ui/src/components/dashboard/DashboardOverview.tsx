@@ -43,7 +43,7 @@ import { dashboardService, RecentTransaction, GroupStats } from '@/services/dash
 import { User } from '@/types/user';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
-import { STORAGE_KEYS } from '@/constants/layout';
+
 import { LoadingSpinner, EmptyState } from '@/components/common';
 
 interface DashboardOverviewProps {
@@ -54,14 +54,6 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   const router = useRouter();
   const { ui } = useStore();
   const queryClient = useQueryClient();
-
-  // Initialize current group name from localStorage
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const groupName = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-      ui.setCurrentGroupName(groupName);
-    }
-  }, [ui]);
 
   // Fetch groups with detailed statistics for dashboard overview
   const {
@@ -81,22 +73,12 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     queryFn: () => dashboardService.getRecentTransactions(5),
   });
 
-  // Auto-select most recently created group if no group is currently selected
+  // Auto-select most recent group based on last_transaction_at if no group is currently selected
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && !groupsLoading && groupsWithStats.length > 0 && !ui.currentGroupName) {
-      // Find the most recently created group
-      const mostRecentGroup = groupsWithStats.reduce((latest, current) => {
-        const latestDate = new Date(latest.created_at);
-        const currentDate = new Date(current.created_at);
-        return currentDate > latestDate ? current : latest;
-      });
-
-      // Auto-select the most recent group
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, mostRecentGroup.id.toString());
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, mostRecentGroup.name);
-      ui.setCurrentGroupName(mostRecentGroup.name);
+    if (!groupsLoading && groupsWithStats.length > 0 && !ui.selectedGroupId) {
+      ui.selectMostRecentGroup(groupsWithStats);
     }
-  }, [groupsWithStats, groupsLoading, ui.currentGroupName, ui]);
+  }, [groupsWithStats, groupsLoading, ui.selectedGroupId, ui]);
 
   // Mutation for creating new groups
   const createGroupMutation = useMutation({
@@ -121,10 +103,8 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
       ui.closeDeleteDialog();
       
       // If the deleted group was the currently selected group, clear the selection
-      if (ui.groupToDelete && ui.currentGroupName === ui.groupToDelete.name) {
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-        localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
-        ui.setCurrentGroupName(null);
+      if (ui.groupToDelete && ui.selectedGroupId === ui.groupToDelete.id) {
+        ui.clearGroupSelection();
       }
       
       // Group deleted successfully
@@ -148,10 +128,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   });
 
   const handleGroupSelect = (groupId: number, groupName: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_ID, groupId.toString());
-      localStorage.setItem(STORAGE_KEYS.SELECTED_GROUP_NAME, groupName);
-    }
+    ui.setSelectedGroup(groupId, groupName);
     router.push('/transactions');
   };
 
@@ -160,13 +137,8 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   const handleViewTransactions = () => {
-    if (typeof window !== 'undefined') {
-      const selectedGroupId = localStorage.getItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      if (selectedGroupId) {
-        router.push('/transactions');
-      } else {
-        router.push('/groups');
-      }
+    if (ui.selectedGroupId) {
+      router.push('/transactions');
     } else {
       router.push('/groups');
     }
@@ -192,10 +164,11 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   };
 
   const handleDeleteConfirm = async () => {
-    if (ui.groupToDelete && typeof window !== 'undefined') {
+    if (ui.groupToDelete) {
       await deleteGroupMutation.mutateAsync(ui.groupToDelete.id);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_ID);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_GROUP_NAME);
+      if (ui.selectedGroupId === ui.groupToDelete.id) {
+        ui.clearGroupSelection();
+      }
     }
   };
 
@@ -376,9 +349,9 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                   height: '100%',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  border: ui.currentGroupName === group.name ? '2px solid' : '1px solid',
-                  borderColor: ui.currentGroupName === group.name ? 'primary.main' : 'divider',
-                  bgcolor: ui.currentGroupName === group.name ? 'primary.50' : 'background.paper',
+                  border: ui.selectedGroupId === group.id ? '2px solid' : '1px solid',
+                  borderColor: ui.selectedGroupId === group.id ? 'primary.main' : 'divider',
+                  bgcolor: ui.selectedGroupId === group.id ? 'primary.50' : 'background.paper',
                   '&:hover': {
                     transform: 'translateY(-8px)',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
@@ -390,7 +363,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                   {/* Group Header */}
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <Avatar sx={{ 
-                      bgcolor: ui.currentGroupName === group.name ? 'primary.main' : 'primary.light', 
+                      bgcolor: ui.selectedGroupId === group.id ? 'primary.main' : 'primary.light', 
                       mr: 2,
                       width: 48,
                       height: 48
@@ -495,10 +468,10 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
                       </Typography>
                     </Box>
                     <Chip 
-                      label={ui.currentGroupName === group.name ? "Selected" : "View Details"} 
+                      label={ui.selectedGroupId === group.id ? "Selected" : "View Details"} 
                       size="small" 
-                      color={ui.currentGroupName === group.name ? "success" : "primary"} 
-                      variant={ui.currentGroupName === group.name ? "filled" : "outlined"}
+                      color={ui.selectedGroupId === group.id ? "success" : "primary"} 
+                      variant={ui.selectedGroupId === group.id ? "filled" : "outlined"}
                       sx={{ cursor: 'pointer' }}
                     />
                   </Box>
