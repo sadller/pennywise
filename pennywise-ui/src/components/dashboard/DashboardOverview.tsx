@@ -45,6 +45,7 @@ import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 
 import { LoadingSpinner, EmptyState } from '@/components/common';
+import { useGroupSelection } from '@/hooks/useGroupSelection';
 
 interface DashboardOverviewProps {
   currentUser: User;
@@ -74,11 +75,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
   });
 
   // Auto-select most recent group based on last_transaction_at if no group is currently selected
-  React.useEffect(() => {
-    if (!groupsLoading && groupsWithStats.length > 0 && !ui.selectedGroupId) {
-      ui.selectMostRecentGroup(groupsWithStats);
-    }
-  }, [groupsWithStats, groupsLoading, ui.selectedGroupId, ui]);
+  useGroupSelection(groupsWithStats, groupsLoading, ui);
 
   // Mutation for creating new groups
   const createGroupMutation = useMutation({

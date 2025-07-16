@@ -108,6 +108,19 @@ class UIStore {
     this.setSelectedGroup(mostRecentGroup.id, mostRecentGroup.name);
   }
 
+  // Generic method to ensure group selection is restored when groups data is available
+  ensureGroupSelection(groups: GroupStats[]) {
+    // If no group is selected and we have groups, select the most recent one
+    if (!this.selectedGroupId && groups.length > 0) {
+      console.log('Restoring group selection - no group currently selected');
+      this.selectMostRecentGroup(groups);
+    } else if (this.selectedGroupId) {
+      console.log('Group already selected:', this.selectedGroupId);
+    } else {
+      console.log('No groups available for selection');
+    }
+  }
+
   clearGroupSelection() {
     this.setSelectedGroup(null, null);
   }

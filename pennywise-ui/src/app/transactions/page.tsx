@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
+import { dashboardService } from '@/services/dashboardService';
 import { useStore } from '@/stores/StoreProvider';
 import { LoadingSpinner, EmptyState, ErrorAlert } from '@/components/common';
 import { Transactions } from '@/components/transactions';
@@ -12,20 +13,24 @@ import GroupIcon from '@mui/icons-material/Group';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import { useGroupSelection } from '@/hooks/useGroupSelection';
 
 const TransactionsPage = observer(() => {
   const { auth, ui } = useStore();
   const router = useRouter();
 
-  // Fetch user's groups to validate membership and group selection
+  // Fetch user's groups with stats to validate membership and group selection
   const {
     data: userGroups = [],
     isLoading: groupsLoading
   } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(),
+    queryKey: ['groups-with-stats'],
+    queryFn: () => dashboardService.getGroupsWithStats(),
     enabled: !!auth.user,
   });
+
+  // Ensure group selection is restored when groups data loads
+  useGroupSelection(userGroups, groupsLoading, ui);
 
   // Validate that user is a member of the selected group
   useEffect(() => {

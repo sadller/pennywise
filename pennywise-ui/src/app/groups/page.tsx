@@ -31,7 +31,7 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
 import { LoadingSpinner, ErrorAlert } from '@/components/common';
-
+import { useGroupSelection } from '@/hooks/useGroupSelection';
 
 
 const GroupsContent = observer(() => {
@@ -56,6 +56,9 @@ const GroupsContent = observer(() => {
       return bDate - aDate; // Descending order
     });
   }, [groups]);
+
+  // Restore selected group when groups data loads
+  useGroupSelection(groups, isLoading, ui);
 
   // Mutation for deleting groups (owner only)
   const deleteGroupMutation = useMutation({
