@@ -92,6 +92,8 @@ class AuthStore {
     runInAction(() => {
       this.token = null;
       this.user = null;
+      this.error = null;
+      this.isLoading = false;
     });
   }
 
@@ -103,12 +105,7 @@ class AuthStore {
       return;
     }
     
-    // Clean up old localStorage entries
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedGroupId');
-      localStorage.removeItem('selectedGroupName');
-      localStorage.removeItem('sidebarCollapsed');
-    }
+
     
     // Check for existing token on app load
     const storedToken = localStorage.getItem('auth_token');
@@ -279,10 +276,15 @@ class AuthStore {
   }
 
   logout() {
+    // Clear auth state
     runInAction(() => {
       this.user = null;
       this.token = null;
+      this.error = null;
+      this.isLoading = false;
     });
+    
+    // Clear localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');

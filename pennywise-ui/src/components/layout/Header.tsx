@@ -27,7 +27,7 @@ interface HeaderProps {
 }
 
 const Header = observer(({ onMenuClick }: HeaderProps) => {
-  const { auth, ui } = useStore();
+  const store = useStore();
   const router = useRouter();
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -59,8 +59,9 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
   };
 
   const handleLogout = () => {
-    // Clear auth state first
-    auth.logout();
+    // Clear all store states and React Query cache
+    store.clearAllData();
+    
     handleMenuClose();
     
     // Immediate redirect to landing page
@@ -72,11 +73,11 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
   };
 
   const handleOpenNotifications = () => {
-    ui.openNotificationCenter();
+    store.ui.openNotificationCenter();
   };
 
   const handleCloseNotifications = () => {
-    ui.closeNotificationCenter();
+    store.ui.closeNotificationCenter();
   };
 
   const handleInvitationAccepted = () => {
@@ -89,7 +90,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
     queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
   };
 
-  if (!auth.user) return null;
+  if (!store.auth.user) return null;
 
   return (
     <>
@@ -184,10 +185,10 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
               </Avatar>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Typography variant="body2" fontWeight="500">
-                  {auth.user.full_name?.split(' ')[0] || auth.user.email?.split('@')[0]}
+                  {store.auth.user.full_name?.split(' ')[0] || store.auth.user.email?.split('@')[0]}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {auth.user.email}
+                  {store.auth.user.email}
                 </Typography>
               </Box>
             </Box>
@@ -225,7 +226,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
 
       {/* Notification Center */}
       <NotificationCenter
-        open={ui.isNotificationCenterOpen}
+        open={store.ui.isNotificationCenterOpen}
         onClose={handleCloseNotifications}
         onInvitationAccepted={handleInvitationAccepted}
       />

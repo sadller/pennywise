@@ -125,6 +125,30 @@ class UIStore {
     this.setSelectedGroup(null, null);
   }
 
+  clearAllState() {
+    // Clear modal states
+    this.isAddTransactionFormOpen = false;
+    this.isCreateGroupFormOpen = false;
+    this.isInviteMemberFormOpen = false;
+    this.isDeleteDialogOpen = false;
+    this.isNotificationCenterOpen = false;
+    
+    // Clear form states
+    this.inviteGroupId = null;
+    this.inviteGroupName = '';
+    this.currentGroupName = null;
+    this.selectedGroupId = null;
+    this.selectedTransaction = null;
+    this.groupToDelete = null;
+    
+    // Reset sidebar state
+    this.sidebarCollapsed = false;
+    
+    // Clear loading states
+    this.isDeleting = false;
+    this.processingActions.clear();
+  }
+
   // Sidebar actions
   setSidebarCollapsed(collapsed: boolean) {
     this.sidebarCollapsed = collapsed;
