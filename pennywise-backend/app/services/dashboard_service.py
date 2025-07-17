@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, text
 from typing import List, Dict, Any
 from app.models.group import Group
 from app.models.group_member import GroupMember
@@ -24,27 +24,29 @@ class DashboardService:
         self.db = db
 
     def get_recent_transactions(self, user_id: int, limit: int = 5) -> List[RecentTransaction]:
-        """Get recent transactions from all user's groups."""
+        """Get recent transactions from all user's groups using raw SQL."""
         try:
-            user_group_ids = [gm.group_id for gm in self.db.query(GroupMember.group_id).filter(
-                GroupMember.user_id == user_id
-            ).all()]
+            query = text("""
+                SELECT 
+                    t.id,
+                    t.amount,
+                    t.note,
+                    t.date,
+                    t.paid_by,
+                    t.group_id,
+                    g.name as group_name,
+                    u.full_name as paid_by_name
+                FROM transactions t
+                JOIN groups g ON t.group_id = g.id
+                LEFT JOIN users u ON t.paid_by = u.id
+                JOIN group_members gm ON t.group_id = gm.group_id
+                WHERE gm.user_id = :user_id
+                ORDER BY t.date DESC
+                LIMIT :limit
+            """)
             
-            if not user_group_ids:
-                return []
-            
-            transactions = self.db.query(
-                Transaction.id,
-                Transaction.amount,
-                Transaction.note,
-                Transaction.date,
-                Transaction.paid_by,
-                Transaction.group_id,
-                Group.name.label('group_name'),
-                User.full_name.label('paid_by_name')
-            ).join(Group).outerjoin(User, Transaction.paid_by == User.id).filter(
-                Transaction.group_id.in_(user_group_ids)
-            ).order_by(desc(Transaction.date)).limit(limit).all()
+            result = self.db.execute(query, {"user_id": user_id, "limit": limit})
+            transactions = result.fetchall()
             
             return [
                 RecentTransaction(
@@ -64,14 +66,35 @@ class DashboardService:
             return []
 
     def get_user_dashboard_stats(self, user_id: int) -> Dict[str, Any]:
-        """Get comprehensive dashboard statistics for a user."""
+        """Get comprehensive dashboard statistics for a user using raw SQL."""
         try:
-            # Get user's groups
-            user_group_ids = [gm.group_id for gm in self.db.query(GroupMember.group_id).filter(
-                GroupMember.user_id == user_id
-            ).all()]
+            query = text("""
+                WITH user_groups AS (
+                    SELECT gm.group_id
+                    FROM group_members gm
+                    WHERE gm.user_id = :user_id
+                ),
+                group_stats AS (
+                    SELECT 
+                        COUNT(DISTINCT ug.group_id) as total_groups,
+                        COUNT(t.id) as total_transactions,
+                        COALESCE(SUM(t.amount), 0) as total_amount,
+                        COUNT(CASE WHEN t.date >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_activity_count
+                    FROM user_groups ug
+                    LEFT JOIN transactions t ON ug.group_id = t.group_id
+                )
+                SELECT 
+                    total_groups,
+                    total_transactions,
+                    total_amount,
+                    recent_activity_count
+                FROM group_stats
+            """)
             
-            if not user_group_ids:
+            result = self.db.execute(query, {"user_id": user_id})
+            stats = result.fetchone()
+            
+            if not stats:
                 return {
                     "total_groups": 0,
                     "total_transactions": 0,
@@ -79,34 +102,11 @@ class DashboardService:
                     "recent_activity_count": 0
                 }
             
-            # Total groups count
-            total_groups = self.db.query(func.count(Group.id)).filter(
-                Group.id.in_(user_group_ids)
-            ).scalar()
-            
-            # Total transactions count
-            total_transactions = self.db.query(func.count(Transaction.id)).filter(
-                Transaction.group_id.in_(user_group_ids)
-            ).scalar()
-            
-            # Total amount (sum of all transactions)
-            total_amount = self.db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
-                Transaction.group_id.in_(user_group_ids)
-            ).scalar()
-            
-            # Recent activity (last 7 days)
-            from datetime import datetime, timedelta
-            week_ago = datetime.utcnow() - timedelta(days=7)
-            recent_transactions = self.db.query(func.count(Transaction.id)).filter(
-                Transaction.group_id.in_(user_group_ids),
-                Transaction.date >= week_ago
-            ).scalar()
-            
             return {
-                "total_groups": total_groups or 0,
-                "total_transactions": total_transactions or 0,
-                "total_amount": float(total_amount or 0),
-                "recent_activity_count": recent_transactions or 0
+                "total_groups": stats.total_groups or 0,
+                "total_transactions": stats.total_transactions or 0,
+                "total_amount": float(stats.total_amount or 0),
+                "recent_activity_count": stats.recent_activity_count or 0
             }
         except Exception as e:
             print(f"Error in get_user_dashboard_stats: {e}")

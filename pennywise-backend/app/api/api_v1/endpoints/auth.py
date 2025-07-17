@@ -78,9 +78,6 @@ async def login(request: Request, user_credentials: UserLogin, db: Session = Dep
     """Login with email and password."""
     # Debug: Print the raw request body
     body = await request.body()
-    print(f"Raw request body: {body}")
-    print(f"Content-Type: {request.headers.get('content-type')}")
-    print(f"User credentials: {user_credentials}")
     
     auth_service = AuthService(db)
     

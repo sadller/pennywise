@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, text
 from typing import List, Optional, Dict, Any
 from app.models.group import Group
 from app.models.group_member import GroupMember
@@ -63,7 +63,7 @@ class GroupService:
         ).first()
 
     def get_group_with_stats(self, group_id: int, user_id: int) -> Optional[GroupStats]:
-        """Get group with detailed statistics."""
+        """Get group with detailed statistics using raw SQL."""
         # Verify user is member
         member = self.db.query(GroupMember).filter(
             GroupMember.group_id == group_id,
@@ -73,57 +73,68 @@ class GroupService:
         if not member:
             return None
 
-        # Get group with stats
-        result = self.db.query(
-            Group.id,
-            Group.name,
-            Group.owner_id,
-            Group.created_at,
-            User.full_name.label('owner_name'),
-            func.count(GroupMember.user_id.distinct()).label('member_count'),
-            func.count(Transaction.id).label('transaction_count'),
-            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount'),
-            func.max(Transaction.date).label('last_transaction_at')
-        ).join(GroupMember, Group.id == GroupMember.group_id)\
-         .join(User, Group.owner_id == User.id)\
-         .outerjoin(Transaction, Group.id == Transaction.group_id)\
-         .filter(Group.id == group_id)\
-         .group_by(Group.id, Group.name, Group.owner_id, Group.created_at, User.full_name)\
-         .first()
-
-        if not result:
+        # Get group with stats using raw SQL
+        query = text("""
+            SELECT 
+                g.id,
+                g.name,
+                g.owner_id,
+                g.created_at,
+                u.full_name as owner_name,
+                COUNT(DISTINCT gm.user_id) as member_count,
+                COUNT(t.id) as transaction_count,
+                COALESCE(SUM(t.amount), 0) as total_amount,
+                MAX(t.date) as last_transaction_at
+            FROM groups g
+            JOIN group_members gm ON g.id = gm.group_id
+            JOIN users u ON g.owner_id = u.id
+            LEFT JOIN transactions t ON g.id = t.group_id
+            WHERE g.id = :group_id
+            GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
+        """)
+        
+        result = self.db.execute(query, {"group_id": group_id})
+        group_data = result.fetchone()
+        
+        if not group_data:
             return None
 
         return GroupStats(
-            id=result.id,
-            name=result.name,
-            owner_id=result.owner_id,
-            owner_name=result.owner_name,
-            member_count=result.member_count,
-            transaction_count=result.transaction_count,
-            total_amount=float(result.total_amount),
-            created_at=result.created_at.isoformat(),
-            last_transaction_at=result.last_transaction_at.isoformat() if result.last_transaction_at else None
+            id=group_data.id,
+            name=group_data.name,
+            owner_id=group_data.owner_id,
+            owner_name=group_data.owner_name,
+            member_count=group_data.member_count,
+            transaction_count=group_data.transaction_count,
+            total_amount=float(group_data.total_amount),
+            created_at=group_data.created_at.isoformat(),
+            last_transaction_at=group_data.last_transaction_at.isoformat() if group_data.last_transaction_at else None
         )
 
     def get_user_groups_with_stats(self, user_id: int) -> List[GroupStats]:
-        """Get all user's groups with detailed statistics."""
-        groups_with_stats = self.db.query(
-            Group.id,
-            Group.name,
-            Group.owner_id,
-            Group.created_at,
-            User.full_name.label('owner_name'),
-            func.count(GroupMember.user_id.distinct()).label('member_count'),
-            func.count(Transaction.id).label('transaction_count'),
-            func.coalesce(func.sum(Transaction.amount), 0).label('total_amount'),
-            func.max(Transaction.date).label('last_transaction_at')
-        ).join(GroupMember, Group.id == GroupMember.group_id)\
-         .join(User, Group.owner_id == User.id)\
-         .outerjoin(Transaction, Group.id == Transaction.group_id)\
-         .filter(GroupMember.user_id == user_id)\
-         .group_by(Group.id, Group.name, Group.owner_id, Group.created_at, User.full_name)\
-         .order_by(desc(Group.created_at)).all()
+        """Get all user's groups with detailed statistics using raw SQL."""
+        query = text("""
+            SELECT 
+                g.id,
+                g.name,
+                g.owner_id,
+                g.created_at,
+                o.full_name as owner_name,
+                COUNT(DISTINCT gm.user_id) as member_count,
+                COUNT(t.id) as transaction_count,
+                COALESCE(SUM(t.amount), 0) as total_amount,
+                MAX(t.date) as last_transaction_at
+            FROM users u
+            JOIN group_members gm ON gm.user_id = u.id
+            JOIN groups g ON g.id = gm.group_id
+            JOIN users o ON o.id = g.owner_id
+            LEFT JOIN transactions t ON g.id = t.group_id
+            WHERE u.id = :user_id
+            GROUP BY g.id, g.name, g.owner_id, g.created_at, o.full_name
+        """)
+        
+        result = self.db.execute(query, {"user_id": user_id})
+        groups_data = result.fetchall()
         
         return [
             GroupStats(
@@ -137,7 +148,7 @@ class GroupService:
                 created_at=group.created_at.isoformat(),
                 last_transaction_at=group.last_transaction_at.isoformat() if group.last_transaction_at else None
             )
-            for group in groups_with_stats
+            for group in groups_data
         ]
 
     def invite_user_to_group(self, group_id: int, user_email: str, inviter_id: int) -> bool:
@@ -185,11 +196,17 @@ class GroupService:
         
         # Create notification for the invited user
         try:
+            # Get inviter details
+            inviter = self.db.query(User).filter(User.id == inviter_id).first()
+            inviter_name = "Unknown"
+            if inviter:
+                inviter_name = inviter.full_name if inviter.full_name else inviter.email
+            
             NotificationService.create_group_invitation_notification(
                 db=self.db,
                 user_id=user.id,
                 group_name=group.name,
-                inviter_name=group_member.user.full_name or group_member.user.email,
+                inviter_name=inviter_name,
                 group_id=group_id
             )
             self.db.commit()
