@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
+import { observer } from 'mobx-react-lite';
 import PageHeader from '@/components/common/PageHeader';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -13,39 +14,24 @@ import {
   StepOneContent,
   StepTwoContent,
   FileListSection,
-  InstructionsSection
+  InstructionsSection,
+  FileUploadHandler,
+  NotificationHandler,
+  MappingModalHandler
 } from '@/components/utilities';
+import { useStore } from '@/stores/StoreProvider';
 
-
-
-interface FileWithProgress {
-  file: File;
-  id: string;
-  progress: number;
-  status: 'pending' | 'uploading' | 'completed' | 'error';
-  error?: string;
-  metadata?: {
-    rowCount: number;
-    columnCount: number;
-    fileSize: string;
-    lastModified: string;
-  };
-}
-
-const SUPPORTED_FIELDS = ['Date', 'Amount', 'Description', 'Category', 'Payment Mode'] as const;
 const MAX_FILES = 20;
-const FILE_SIZE_DISPLAY_PRECISION = 1; // Decimal places for file size display
 
 const STEPS = [
   'Select Group & Files',
   'Review & Import'
 ] as const;
 
-const CashbookImportContent = () => {
-  const [files, setFiles] = useState<FileWithProgress[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+
+
+const CashbookImportContent: React.FC = observer(() => {
+  const { cashbookImport } = useStore();
 
   // Fetch user's groups
   const {
@@ -56,230 +42,36 @@ const CashbookImportContent = () => {
     queryFn: () => groupService.getUserGroups(),
   });
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
-    if (selectedFiles) {
-      await handleFileSelect(selectedFiles);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (files.length === 0) return;
-    if (!selectedGroupId) {
-      // setImportResult({
-      //   success: false,
-      //   message: 'Please select a group before importing files.',
-      //   errors: ['Group selection is required']
-      // });
-      return;
-    }
-
-    setIsUploading(true);
-    
-    try {
-      // TODO: Implement actual file upload and processing logic
-      // This is where you would:
-      // 1. Upload multiple files to your backend
-      // 2. Process the CSV data from each file
-      // 3. Import transactions into the database with selected group
-      // 4. Return the results
-      
-      // For now, show a placeholder message
-      // setImportResult({
-      //   success: false,
-      //   message: `Import functionality is not yet implemented. ${files.length} files selected for group ID: ${selectedGroupId}.`,
-      //   errors: [
-      //     'Backend API integration required',
-      //     'CSV parsing logic needed',
-      //     'Database import functionality pending'
-      //   ]
-      // });
-    } catch {
-      // setImportResult({
-      //   success: false,
-      //   message: 'An error occurred during import.',
-      //   errors: [
-      //     'Network error',
-      //     'Server unavailable',
-      //     'Please try again later'
-      //   ]
-      // });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const generateFileId = () => `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  const formatFileSize = (bytes: number): string => {
-    return `${(bytes / 1024).toFixed(FILE_SIZE_DISPLAY_PRECISION)} KB`;
-  };
-
-  const validateFiles = (fileArray: File[]): { isValid: boolean; csvFiles: File[]; error?: string } => {
-    const csvFiles = fileArray.filter(file => file.type === 'text/csv');
-    
-    if (csvFiles.length === 0) {
-      return { isValid: false, csvFiles: [], error: 'Only CSV files are supported' };
-    }
-
-    if (files.length + csvFiles.length > MAX_FILES) {
-      return { 
-        isValid: false, 
-        csvFiles: [], 
-        error: `Maximum ${MAX_FILES} files allowed` 
-      };
-    }
-
-    return { isValid: true, csvFiles };
-  };
-
-  const handleFileSelect = async (selectedFiles: FileList | File[]) => {
-    const fileArray = Array.from(selectedFiles);
-    const validation = validateFiles(fileArray);
-    
-    if (!validation.isValid) {
-      // setImportResult({
-      //   success: false,
-      //   message: validation.error === 'Only CSV files are supported' 
-      //     ? 'No CSV files found. Please select CSV files only.'
-      //     : `Maximum ${MAX_FILES} files allowed. You can add ${MAX_FILES - files.length} more files.`,
-      //   errors: [validation.error!]
-      // });
-      return;
-    }
-
-    const newFiles: FileWithProgress[] = validation.csvFiles.map(file => ({
-      file,
-      id: generateFileId(),
-      progress: 0,
-      status: 'pending'
-    }));
-
-    setFiles(prev => [...prev, ...newFiles]);
-    // setImportResult(null);
-
-    // Extract metadata for new files immediately
-    for (const fileItem of newFiles) {
-      try {
-        const metadata = await extractFileMetadata(fileItem.file);
-        setFiles(prev => prev.map(f => 
-          f.id === fileItem.id ? { ...f, metadata } : f
-        ));
-      } catch (error) {
-        console.error('Error extracting metadata for file:', fileItem.file.name, error);
-      }
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-  };
-
-  const handleDrop = async (event: React.DragEvent) => {
-    event.preventDefault();
-    try {
-      const droppedFiles = event.dataTransfer.files;
-      if (droppedFiles.length > 0) {
-        await handleFileSelect(droppedFiles);
-      }
-    } catch {
-      // setImportResult({
-      //   success: false,
-      //   message: 'Error processing dropped files.',
-      //   errors: ['Invalid file format or corrupted files']
-      // });
-    }
-  };
-
-  const removeFile = useCallback((fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
-  }, []);
-
-  const clearAllFiles = useCallback(() => {
-    setFiles([]);
-  }, []);
-
-  // Helper function to parse CSV line properly
-  const parseCSVLine = useCallback((line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    let i = 0;
-
-    while (i < line.length) {
-      const char = line[i];
-      
-      if (char === '"') {
-        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-          // Handle escaped quotes
-          current += '"';
-          i += 2;
-        } else {
-          // Toggle quote state
-          inQuotes = !inQuotes;
-          i++;
-        }
-      } else if (char === ',' && !inQuotes) {
-        // End of field
-        result.push(current.trim());
-        current = '';
-        i++;
-      } else {
-        // Regular character
-        current += char;
-        i++;
-      }
-    }
-    
-    // Add the last field
-    result.push(current.trim());
-    return result;
-  }, []);
-
-  const extractFileMetadata = useCallback(async (file: File): Promise<FileWithProgress['metadata']> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        const lines = content.split('\n').filter(line => line.trim() !== '');
-        const rowCount = Math.max(0, lines.length - 1); // Exclude header
-        
-        // Parse the header line to get accurate column count
-        const columnCount = lines.length > 0 ? parseCSVLine(lines[0]).length : 0;
-        
-        resolve({
-          rowCount,
-          columnCount,
-          fileSize: formatFileSize(file.size),
-          lastModified: new Date(file.lastModified).toLocaleDateString()
-        });
-      };
-      reader.readAsText(file);
-    });
-  }, [parseCSVLine]);
-
   const handleNext = () => {
-    if (selectedGroupId && files.length > 0) {
-      setActiveStep(1);
-      // Extract metadata for all files
-      files.forEach(async (fileItem) => {
-        if (!fileItem.metadata) {
-          const metadata = await extractFileMetadata(fileItem.file);
-          setFiles(prev => prev.map(f => 
-            f.id === fileItem.id ? { ...f, metadata } : f
-          ));
-        }
-      });
+    if (cashbookImport.selectedGroupId && cashbookImport.files.length > 0) {
+      cashbookImport.setActiveStep(1);
     }
   };
 
   const handleBack = () => {
-    setActiveStep(0);
+    cashbookImport.setActiveStep(0);
   };
 
-  const canProceedToNext = Boolean(selectedGroupId && files.length > 0);
+  // Bind methods to preserve 'this' context
+  const handleGroupChange = (groupId: number) => {
+    cashbookImport.setSelectedGroupId(groupId);
+  };
 
+  const handleRemoveFile = (fileId: string) => {
+    cashbookImport.removeFile(fileId);
+  };
 
+  const handleClearAllFiles = () => {
+    cashbookImport.clearAllFiles();
+  };
+
+  const handleUpload = () => {
+    cashbookImport.uploadFiles();
+  };
+
+  const handleBulkMappingRequest = () => {
+    cashbookImport.openMappingModal();
+  };
 
   return (
     <Box sx={{ 
@@ -292,74 +84,77 @@ const CashbookImportContent = () => {
         subtitle="Import your transactions from Cashbook application"
       />
       
-            <ImportStepper activeStep={activeStep} steps={STEPS} />
+      <ImportStepper activeStep={cashbookImport.activeStep} steps={STEPS} />
 
       <Box sx={{ 
         mt: 4,
         width: '100%',
         overflow: 'hidden'
       }}>
-        {activeStep === 0 && (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: { xs: 2, md: 3 },
-            width: '100%'
-          }}>
-            {/* Main Import Section */}
-            <StepOneContent
-              selectedGroupId={selectedGroupId}
-              onGroupChange={setSelectedGroupId}
-              userGroups={userGroups}
-              groupsLoading={groupsLoading}
-              files={files.map(f => f.file)}
-              maxFiles={MAX_FILES}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onFileInputClick={() => document.getElementById('file-input')?.click()}
-              canProceedToNext={canProceedToNext}
-              onNext={handleNext}
-            />
+        {cashbookImport.activeStep === 0 && (
+          <FileUploadHandler>
+            {({ handleDragOver, handleDrop, triggerFileInput }) => (
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                gap: { xs: 2, md: 3 },
+                width: '100%'
+              }}>
+                {/* Main Import Section */}
+                <StepOneContent
+                  selectedGroupId={cashbookImport.selectedGroupId}
+                  onGroupChange={handleGroupChange}
+                  userGroups={userGroups}
+                  groupsLoading={groupsLoading}
+                  files={cashbookImport.files.map(f => f.file)}
+                  maxFiles={MAX_FILES}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onFileInputClick={triggerFileInput}
+                  canProceedToNext={cashbookImport.canProceedToNext}
+                  onNext={handleNext}
+                  allFilesValid={cashbookImport.allFilesValid}
+                  invalidFilesCount={cashbookImport.invalidFilesCount}
+                  hasUnvalidatedFiles={cashbookImport.hasUnvalidatedFiles}
+                />
 
-            {/* Right Section - Instructions or File List */}
-            {files.length === 0 ? (
-              <InstructionsSection supportedFields={SUPPORTED_FIELDS} />
-            ) : (
-              <FileListSection
-                files={files}
-                maxFiles={MAX_FILES}
-                onRemoveFile={removeFile}
-                onClearAllFiles={clearAllFiles}
-                formatFileSize={formatFileSize}
-              />
+                {/* Right Section - Instructions or File List */}
+                {cashbookImport.files.length === 0 ? (
+                  <InstructionsSection />
+                ) : (
+                  <FileListSection
+                    files={cashbookImport.files}
+                    maxFiles={MAX_FILES}
+                    onRemoveFile={handleRemoveFile}
+                    onClearAllFiles={handleClearAllFiles}
+                    formatFileSize={(bytes) => `${(bytes / 1024).toFixed(1)} KB`}
+                  />
+                )}
+              </Box>
             )}
-
-            <input
-              id="file-input"
-              type="file"
-              accept=".csv"
-              multiple
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-          </Box>
+          </FileUploadHandler>
         )}
 
-        {activeStep === 1 && (
+        {cashbookImport.activeStep === 1 && (
           <StepTwoContent
-            files={files}
-            selectedGroupId={selectedGroupId}
+            files={cashbookImport.files}
+            selectedGroupId={cashbookImport.selectedGroupId}
             userGroups={userGroups}
-            isUploading={isUploading}
-            onRemoveFile={removeFile}
+            isUploading={cashbookImport.isUploading}
+            onRemoveFile={handleRemoveFile}
             onBack={handleBack}
             onUpload={handleUpload}
+            onBulkMappingRequest={handleBulkMappingRequest}
           />
         )}
       </Box>
+
+      {/* Handlers */}
+      <NotificationHandler />
+      <MappingModalHandler />
     </Box>
   );
-};
+});
 
 export default function CashbookImportPage() {
   return (

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Card, CardContent, Typography, Button, Alert, Chip } from '@mui/material';
 import { Upload as UploadIcon } from '@mui/icons-material';
 import { CSVFileCard } from './index';
+import { CSVMappingConfig } from '@/services/csvMappingService';
 
 interface FileWithProgress {
   file: File;
@@ -15,6 +16,15 @@ interface FileWithProgress {
     fileSize: string;
     lastModified: string;
   };
+  mappingConfig?: CSVMappingConfig;
+  importResult?: {
+    success: boolean;
+    message: string;
+    importedCount: number;
+    errors: string[];
+    skippedRows: number[];
+  };
+  uniqueEntryByValues?: string[];
 }
 
 interface StepTwoContentProps {
@@ -25,6 +35,7 @@ interface StepTwoContentProps {
   onRemoveFile: (fileId: string) => void;
   onBack: () => void;
   onUpload: () => void;
+  onBulkMappingRequest?: () => void;
 }
 
 const StepTwoContent: React.FC<StepTwoContentProps> = ({
@@ -34,8 +45,13 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
   isUploading,
   onRemoveFile,
   onBack,
-  onUpload
+  onUpload,
+  onBulkMappingRequest
 }) => {
+  const filesWithoutMapping = files.filter(f => !f.mappingConfig);
+  const hasCompletedImports = files.some(f => f.importResult?.success);
+  const hasFilesNeedingMapping = files.some(f => f.uniqueEntryByValues && f.uniqueEntryByValues.length > 0);
+
   return (
     <Card sx={{ width: '100%' }}>
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -47,19 +63,28 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
         <Box sx={{ 
           mb: 2, 
           display: 'flex', 
-          justifyContent: 'flex-end',
-          alignItems: 'center', 
-          gap: 1 
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-            Total CSV Files:
-          </Typography>
-          <Chip 
-            label={files.length} 
-            color="primary" 
-            size="small"
-            sx={{ fontWeight: 600 }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+              Total CSV Files:
+            </Typography>
+            <Chip 
+              label={files.length} 
+              color="primary" 
+              size="small"
+              sx={{ fontWeight: 600 }}
+            />
+          </Box>
+          
+          {filesWithoutMapping.length > 0 && (
+            <Chip 
+              label={`${filesWithoutMapping.length} need mapping`}
+              color="warning"
+              size="small"
+            />
+          )}
         </Box>
 
         {/* Selected Group Info */}
@@ -67,6 +92,16 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
               Importing to: <strong>{userGroups.find(g => g.id === selectedGroupId)?.name}</strong>
+            </Typography>
+          </Alert>
+        )}
+
+        {/* Mapping Required Alert */}
+        {filesWithoutMapping.length > 0 && onBulkMappingRequest && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              {filesWithoutMapping.length} file(s) need mapping configuration. 
+              Click the &quot;Configure Mapping&quot; button below to set up mapping for all files at once.
             </Typography>
           </Alert>
         )}
@@ -117,21 +152,36 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
         </Box>
 
         {/* Navigation Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button
             variant="outlined"
             onClick={onBack}
           >
             Back
           </Button>
-          <Button
-            variant="contained"
-            onClick={onUpload}
-            disabled={isUploading}
-            startIcon={<UploadIcon />}
-          >
-            Import All
-          </Button>
+          
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {hasFilesNeedingMapping && onBulkMappingRequest && (
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={onBulkMappingRequest}
+                disabled={isUploading}
+              >
+                Configure Mapping
+              </Button>
+            )}
+            {!hasCompletedImports && (
+              <Button
+                variant="contained"
+                onClick={onUpload}
+                disabled={isUploading || filesWithoutMapping.length > 0}
+                startIcon={<UploadIcon />}
+              >
+                Import All
+              </Button>
+            )}
+          </Box>
         </Box>
       </CardContent>
     </Card>

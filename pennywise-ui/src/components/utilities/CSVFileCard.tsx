@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography, Paper, IconButton, LinearProgress, Stack, Chip, Button, Fade } from '@mui/material';
 import { Description as DescriptionIcon, CheckCircle as CheckIcon, Error as ErrorIcon, RemoveCircle as RemoveIcon, Visibility as PreviewIcon } from '@mui/icons-material';
 import CSVPreviewModal from './CSVPreviewModal';
+import { CSVMappingConfig } from '@/services/csvMappingService';
 
 interface FileMetadata {
   rowCount: number;
@@ -17,6 +18,14 @@ interface FileWithProgress {
   status: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
   metadata?: FileMetadata;
+  mappingConfig?: CSVMappingConfig;
+  importResult?: {
+    success: boolean;
+    message: string;
+    importedCount: number;
+    errors: string[];
+    skippedRows: number[];
+  };
 }
 
 interface CSVFileCardProps {
@@ -24,7 +33,10 @@ interface CSVFileCardProps {
   onRemove: (fileId: string) => void;
 }
 
-const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
+const CSVFileCard: React.FC<CSVFileCardProps> = ({ 
+  fileItem, 
+  onRemove
+}) => {
   const [showPreview, setShowPreview] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -50,6 +62,8 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
     setShowPreview(true);
   };
 
+
+
   return (
     <>
       <Paper
@@ -71,6 +85,24 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* Action Buttons */}
+        <Box sx={{ position: 'absolute', top: 4, right: 4, zIndex: 3, display: 'flex', gap: 0.5 }}>
+          <IconButton
+            size="small"
+            sx={{
+              color: 'error.main',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 1)',
+                color: 'error.dark'
+              }
+            }}
+            onClick={() => onRemove(fileItem.id)}
+          >
+            <RemoveIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
         {/* Preview Overlay */}
         <Fade in={isHovered}>
           <Box
@@ -85,7 +117,8 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 2,
-              borderRadius: 1
+              borderRadius: 1,
+              pointerEvents: 'none' // This prevents the overlay from blocking clicks
             }}
           >
             <Button
@@ -95,6 +128,7 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
               sx={{
                 backgroundColor: 'primary.main',
                 color: 'white',
+                pointerEvents: 'auto', // Re-enable pointer events for the button
                 '&:hover': {
                   backgroundColor: 'primary.dark'
                 }
@@ -104,44 +138,30 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
             </Button>
           </Box>
         </Fade>
-      {/* Remove Button */}
-      <IconButton
-        size="small"
-        sx={{
-          position: 'absolute',
-          top: 4,
-          right: 4,
-          color: 'error.main',
-          zIndex: 1,
-        }}
-        onClick={() => onRemove(fileItem.id)}
-      >
-        <RemoveIcon fontSize="small" />
-      </IconButton>
 
-      {/* File Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.5, pr: 3, minHeight: 24 }}>
-        <DescriptionIcon sx={{ mr: 0.5, color: 'primary.main', fontSize: 16, mt: 0.1, flexShrink: 0 }} />
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            fontWeight: 500,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            lineHeight: 1.1,
-            flex: 1,
-            wordBreak: 'break-word',
-            fontSize: '0.7rem'
-          }}
-        >
-          {fileItem.file.name}
-        </Typography>
-      </Box>
+        {/* File Header */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.5, pr: 3, minHeight: 24 }}>
+          <DescriptionIcon sx={{ mr: 0.5, color: 'primary.main', fontSize: 16, mt: 0.1, flexShrink: 0 }} />
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              lineHeight: 1.1,
+              flex: 1,
+              wordBreak: 'break-word',
+              fontSize: '0.7rem'
+            }}
+          >
+            {fileItem.file.name}
+          </Typography>
+        </Box>
 
-              {/* Progress or Status */}
+        {/* Progress or Status */}
         {fileItem.status === 'uploading' && (
           <Box sx={{ mb: 0.5 }}>
             <LinearProgress 
@@ -169,7 +189,36 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
           </Box>
         )}
 
-              {/* Metadata */}
+        {/* Mapping Status */}
+        {fileItem.mappingConfig && (
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <Chip 
+              label="Mapping configured"
+              size="small" 
+              color="success"
+              variant="outlined"
+              sx={{ height: 16, fontSize: '0.55rem' }}
+            />
+          </Box>
+        )}
+
+        {/* Import Result */}
+        {fileItem.importResult && (
+          <Box sx={{ mb: 0.5 }}>
+            <Typography 
+              variant="caption" 
+              color={fileItem.importResult.success ? 'success.main' : 'error.main'}
+              sx={{ fontSize: '0.65rem', fontWeight: 500 }}
+            >
+              {fileItem.importResult.success 
+                ? `Imported ${fileItem.importResult.importedCount} transactions`
+                : fileItem.importResult.message
+              }
+            </Typography>
+          </Box>
+        )}
+
+        {/* Metadata */}
         {fileItem.metadata && (
           <Stack spacing={0.3}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -202,7 +251,7 @@ const CSVFileCard: React.FC<CSVFileCardProps> = ({ fileItem, onRemove }) => {
           </Stack>
         )}
 
-              {/* Loading Metadata */}
+        {/* Loading Metadata */}
         {!fileItem.metadata && (
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
             Analyzing...

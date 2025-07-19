@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -21,9 +21,12 @@ class TransactionBase(BaseModel):
 class TransactionCreate(TransactionBase):
     pass
 
+class BulkTransactionCreate(BaseModel):
+    transactions: List[TransactionCreate]
+
 class TransactionResponse(TransactionBase):
     id: int
-    date: datetime
+    date: Optional[datetime] = None
 
     class Config:
         from_attributes = True 

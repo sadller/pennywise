@@ -1,10 +1,12 @@
 import { authStore } from './AuthStore';
 import { uiStore } from './UIStore';
+import { cashbookImportStore } from './CashbookImportStore';
 import { queryClient } from '@/lib/queryClient';
 
 class RootStore {
   auth = authStore;
   ui = uiStore;
+  cashbookImport = cashbookImportStore;
 
   constructor() {
     // Initialize stores if needed
@@ -14,6 +16,7 @@ class RootStore {
     // Clear all store states
     this.auth.logout();
     this.ui.clearAllState();
+    this.cashbookImport.clearAllState();
   }
 
   clearAllData() {

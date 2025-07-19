@@ -1,11 +1,10 @@
 import React from 'react';
 import { Card, CardContent, Typography, List, ListItem, ListItemText, Divider, Box, Chip } from '@mui/material';
+import { CSVMappingService } from '@/services/csvMappingService';
 
-interface InstructionsSectionProps {
-  supportedFields: readonly string[];
-}
+const InstructionsSection: React.FC = () => {
+  const { required, optional } = CSVMappingService.getSupportedHeaders();
 
-const InstructionsSection: React.FC<InstructionsSectionProps> = ({ supportedFields }) => {
   return (
     <Card sx={{ width: '100%', height: 'fit-content', minHeight: '400px' }}>
       <CardContent sx={{ p: { xs: 2, sm: 3 }, height: '100%' }}>
@@ -45,13 +44,53 @@ const InstructionsSection: React.FC<InstructionsSectionProps> = ({ supportedFiel
 
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
-            Supported Fields:
+            Required CSV Headers:
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {supportedFields.map((field) => (
-              <Chip key={field} label={field} size="small" variant="outlined" />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Your CSV must have these column headers:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {required.map((field) => (
+              <Chip 
+                key={field} 
+                label={field} 
+                size="small" 
+                variant="outlined" 
+                color="primary"
+              />
             ))}
           </Box>
+
+          <Typography variant="subtitle2" gutterBottom>
+            Optional CSV Headers:
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            These headers are optional but recommended:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {optional.map((field) => (
+              <Chip 
+                key={field} 
+                label={field} 
+                size="small" 
+                variant="outlined" 
+                color="secondary"
+              />
+            ))}
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Important Notes:
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+            • Only one of &quot;Cash In&quot; or &quot;Cash Out&quot; should have a value per row<br/>
+            • &quot;Entry By&quot; field will be mapped to group members during import<br/>
+            • Date format should be DD/MM/YYYY or YYYY-MM-DD<br/>
+            • Time format should be HH:MM (24-hour format)<br/>
+            • Category is optional - transactions without category will be imported
+          </Typography>
         </Box>
       </CardContent>
     </Card>

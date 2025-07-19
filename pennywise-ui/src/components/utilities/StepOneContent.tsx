@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Button } from '@mui/material';
-import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, Button, Alert } from '@mui/material';
+import { CloudUpload as CloudUploadIcon, Error as ErrorIcon } from '@mui/icons-material';
 import { GroupSelector, FileUploadArea } from './index';
 import { Group } from '@/types/group';
 
@@ -16,6 +16,9 @@ interface StepOneContentProps {
   onFileInputClick: () => void;
   canProceedToNext: boolean;
   onNext: () => void;
+  allFilesValid?: boolean;
+  invalidFilesCount?: number;
+  hasUnvalidatedFiles?: boolean;
 }
 
 const StepOneContent: React.FC<StepOneContentProps> = ({
@@ -29,7 +32,10 @@ const StepOneContent: React.FC<StepOneContentProps> = ({
   onDrop,
   onFileInputClick,
   canProceedToNext,
-  onNext
+  onNext,
+  allFilesValid,
+  invalidFilesCount,
+  hasUnvalidatedFiles
 }) => {
   return (
     <Card sx={{ width: '100%', height: 'fit-content', minHeight: '400px' }}>
@@ -57,6 +63,28 @@ const StepOneContent: React.FC<StepOneContentProps> = ({
           onDrop={onDrop}
           onClick={onFileInputClick}
         />
+
+        {/* Validation Status */}
+        {files.length > 0 && hasUnvalidatedFiles && (
+          <Alert 
+            severity="info" 
+            sx={{ mt: 2 }}
+          >
+            Validating uploaded files...
+          </Alert>
+        )}
+        {files.length > 0 && !hasUnvalidatedFiles && allFilesValid === false && (
+          <Alert 
+            severity="error" 
+            icon={<ErrorIcon />}
+            sx={{ mt: 2 }}
+          >
+            {invalidFilesCount === 1 
+              ? '1 file has validation errors. Please fix the issues before proceeding.'
+              : `${invalidFilesCount} files have validation errors. Please fix the issues before proceeding.`
+            }
+          </Alert>
+        )}
 
         {/* Navigation Buttons */}
         <Box sx={{ mt: 'auto', pt: 3, display: 'flex', justifyContent: 'flex-end' }}>

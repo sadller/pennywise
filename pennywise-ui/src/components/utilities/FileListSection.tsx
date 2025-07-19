@@ -1,6 +1,13 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
-import { Description as DescriptionIcon, Delete as DeleteIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, IconButton, Chip } from '@mui/material';
+import { 
+  Description as DescriptionIcon, 
+  Delete as DeleteIcon, 
+  Clear as ClearIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon
+} from '@mui/icons-material';
+import ValidationResultDisplay from './ValidationResultDisplay';
 
 interface FileWithProgress {
   file: File;
@@ -13,6 +20,24 @@ interface FileWithProgress {
     columnCount: number;
     fileSize: string;
     lastModified: string;
+  };
+  validationResult?: {
+    success: boolean;
+    message: string;
+    missingHeaders?: string[];
+    presentHeaders?: string[];
+    totalRows?: number;
+    errors: string[];
+  };
+  importResult?: {
+    success: boolean;
+    message: string;
+    importedCount: number;
+    errors: string[];
+    skippedRows: number[];
+    missingHeaders?: string[];
+    presentHeaders?: string[];
+    totalRows?: number;
   };
 }
 
@@ -80,56 +105,109 @@ const FileListSection: React.FC<FileListSectionProps> = ({
           },
         }}>
           {files.map((fileItem) => (
-            <Box
-              key={fileItem.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                mb: 0.5,
-                py: 0.75,
-                px: 1.2,
-                bgcolor: 'background.paper',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  borderColor: 'primary.main',
-                  transform: 'translateY(-1px)'
-                }
-              }}
-            >
-              <DescriptionIcon sx={{ fontSize: 28, color: 'primary.main', mr: 1 }} />
-              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <Box sx={{ fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', alignSelf: 'baseline' }}>
-                  {fileItem.file.name}
-                </Box>
-                <Box sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                  {fileItem.metadata 
-                    ? `${formatFileSize(fileItem.file.size)} • ${fileItem.metadata.rowCount.toLocaleString()} rows • ${fileItem.metadata.columnCount} cols`
-                    : formatFileSize(fileItem.file.size)
-                  }
-                </Box>
-              </Box>
-              <IconButton
-                edge="end"
-                aria-label="remove file"
-                onClick={() => onRemoveFile(fileItem.id)}
-                size="small"
-                sx={{ 
-                  ml: 1,
-                  '& .MuiSvgIcon-root': { 
-                    fontSize: 24 
-                  },
+            <Box key={fileItem.id}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  mb: 0.5,
+                  py: 0.75,
+                  px: 1.2,
+                  bgcolor: 'background.paper',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    color: 'error.main',
-                    bgcolor: 'error.50'
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-1px)'
                   }
                 }}
               >
-                <DeleteIcon />
-              </IconButton>
+                <DescriptionIcon sx={{ fontSize: 28, color: 'primary.main', mr: 1 }} />
+                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <Box sx={{ fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', alignSelf: 'baseline' }}>
+                    {fileItem.file.name}
+                  </Box>
+                  <Box sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                    {fileItem.metadata 
+                      ? `${formatFileSize(fileItem.file.size)} • ${fileItem.metadata.rowCount.toLocaleString()} rows • ${fileItem.metadata.columnCount} cols`
+                      : formatFileSize(fileItem.file.size)
+                    }
+                  </Box>
+                  {/* Validation Status */}
+                  {fileItem.validationResult ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      {fileItem.validationResult.success ? (
+                        <Chip
+                          icon={<CheckCircleIcon />}
+                          label="Valid"
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                        />
+                      ) : (
+                        <Chip
+                          icon={<ErrorIcon />}
+                          label="Invalid"
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      <Chip
+                        label="Validating..."
+                        size="small"
+                        color="default"
+                        variant="outlined"
+                      />
+                    </Box>
+                  )}
+                </Box>
+                <IconButton
+                  edge="end"
+                  aria-label="remove file"
+                  onClick={() => onRemoveFile(fileItem.id)}
+                  size="small"
+                  sx={{ 
+                    ml: 1,
+                    '& .MuiSvgIcon-root': { 
+                      fontSize: 24 
+                    },
+                    '&:hover': {
+                      color: 'error.main',
+                      bgcolor: 'error.50'
+                    }
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+              
+              {/* Validation Result Display - Only show for invalid files */}
+              {fileItem.validationResult && !fileItem.validationResult.success && (
+                <Box sx={{ mb: 1 }}>
+                  <ValidationResultDisplay
+                    result={fileItem.validationResult}
+                    fileName={fileItem.file.name}
+                    compact={true}
+                  />
+                </Box>
+              )}
+              
+              {/* Import Result Display */}
+              {fileItem.importResult && (
+                <Box sx={{ mb: 1 }}>
+                  <ValidationResultDisplay
+                    result={fileItem.importResult}
+                    fileName={fileItem.file.name}
+                  />
+                </Box>
+              )}
             </Box>
           ))}
         </Box>

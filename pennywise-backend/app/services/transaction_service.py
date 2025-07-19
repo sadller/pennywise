@@ -3,7 +3,7 @@ from sqlalchemy import desc
 from typing import List, Optional
 from app.models.transaction import Transaction
 from app.models.group_member import GroupMember
-from app.schemas.transaction import TransactionCreate
+from app.schemas.transaction import TransactionCreate, BulkTransactionCreate
 from fastapi import HTTPException, status
 
 
@@ -45,6 +45,65 @@ class TransactionService:
         self.db.refresh(db_transaction)
         
         return db_transaction
+
+    def create_bulk_transactions(self, bulk_data: BulkTransactionCreate, user_id: int) -> List[Transaction]:
+        """Create multiple transactions in bulk with validation."""
+        if not bulk_data.transactions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No transactions provided"
+            )
+
+        # Validate that user is a member of the group (assuming all transactions are for the same group)
+        first_transaction = bulk_data.transactions[0]
+        member = self.db.query(GroupMember).filter(
+            GroupMember.user_id == user_id,
+            GroupMember.group_id == first_transaction.group_id
+        ).first()
+        
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this group"
+            )
+
+        # Validate all transactions are for the same group
+        group_id = first_transaction.group_id
+        for transaction in bulk_data.transactions:
+            if transaction.group_id != group_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="All transactions must be for the same group"
+                )
+
+        # Get all group members for validation
+        group_members = self.db.query(GroupMember.user_id).filter(
+            GroupMember.group_id == group_id
+        ).all()
+        group_member_ids = {member.user_id for member in group_members}
+
+        # Validate paid_by users if specified
+        for transaction in bulk_data.transactions:
+            if transaction.paid_by is not None and transaction.paid_by not in group_member_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"The 'paid_by' user (ID: {transaction.paid_by}) is not a member of the group"
+                )
+
+        # Create all transactions
+        db_transactions = []
+        for transaction_data in bulk_data.transactions:
+            db_transaction = Transaction(**transaction_data.dict())
+            self.db.add(db_transaction)
+            db_transactions.append(db_transaction)
+        
+        self.db.commit()
+        
+        # Refresh all transactions
+        for transaction in db_transactions:
+            self.db.refresh(transaction)
+        
+        return db_transactions
 
     def get_user_transactions(
         self, 

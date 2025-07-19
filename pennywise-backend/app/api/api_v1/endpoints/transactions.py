@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import UserResponse
-from app.schemas.transaction import TransactionCreate, TransactionResponse
+from app.schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate
 from app.services.transaction_service import TransactionService
 from app.api.api_v1.endpoints.auth import get_current_user
 from typing import List, Optional
@@ -19,6 +19,17 @@ def create_transaction(
     """Create a new transaction."""
     transaction_service = TransactionService(db)
     return transaction_service.create_transaction(transaction, current_user.id)
+
+
+@router.post("/bulk", response_model=List[TransactionResponse])
+def create_bulk_transactions(
+    bulk_data: BulkTransactionCreate,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Create multiple transactions in bulk (for CSV import)."""
+    transaction_service = TransactionService(db)
+    return transaction_service.create_bulk_transactions(bulk_data, current_user.id)
 
 
 @router.get("/", response_model=List[TransactionResponse])

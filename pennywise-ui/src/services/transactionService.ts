@@ -1,23 +1,21 @@
-import { Transaction, TransactionCreate } from '@/types/transaction';
 import { apiClient } from './apiClient';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+import { Transaction, TransactionCreate } from '@/types/transaction';
 
 export const transactionService = {
   async getTransactions(groupId?: number): Promise<Transaction[]> {
-    const url = new URL(`${API_BASE_URL}/transactions/`);
-    if (groupId) {
-      url.searchParams.append('group_id', groupId.toString());
-    }
-
-    return apiClient.get<Transaction[]>(url.toString());
+    const params = groupId ? `?group_id=${groupId}` : '';
+    return apiClient.get<Transaction[]>(`/transactions/${params}`);
   },
 
   async createTransaction(transaction: TransactionCreate): Promise<Transaction> {
-    return apiClient.post<Transaction>(`${API_BASE_URL}/transactions/`, transaction);
+    return apiClient.post<Transaction>('/transactions/', transaction);
   },
 
-  async deleteTransaction(transactionId: number): Promise<void> {
-    return apiClient.delete<void>(`${API_BASE_URL}/transactions/${transactionId}`);
+  async createBulkTransactions(transactions: TransactionCreate[]): Promise<Transaction[]> {
+    return apiClient.post<Transaction[]>('/transactions/bulk', { transactions });
   },
+
+  async deleteTransaction(id: number): Promise<void> {
+    await apiClient.delete<void>(`/transactions/${id}`);
+  }
 }; 
