@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
 import { TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
+import { ErrorHandler } from '@/utils/errorHandler';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
 
@@ -42,7 +43,7 @@ export default function Transactions({
     enabled: !!groupId,
     retry: (failureCount, error) => {
       // Don't retry if it's a membership error (403)
-      if (error instanceof Error && error.message.includes('not a member')) {
+      if (ErrorHandler.isPermissionError(error)) {
         return false;
       }
       return failureCount < 3;
@@ -71,16 +72,15 @@ export default function Transactions({
   };
 
   if (error) {
-    // Check if it's a membership error
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const isMembershipError = errorMessage.includes('not a member') || errorMessage.includes('403');
+    const errorMessage = ErrorHandler.getErrorMessage(error);
+    const isMembershipError = ErrorHandler.isPermissionError(error);
     
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           {isMembershipError 
             ? "You are not a member of this group. Please select a different group."
-            : "Failed to load transactions. Please try again."
+            : errorMessage
           }
         </Alert>
         <Button 
@@ -116,7 +116,6 @@ export default function Transactions({
         onTransactionDeleted={() => {
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }}
-
       />
 
       <AddTransactionForm

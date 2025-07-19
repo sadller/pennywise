@@ -21,6 +21,7 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import Image from 'next/image';
 import NotificationIcon from './NotificationIcon';
 import NotificationCenter from './NotificationCenter';
+import { UI_CONSTANTS } from '@/constants';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -37,7 +38,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 900); // md breakpoint
+      setIsMobile(window.innerWidth < UI_CONSTANTS.LAYOUT.MOBILE_BREAKPOINT);
     };
     
     checkMobile();
@@ -100,7 +101,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
         elevation={0}
         sx={{ 
           zIndex: theme.zIndex.drawer + 1,
-          height: '80px',
+          height: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,
           bgcolor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider',
@@ -110,7 +111,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
           display: 'flex', 
           justifyContent: 'space-between', 
           width: '100%', 
-          height: '80px', 
+          height: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, 
           alignItems: 'center',
           px: 3
         }}>

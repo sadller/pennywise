@@ -1,8 +1,7 @@
 import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/stores/StoreProvider';
-
-const MAX_FILES = 20;
+import { UI_CONSTANTS, ERROR_MESSAGES } from '@/constants';
 
 interface FileUploadHandlerProps {
   children: (props: {
@@ -23,11 +22,11 @@ export const FileUploadHandler: React.FC<FileUploadHandlerProps> = observer(({ c
       return { isValid: false, csvFiles: [], error: 'Only CSV files are supported' };
     }
 
-    if (cashbookImport.files.length + csvFiles.length > MAX_FILES) {
+    if (cashbookImport.files.length + csvFiles.length > UI_CONSTANTS.FILE_UPLOAD.MAX_FILES) {
       return { 
         isValid: false, 
         csvFiles: [], 
-        error: `Maximum ${MAX_FILES} files allowed` 
+        error: `Maximum ${UI_CONSTANTS.FILE_UPLOAD.MAX_FILES} files allowed` 
       };
     }
 
@@ -43,7 +42,6 @@ export const FileUploadHandler: React.FC<FileUploadHandlerProps> = observer(({ c
       if (validation.isValid) {
         await cashbookImport.addFiles(validation.csvFiles);
       } else {
-        // You can handle error notification here if needed
         console.error(validation.error);
       }
     }
@@ -68,7 +66,7 @@ export const FileUploadHandler: React.FC<FileUploadHandlerProps> = observer(({ c
         }
       }
     } catch {
-      console.error('Error processing dropped files');
+      console.error(ERROR_MESSAGES.FILE_UPLOAD_ERROR);
     }
   }, [validateFiles, cashbookImport]);
 
@@ -88,7 +86,7 @@ export const FileUploadHandler: React.FC<FileUploadHandlerProps> = observer(({ c
       <input
         id="file-input"
         type="file"
-        accept=".csv"
+        accept={UI_CONSTANTS.FILE_UPLOAD.ACCEPTED_TYPES}
         multiple
         onChange={handleFileChange}
         style={{ display: 'none' }}

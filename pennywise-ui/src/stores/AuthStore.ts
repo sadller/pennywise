@@ -1,17 +1,8 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { jwtDecode } from 'jwt-decode';
 import { apiClient } from '@/services/apiClient';
-
-interface User {
-  id: number;
-  email: string;
-  full_name?: string;
-  username?: string;
-  avatar_url?: string;
-  auth_provider: string;
-  is_active: boolean;
-  is_superuser: boolean;
-}
+import { API_CONSTANTS, STORAGE_KEYS, ERROR_MESSAGES } from '@/constants';
+import { User } from '@/types/user';
 
 class AuthStore {
   user: User | null = null;
@@ -24,11 +15,9 @@ class AuthStore {
     // Don't initialize auth in constructor - will be called from client side
   }
 
-  private API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
   private async fetchUserProfile() {
     try {
-      const userData = await apiClient.get<User>(`${this.API_BASE_URL}/auth/me`);
+      const userData = await apiClient.get<User>(API_CONSTANTS.ENDPOINTS.AUTH.ME);
       runInAction(() => {
         this.user = userData;
       });
@@ -45,7 +34,7 @@ class AuthStore {
       });
       return;
     }
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) {
       runInAction(() => {
         this.isLoading = false;
@@ -54,7 +43,7 @@ class AuthStore {
     }
 
     try {
-      const response = await fetch(`${this.API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${API_CONSTANTS.BASE_URL}${API_CONSTANTS.ENDPOINTS.AUTH.REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,8 +54,8 @@ class AuthStore {
       if (response.ok) {
         const tokens = await response.json();
         if (typeof window !== 'undefined') {
-          localStorage.setItem('auth_token', tokens.access_token);
-          localStorage.setItem('refresh_token', tokens.refresh_token);
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokens.access_token);
+          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token);
         }
         runInAction(() => {
           this.token = tokens.access_token;
@@ -86,8 +75,8 @@ class AuthStore {
 
   private clearAuth() {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     }
     runInAction(() => {
       this.token = null;
@@ -105,10 +94,8 @@ class AuthStore {
       return;
     }
     
-
-    
     // Check for existing token on app load
-    const storedToken = localStorage.getItem('auth_token');
+    const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (storedToken) {
       try {
         const decoded = jwtDecode(storedToken);
@@ -129,8 +116,6 @@ class AuthStore {
       }
     }
     
-
-    
     runInAction(() => {
       this.isLoading = false;
     });
@@ -149,7 +134,7 @@ class AuthStore {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${this.API_BASE_URL}/auth/login`, { email, password });
+      }>(API_CONSTANTS.ENDPOINTS.AUTH.LOGIN, { email, password });
 
       runInAction(() => {
         this.token = data.access_token;
@@ -163,15 +148,15 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else {
-          this.error = 'Network error occurred';
+          this.error = ERROR_MESSAGES.NETWORK_ERROR;
         }
       });
     } finally {
@@ -194,7 +179,7 @@ class AuthStore {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${this.API_BASE_URL}/auth/register`, { 
+      }>(API_CONSTANTS.ENDPOINTS.AUTH.REGISTER, { 
         email, 
         password, 
         full_name: fullName 
@@ -212,15 +197,15 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else {
-          this.error = 'Network error occurred';
+          this.error = ERROR_MESSAGES.NETWORK_ERROR;
         }
       });
     } finally {
@@ -243,7 +228,7 @@ class AuthStore {
         user_id: number;
         email: string;
         full_name?: string;
-      }>(`${this.API_BASE_URL}/auth/google/callback`, { code });
+      }>(API_CONSTANTS.ENDPOINTS.AUTH.GOOGLE_CALLBACK, { code });
 
       runInAction(() => {
         this.token = data.access_token;
@@ -257,15 +242,15 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
         if (error instanceof Error) {
           this.error = error.message;
         } else {
-          this.error = 'Network error occurred';
+          this.error = ERROR_MESSAGES.NETWORK_ERROR;
         }
       });
     } finally {
@@ -276,22 +261,8 @@ class AuthStore {
   }
 
   logout() {
-    // Clear auth state
-    runInAction(() => {
-      this.user = null;
-      this.token = null;
-      this.error = null;
-      this.isLoading = false;
-    });
-    
-    // Clear localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-    }
+    this.clearAuth();
   }
-
-
 
   get isAuthenticated() {
     return !!this.token && !!this.user;

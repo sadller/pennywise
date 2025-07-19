@@ -1,6 +1,5 @@
 import { jwtDecode } from 'jwt-decode';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+import { API_CONSTANTS, STORAGE_KEYS, HTTP_STATUS } from '@/constants';
 
 interface TokenPayload {
   exp: number;
@@ -37,13 +36,13 @@ class ApiClient {
     if (typeof window === 'undefined') {
       return null;
     }
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     if (!refreshToken) {
       return null;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${API_CONSTANTS.BASE_URL}${API_CONSTANTS.ENDPOINTS.AUTH.REFRESH}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,23 +53,23 @@ class ApiClient {
       if (response.ok) {
         const tokens = await response.json();
         if (typeof window !== 'undefined') {
-          localStorage.setItem('auth_token', tokens.access_token);
-          localStorage.setItem('refresh_token', tokens.refresh_token);
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokens.access_token);
+          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token);
         }
         return tokens;
       } else {
         // Refresh token is invalid, clear storage
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         }
         return null;
       }
     } catch (error) {
       console.error('Error refreshing token:', error);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       }
       return null;
     }
@@ -90,7 +89,7 @@ class ApiClient {
     if (typeof window === 'undefined') {
       return {};
     }
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (!token) {
       return {};
     }
@@ -137,12 +136,12 @@ class ApiClient {
     };
 
     // Construct the full URL
-    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    const fullUrl = url.startsWith('http') ? url : `${API_CONSTANTS.BASE_URL}${url}`;
 
     try {
       const response = await fetch(fullUrl, config);
 
-      if (response.status === 401 && !this.isRefreshing) {
+      if (response.status === HTTP_STATUS.UNAUTHORIZED && !this.isRefreshing) {
         this.isRefreshing = true;
 
         const tokens = await this.refreshToken();

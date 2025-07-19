@@ -25,10 +25,9 @@ const LandingSiteHeader = observer(() => {
     setAnchorEl(null);
   };
 
-  const handleMenuItemClick = (action: string) => {
+  const handleMenuItemClick = () => {
     handleMenuClose();
     // Handle menu item clicks here
-    console.log(`Clicked: ${action}`);
   };
 
   return (
@@ -121,13 +120,13 @@ const LandingSiteHeader = observer(() => {
           }
         }}
       >
-        <MenuItem onClick={() => handleMenuItemClick('Features')}>
+        <MenuItem onClick={handleMenuItemClick}>
           Features
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick('About')}>
+        <MenuItem onClick={handleMenuItemClick}>
           About
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick('Contact')}>
+        <MenuItem onClick={handleMenuItemClick}>
           Contact
         </MenuItem>
       </Menu>

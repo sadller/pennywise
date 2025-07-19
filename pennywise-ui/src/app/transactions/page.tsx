@@ -13,7 +13,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-import { useGroupSelection } from '@/hooks/useGroupSelection';
+
 
 const TransactionsPage = observer(() => {
   const { auth, ui } = useStore();
@@ -29,8 +29,7 @@ const TransactionsPage = observer(() => {
     enabled: !!auth.user,
   });
 
-  // Ensure group selection is restored when groups data loads
-  useGroupSelection(userGroups, groupsLoading, ui);
+
 
   // Validate that user is a member of the selected group
   useEffect(() => {

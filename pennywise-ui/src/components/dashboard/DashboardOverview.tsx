@@ -7,45 +7,26 @@ import { useRouter } from 'next/navigation';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Button,
-  Chip,
-  Avatar,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
   Container,
   Skeleton,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
 } from '@mui/material';
 import {
   Group as GroupIcon,
-  AttachMoney as MoneyIcon,
-  Person as PersonIcon,
   Add as AddIcon,
-  Receipt as ReceiptIcon,
-  PersonAdd as PersonAddIcon,
-  CalendarToday as CalendarIcon,
-  Star as StarIcon,
-  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { dashboardService, RecentTransaction, GroupStats } from '@/services/dashboardService';
+import { dashboardService, GroupStats } from '@/services/dashboardService';
 import { User } from '@/types/user';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
-
 import { LoadingSpinner, EmptyState } from '@/components/common';
-import { useGroupSelection } from '@/hooks/useGroupSelection';
+import DashboardStats from './DashboardStats';
+import GroupCard from './GroupCard';
+import RecentTransactions from './RecentTransactions';
+import DeleteGroupDialog from './DeleteGroupDialog';
+
 
 interface DashboardOverviewProps {
   currentUser: User;
@@ -74,8 +55,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
     queryFn: () => dashboardService.getRecentTransactions(5),
   });
 
-  // Auto-select most recent group based on last_transaction_at if no group is currently selected
-  useGroupSelection(groupsWithStats, groupsLoading, ui);
+
 
   // Mutation for creating new groups
   const createGroupMutation = useMutation({
@@ -190,91 +170,7 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
       </Box>
 
       {/* Quick Stats */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 6 }}>
-        <Card sx={{ 
-          bgcolor: 'primary.main', 
-          color: 'white',
-          '&:hover': { transform: 'translateY(-4px)' },
-          transition: 'all 0.3s ease'
-        }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {groupsWithStats.length}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Groups
-                </Typography>
-              </Box>
-              <GroupIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-            </Box>
-          </CardContent>
-        </Card>
-        
-        <Card sx={{ 
-          bgcolor: 'success.main', 
-          color: 'white',
-          '&:hover': { transform: 'translateY(-4px)' },
-          transition: 'all 0.3s ease'
-        }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {groupsWithStats.reduce((sum, group) => sum + group.transaction_count, 0)}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Transactions
-                </Typography>
-              </Box>
-              <ReceiptIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-            </Box>
-          </CardContent>
-        </Card>
-        
-        <Card sx={{ 
-          bgcolor: 'warning.main', 
-          color: 'white',
-          '&:hover': { transform: 'translateY(-4px)' },
-          transition: 'all 0.3s ease'
-        }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  ₹{groupsWithStats.reduce((sum, group) => sum + group.total_amount, 0).toFixed(2)}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Amount
-                </Typography>
-              </Box>
-              <MoneyIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-            </Box>
-          </CardContent>
-        </Card>
-        
-        <Card sx={{ 
-          bgcolor: 'info.main', 
-          color: 'white',
-          '&:hover': { transform: 'translateY(-4px)' },
-          transition: 'all 0.3s ease'
-        }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {groupsWithStats.reduce((sum, group) => sum + group.member_count, 0)}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Total Members
-                </Typography>
-              </Box>
-              <PersonIcon sx={{ fontSize: 40, opacity: 0.8 }} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+      <DashboardStats groupsWithStats={groupsWithStats} />
 
       {/* Group Cards Section */}
       <Box sx={{ mb: 6 }}>
@@ -295,23 +191,21 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
         {groupsLoading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Skeleton variant="circular" width={40} height={40} />
-                    <Box sx={{ ml: 2, flex: 1 }}>
-                      <Skeleton variant="text" width="60%" height={24} />
-                      <Skeleton variant="text" width="40%" height={20} />
-                    </Box>
+              <Box key={i} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Box sx={{ ml: 2, flex: 1 }}>
+                    <Skeleton variant="text" width="60%" height={24} />
+                    <Skeleton variant="text" width="40%" height={20} />
                   </Box>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                    <Skeleton variant="text" width="100%" height={20} />
-                    <Skeleton variant="text" width="100%" height={20} />
-                    <Skeleton variant="text" width="100%" height={20} />
-                    <Skeleton variant="text" width="100%" height={20} />
-                  </Box>
-                </CardContent>
-              </Card>
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Skeleton variant="text" width="100%" height={20} />
+                  <Skeleton variant="text" width="100%" height={20} />
+                  <Skeleton variant="text" width="100%" height={20} />
+                  <Skeleton variant="text" width="100%" height={20} />
+                </Box>
+              </Box>
             ))}
           </Box>
         ) : groupsWithStats.length === 0 ? (
@@ -340,140 +234,15 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
         ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {groupsWithStats.map((group) => (
-              <Card 
+              <GroupCard
                 key={group.id}
-                sx={{ 
-                  height: '100%',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  border: ui.selectedGroupId === group.id ? '2px solid' : '1px solid',
-                  borderColor: ui.selectedGroupId === group.id ? 'primary.main' : 'divider',
-                  bgcolor: ui.selectedGroupId === group.id ? 'primary.50' : 'background.paper',
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                  }
-                }}
-                onClick={() => handleGroupSelect(group.id, group.name)}
-              >
-                <CardContent>
-                  {/* Group Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Avatar sx={{ 
-                      bgcolor: ui.selectedGroupId === group.id ? 'primary.main' : 'primary.light', 
-                      mr: 2,
-                      width: 48,
-                      height: 48
-                    }}>
-                      <GroupIcon />
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" fontWeight="bold" noWrap>
-                        {group.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {group.owner_name}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddMember(group.id, group.name);
-                        }}
-                        sx={{ 
-                          color: 'primary.main',
-                          '&:hover': { bgcolor: 'primary.50' }
-                        }}
-                      >
-                        <PersonAddIcon />
-                      </IconButton>
-                      {currentUser.id === group.owner_id && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => handleDeleteClick(e, group)}
-                          sx={{ 
-                            opacity: 0.7,
-                            '&:hover': { 
-                              opacity: 1,
-                              bgcolor: 'error.light',
-                              color: 'error.contrastText'
-                            }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ my: 3 }} />
-
-                  {/* Group Statistics */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                        <PersonIcon sx={{ fontSize: 20, color: 'secondary.main', mr: 1 }} />
-                        <Typography variant="h6" fontWeight="bold">
-                          {group.member_count}
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Members
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                        <ReceiptIcon sx={{ fontSize: 20, color: 'success.main', mr: 1 }} />
-                        <Typography variant="h6" fontWeight="bold">
-                          {group.transaction_count}
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Transactions
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Total Amount */}
-                  <Box sx={{ textAlign: 'center', mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                      <MoneyIcon sx={{ fontSize: 28, color: 'warning.main', mr: 1 }} />
-                      <Typography variant="h5" fontWeight="bold" color="warning.main">
-                        ₹{group.total_amount.toFixed(2)}
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Total Amount
-                    </Typography>
-                  </Box>
-
-                  <Divider sx={{ my: 3 }} />
-
-                  {/* Group Footer */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary', mr: 1 }} />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(group.created_at).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                    <Chip 
-                      label={ui.selectedGroupId === group.id ? "Selected" : "View Details"} 
-                      size="small" 
-                      color={ui.selectedGroupId === group.id ? "success" : "primary"} 
-                      variant={ui.selectedGroupId === group.id ? "filled" : "outlined"}
-                      sx={{ cursor: 'pointer' }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
+                group={group}
+                currentUser={currentUser}
+                isSelected={ui.selectedGroupId === group.id}
+                onGroupSelect={handleGroupSelect}
+                onAddMember={handleAddMember}
+                onDeleteGroup={handleDeleteClick}
+              />
             ))}
           </Box>
         )}
@@ -492,93 +261,11 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
       </Box>
 
       {/* Recent Transactions Section */}
-      <Card sx={{ 
-        borderRadius: 3,
-        overflow: 'hidden',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-      }}>
-        <Box sx={{ bgcolor: 'primary.main', p: 3, color: 'white' }}>
-          <Typography variant="h6" fontWeight="bold">
-            Recent Transactions
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            Latest activity across all your groups
-          </Typography>
-        </Box>
-        
-        <CardContent sx={{ p: 0 }}>
-          {transactionsLoading ? (
-            <Box sx={{ p: 3 }}>
-              {[1, 2, 3].map((i) => (
-                <Box key={i} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Skeleton variant="circular" width={40} height={40} />
-                    <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" width="70%" height={24} />
-                      <Skeleton variant="text" width="50%" height={20} />
-                    </Box>
-                    <Skeleton variant="rectangular" width={80} height={24} />
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          ) : recentTransactions.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <ReceiptIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No recent transactions
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Start adding transactions to see them here
-              </Typography>
-              <Button
-                variant="outlined"
-                onClick={handleViewTransactions}
-                sx={{ borderRadius: 2 }}
-              >
-                Add your first transaction
-              </Button>
-            </Box>
-          ) : (
-            <List sx={{ p: 0 }}>
-              {recentTransactions.slice(0, 5).map((transaction: RecentTransaction, index: number) => (
-                <React.Fragment key={transaction.id}>
-                  <ListItem sx={{ px: 3, py: 2 }}>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'success.main' }}>
-                        <MoneyIcon />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={`₹${transaction.amount.toFixed(2)} - ${transaction.note || 'No description'}`}
-                      secondary={`${transaction.paid_by_name || 'Unknown'} • ${new Date(transaction.date).toLocaleDateString()}`}
-                    />
-                    <Chip 
-                      label={transaction.group_name} 
-                      size="small" 
-                      variant="outlined"
-                      sx={{ borderRadius: 2 }}
-                    />
-                  </ListItem>
-                  {index < Math.min(4, recentTransactions.length - 1) && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          )}
-          
-          {recentTransactions.length > 0 && (
-            <Box sx={{ p: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-              <Button
-                fullWidth
-                onClick={handleViewTransactions}
-                sx={{ borderRadius: 2 }}
-              >
-                View All Transactions
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+      <RecentTransactions
+        recentTransactions={recentTransactions}
+        isLoading={transactionsLoading}
+        onViewTransactions={handleViewTransactions}
+      />
 
       <CreateGroupForm
         open={ui.isCreateGroupFormOpen}
@@ -597,43 +284,13 @@ const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => 
         isLoading={inviteMemberMutation.isPending}
       />
 
-      {/* Delete Group Confirmation Dialog */}
-      <Dialog open={ui.isDeleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete Group</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to delete the group &quot;{ui.groupToDelete?.name}&quot;?
-          </Typography>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>Warning:</strong> This action cannot be undone. All transactions in this group will be permanently deleted and the group will be permanently deleted.
-            </Typography>
-          </Alert>
-          {ui.groupToDelete && (
-            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Typography variant="body2">
-                <strong>Group Name:</strong> {ui.groupToDelete.name}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Created:</strong> {new Date(ui.groupToDelete.created_at).toLocaleDateString()}
-              </Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleteGroupMutation.isPending}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
-            variant="contained"
-            disabled={deleteGroupMutation.isPending}
-          >
-            {deleteGroupMutation.isPending ? 'Deleting...' : 'Delete Group'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteGroupDialog
+        open={ui.isDeleteDialogOpen}
+        groupToDelete={ui.groupToDelete}
+        isDeleting={deleteGroupMutation.isPending}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
     </Container>
   );
 });

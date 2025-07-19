@@ -1,8 +1,7 @@
 import { Group, GroupCreate } from '@/types/group';
 import { User } from '@/types/user';
 import { apiClient } from './apiClient';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+import { API_CONSTANTS } from '@/constants';
 
 export interface DeleteGroupResponse {
   message: string;
@@ -11,26 +10,26 @@ export interface DeleteGroupResponse {
 
 export const groupService = {
   async createGroup(group: GroupCreate): Promise<Group> {
-    return apiClient.post<Group>(`${API_BASE_URL}/groups/`, group);
+    return apiClient.post<Group>(API_CONSTANTS.ENDPOINTS.GROUPS.BASE, group);
   },
 
   async getUserGroups(): Promise<Group[]> {
-    return apiClient.get<Group[]>(`${API_BASE_URL}/groups/`);
+    return apiClient.get<Group[]>(API_CONSTANTS.ENDPOINTS.GROUPS.BASE);
   },
 
   async getGroupMembers(groupId: number): Promise<User[]> {
-    return apiClient.get<User[]>(`${API_BASE_URL}/groups/${groupId}/members`);
+    return apiClient.get<User[]>(API_CONSTANTS.ENDPOINTS.GROUPS.MEMBERS(groupId));
   },
 
   async inviteGroupMember(groupId: number, userEmail: string): Promise<void> {
-    return apiClient.post<void>(`${API_BASE_URL}/groups/${groupId}/invite`, { user_email: userEmail });
+    return apiClient.post<void>(API_CONSTANTS.ENDPOINTS.GROUPS.INVITE(groupId), { user_email: userEmail });
   },
 
   async addGroupMember(groupId: number, userEmail: string): Promise<void> {
-    return apiClient.post<void>(`${API_BASE_URL}/groups/${groupId}/members`, { user_email: userEmail });
+    return apiClient.post<void>(API_CONSTANTS.ENDPOINTS.GROUPS.MEMBERS(groupId), { user_email: userEmail });
   },
 
   async deleteGroup(groupId: number): Promise<DeleteGroupResponse> {
-    return apiClient.delete<DeleteGroupResponse>(`${API_BASE_URL}/groups/${groupId}`);
+    return apiClient.delete<DeleteGroupResponse>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/${groupId}`);
   },
 }; 

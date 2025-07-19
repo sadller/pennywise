@@ -5,7 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Box, Container } from '@mui/material';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
-import { API_CONSTANTS } from '@/constants/layout';
+import { API_CONSTANTS } from '@/constants';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);

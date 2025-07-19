@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -41,12 +41,6 @@ const CSVPreviewModal: React.FC<CSVPreviewModalProps> = ({ open, onClose, file }
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(50);
 
-  useEffect(() => {
-    if (open && file) {
-      loadCSVData();
-    }
-  }, [open, file]);
-
   // Helper function to parse CSV line properly
   const parseCSVLine = (line: string): string[] => {
     const result: string[] = [];
@@ -84,7 +78,7 @@ const CSVPreviewModal: React.FC<CSVPreviewModalProps> = ({ open, onClose, file }
     return result;
   };
 
-  const loadCSVData = async () => {
+  const loadCSVData = useCallback(async () => {
     if (!file) return;
 
     setLoading(true);
@@ -116,7 +110,13 @@ const CSVPreviewModal: React.FC<CSVPreviewModalProps> = ({ open, onClose, file }
     } finally {
       setLoading(false);
     }
-  };
+  }, [file]);
+
+  useEffect(() => {
+    if (open && file) {
+      loadCSVData();
+    }
+  }, [open, file, loadCSVData]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
     setCurrentPage(page);

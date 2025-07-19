@@ -6,7 +6,7 @@ import { Box, Fade } from '@mui/material';
 import { useStore } from '@/stores/StoreProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { LAYOUT_CONSTANTS } from '@/constants/layout';
+import { UI_CONSTANTS } from '@/constants/ui';
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -21,7 +21,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
   
   React.useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < LAYOUT_CONSTANTS.MOBILE_BREAKPOINT;
+      const mobile = window.innerWidth < UI_CONSTANTS.LAYOUT.MOBILE_BREAKPOINT;
       setIsMobile(mobile);
       setSidebarOpen(!mobile);
     };
@@ -89,7 +89,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
               p: 3,
               overflow: 'auto', // Independent scroll for main content
               height: '100%',
-              paddingTop: `${LAYOUT_CONSTANTS.HEADER_HEIGHT}px`, // Ensure content starts below header
+              paddingTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, // Ensure content starts below header
             }}
           >
             {/* Content Transition Wrapper */}
