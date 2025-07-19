@@ -11,6 +11,9 @@ from pydantic import BaseModel
 class AddMemberRequest(BaseModel):
     user_email: str
 
+class UpdateGroupRequest(BaseModel):
+    name: str
+
 router = APIRouter()
 
 
@@ -33,25 +36,6 @@ def list_user_groups(
     """Get all groups where the current user is a member."""
     group_service = GroupService(db)
     return group_service.get_user_groups(current_user.id)
-
-
-@router.get("/{group_id}", response_model=GroupResponse)
-def get_group(
-    group_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
-):
-    """Get a specific group if user is a member."""
-    group_service = GroupService(db)
-    group = group_service.get_group_by_id(group_id, current_user.id)
-    
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found or you don't have access"
-        )
-    
-    return group
 
 
 @router.get("/{group_id}/stats", response_model=GroupStats)
@@ -108,6 +92,49 @@ def get_group_members(
     """Get all members of a group if user is a member."""
     group_service = GroupService(db)
     return group_service.get_group_members(group_id, current_user.id)
+
+
+@router.delete("/{group_id}/transactions")
+def clear_group_transactions(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Clear all transactions in a group if user is the owner."""
+    group_service = GroupService(db)
+    group_service.clear_group_transactions(group_id, current_user.id)
+    return {"message": "All transactions cleared successfully"}
+
+
+@router.get("/{group_id}", response_model=GroupResponse)
+def get_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Get a specific group if user is a member."""
+    group_service = GroupService(db)
+    group = group_service.get_group_by_id(group_id, current_user.id)
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found or you don't have access"
+        )
+    
+    return group
+
+
+@router.put("/{group_id}", response_model=GroupResponse)
+def update_group(
+    group_id: int,
+    group_data: UpdateGroupRequest,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Update a group if user is the owner."""
+    group_service = GroupService(db)
+    return group_service.update_group(group_id, group_data.name, current_user.id)
 
 
 @router.delete("/{group_id}")

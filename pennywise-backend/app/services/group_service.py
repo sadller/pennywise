@@ -334,4 +334,49 @@ class GroupService:
         self.db.delete(group)
         self.db.commit()
         
+        return True
+
+    def update_group(self, group_id: int, name: str, user_id: int) -> Group:
+        """Update a group if user is the owner."""
+        group = self.db.query(Group).filter(Group.id == group_id).first()
+        
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Group not found"
+            )
+        
+        if group.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only group owner can update the group"
+            )
+        
+        # Update group name
+        group.name = name
+        self.db.commit()
+        self.db.refresh(group)
+        
+        return group
+
+    def clear_group_transactions(self, group_id: int, user_id: int) -> bool:
+        """Clear all transactions in a group if user is the owner."""
+        group = self.db.query(Group).filter(Group.id == group_id).first()
+        
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Group not found"
+            )
+        
+        if group.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only group owner can clear transactions"
+            )
+        
+        # Delete all transactions in the group
+        self.db.query(Transaction).filter(Transaction.group_id == group_id).delete()
+        self.db.commit()
+        
         return True 

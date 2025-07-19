@@ -29,6 +29,14 @@ export const groupService = {
     return apiClient.post<void>(API_CONSTANTS.ENDPOINTS.GROUPS.MEMBERS(groupId), { user_email: userEmail });
   },
 
+  async updateGroup(groupId: number, data: { name: string }): Promise<Group> {
+    return apiClient.put<Group>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/${groupId}`, data);
+  },
+
+  async clearGroupTransactions(groupId: number): Promise<void> {
+    return apiClient.delete<void>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/${groupId}/transactions`);
+  },
+
   async deleteGroup(groupId: number): Promise<DeleteGroupResponse> {
     return apiClient.delete<DeleteGroupResponse>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/${groupId}`);
   },

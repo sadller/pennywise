@@ -107,7 +107,11 @@ const UtilitiesSection: React.FC<UtilitiesSectionProps> = ({
       </ListItem>
 
       <Collapse in={isExpanded && !isCollapsed} timeout="auto" unmountOnExit>
-        <Box sx={{ pl: 2 }}>
+        <Box 
+          sx={{ pl: 2 }}
+          onMouseEnter={onHover}
+          onMouseLeave={onLeave}
+        >
           {utilitiesItems.map((item) => (
             <ListItem key={item.text} disablePadding>
               <ListItemButton
