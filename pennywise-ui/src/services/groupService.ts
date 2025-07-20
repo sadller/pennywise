@@ -1,5 +1,4 @@
-import { Group, GroupCreate } from '@/types/group';
-import { User } from '@/types/user';
+import { Group, GroupCreate, GroupMember } from '@/types/group';
 import { apiClient } from './apiClient';
 import { API_CONSTANTS } from '@/constants';
 
@@ -29,8 +28,8 @@ export const groupService = {
     return apiClient.get<Group[]>(API_CONSTANTS.ENDPOINTS.GROUPS.BASE);
   },
 
-  async getGroupMembers(groupId: number): Promise<User[]> {
-    return apiClient.get<User[]>(API_CONSTANTS.ENDPOINTS.GROUPS.MEMBERS(groupId));
+  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    return apiClient.get<GroupMember[]>(API_CONSTANTS.ENDPOINTS.GROUPS.MEMBERS(groupId));
   },
 
   async inviteGroupMember(groupId: number, userEmail: string): Promise<void> {

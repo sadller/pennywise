@@ -3,6 +3,7 @@ export interface Group {
   name: string;
   owner_id: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface GroupCreate {
@@ -10,9 +11,9 @@ export interface GroupCreate {
 }
 
 export interface GroupMember {
-  id: number;
-  group_id: number;
   user_id: number;
   role: string;
-  joined_at: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
 } 

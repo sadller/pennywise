@@ -18,6 +18,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { TransactionType, TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
+import { GroupMember } from '@/types/group';
 
 interface AddTransactionFormProps {
   open: boolean;
@@ -25,7 +26,7 @@ interface AddTransactionFormProps {
   onSubmit: (data: TransactionCreate) => Promise<void>;
   groupId: number;
   currentUser: User;
-  groupMembers?: User[];
+  groupMembers?: GroupMember[];
   isLoading?: boolean;
 }
 
@@ -240,7 +241,7 @@ export default function AddTransactionForm({
                 <Select {...field} label="Paid By">
                   {groupMembers.length > 0 ? (
                     groupMembers.map((member) => (
-                      <MenuItem key={member.id} value={member.id}>
+                      <MenuItem key={member.user_id} value={member.user_id}>
                         {member.full_name || member.email}
                       </MenuItem>
                     ))

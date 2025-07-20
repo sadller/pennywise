@@ -3,24 +3,30 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Button,
-  Typography,
   Fab,
   Alert,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { Add as AddIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
+import { groupService } from '@/services/groupService';
 import { TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
+import { GroupMember } from '@/types/group';
 import { ErrorHandler } from '@/utils/errorHandler';
+import { useStore } from '@/stores/StoreProvider';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
+import TransactionHeader from './TransactionHeader';
+import TransactionFilters from './TransactionFilters';
+import TransactionSummary from './TransactionSummary';
+import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
+import { useTransactionFilters } from './useTransactionFilters';
 
 interface TransactionsProps {
   groupId?: number;
   currentUser: User;
-  groupMembers?: User[];
+  groupMembers?: GroupMember[];
 }
 
 export default function Transactions({ 
@@ -30,6 +36,7 @@ export default function Transactions({
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { ui } = useStore();
 
   // Fetch transactions
   const {
@@ -42,13 +49,23 @@ export default function Transactions({
     queryFn: () => transactionService.getTransactions(groupId),
     enabled: !!groupId,
     retry: (failureCount, error) => {
-      // Don't retry if it's a membership error (403)
       if (ErrorHandler.isPermissionError(error)) {
         return false;
       }
       return failureCount < 3;
     },
   });
+
+  // Fetch user groups for dropdown
+  const {
+    data: userGroups = [],
+  } = useQuery({
+    queryKey: ['user-groups'],
+    queryFn: () => groupService.getUserGroups(),
+  });
+
+  // Use custom hook for filters
+  const { filters, summaryData, updateFilter } = useTransactionFilters(transactions);
 
   // Create transaction mutation
   const createTransactionMutation = useMutation({
@@ -71,6 +88,11 @@ export default function Transactions({
     setIsAddFormOpen(false);
   };
 
+  const handleGroupChange = (groupId: number) => {
+    const selectedGroup = (userGroups || []).find(g => g.id === groupId);
+    ui.setSelectedGroup(groupId, selectedGroup?.name || null);
+  };
+
   if (error) {
     const errorMessage = ErrorHandler.getErrorMessage(error);
     const isMembershipError = ErrorHandler.isPermissionError(error);
@@ -83,35 +105,64 @@ export default function Transactions({
             : errorMessage
           }
         </Alert>
-        <Button 
-          variant="contained" 
+        <Fab
+          color="primary"
+          aria-label="retry"
           onClick={() => refetch()}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+          }}
         >
-          Retry
-        </Button>
+          <AddIcon />
+        </Fab>
       </Box>
     );
   }
 
-  return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" component="h2">
-          Transactions
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAddForm}
-          disabled={!groupId}
-        >
-          Add Transaction
-        </Button>
-      </Box>
+  if (isLoading) {
+    return <TransactionLoadingSkeleton />;
+  }
 
+  return (
+    <Box sx={{ p: 2, maxWidth: '100%' }}>
+      {/* Header with Group Selector */}
+      <TransactionHeader
+        userGroups={userGroups}
+        selectedGroupId={ui.selectedGroupId}
+        onGroupChange={handleGroupChange}
+      />
+
+      {/* Filters Section */}
+      <TransactionFilters
+        searchQuery={filters.searchQuery}
+        onSearchChange={(query) => updateFilter('searchQuery', query)}
+        selectedDuration={filters.selectedDuration}
+        onDurationChange={(duration) => updateFilter('selectedDuration', duration)}
+        selectedTypes={filters.selectedTypes}
+        onTypesChange={(types) => updateFilter('selectedTypes', types)}
+        selectedMembers={filters.selectedMembers}
+        onMembersChange={(members) => updateFilter('selectedMembers', members)}
+        selectedPaymentModes={filters.selectedPaymentModes}
+        onPaymentModesChange={(modes) => updateFilter('selectedPaymentModes', modes)}
+        selectedCategories={filters.selectedCategories}
+        onCategoriesChange={(categories) => updateFilter('selectedCategories', categories)}
+        groupMembers={groupMembers}
+        onAddTransaction={handleOpenAddForm}
+      />
+
+      {/* Summary Section */}
+      <TransactionSummary
+        cashIn={summaryData.cashIn}
+        cashOut={summaryData.cashOut}
+        netBalance={summaryData.netBalance}
+      />
+
+      {/* Transactions List */}
       <TransactionList 
-        transactions={transactions} 
-        isLoading={isLoading}
+        transactions={summaryData.filteredTransactions} 
+        isLoading={false}
         onTransactionDeleted={() => {
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }}
@@ -121,7 +172,7 @@ export default function Transactions({
         open={isAddFormOpen}
         onClose={handleCloseAddForm}
         onSubmit={handleAddTransaction}
-        groupId={groupId || 1} // Fallback for demo
+        groupId={groupId || 1}
         currentUser={currentUser}
         groupMembers={groupMembers}
         isLoading={createTransactionMutation.isPending}
