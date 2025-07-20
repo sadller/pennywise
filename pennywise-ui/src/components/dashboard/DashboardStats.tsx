@@ -11,39 +11,29 @@ import {
   Person as PersonIcon,
   Receipt as ReceiptIcon,
 } from '@mui/icons-material';
-import { GroupStats } from '@/services/dashboardService';
-
-interface DashboardStatsProps {
-  groupsWithStats: GroupStats[];
-}
-
-const DashboardStats: React.FC<DashboardStatsProps> = ({ groupsWithStats }) => {
-  const totalTransactions = groupsWithStats.reduce((sum, group) => sum + group.transaction_count, 0);
-  const totalAmount = groupsWithStats.reduce((sum, group) => sum + group.total_amount, 0);
-  const totalMembers = groupsWithStats.reduce((sum, group) => sum + group.member_count, 0);
-
+const DashboardStats: React.FC = () => {
   const stats = [
     {
       title: 'Total Groups',
-      value: groupsWithStats.length,
+      value: 0,
       icon: GroupIcon,
       color: 'primary.main',
     },
     {
       title: 'Total Transactions',
-      value: totalTransactions,
+      value: 0,
       icon: ReceiptIcon,
       color: 'success.main',
     },
     {
       title: 'Total Amount',
-      value: `₹${totalAmount.toFixed(2)}`,
+      value: '₹0.00',
       icon: MoneyIcon,
       color: 'warning.main',
     },
     {
       title: 'Total Members',
-      value: totalMembers,
+      value: 0,
       icon: PersonIcon,
       color: 'info.main',
     },

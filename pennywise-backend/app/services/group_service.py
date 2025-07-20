@@ -111,45 +111,7 @@ class GroupService:
             last_transaction_at=group_data.last_transaction_at.isoformat() if group_data.last_transaction_at else None
         )
 
-    def get_user_groups_with_stats(self, user_id: int) -> List[GroupStats]:
-        """Get all user's groups with detailed statistics using raw SQL."""
-        query = text("""
-            SELECT 
-                g.id,
-                g.name,
-                g.owner_id,
-                g.created_at,
-                o.full_name as owner_name,
-                COUNT(DISTINCT gm.user_id) as member_count,
-                COUNT(t.id) as transaction_count,
-                COALESCE(SUM(t.amount), 0) as total_amount,
-                MAX(t.date) as last_transaction_at
-            FROM users u
-            JOIN group_members gm ON gm.user_id = u.id
-            JOIN groups g ON g.id = gm.group_id
-            JOIN users o ON o.id = g.owner_id
-            LEFT JOIN transactions t ON g.id = t.group_id
-            WHERE u.id = :user_id
-            GROUP BY g.id, g.name, g.owner_id, g.created_at, o.full_name
-        """)
-        
-        result = self.db.execute(query, {"user_id": user_id})
-        groups_data = result.fetchall()
-        
-        return [
-            GroupStats(
-                id=group.id,
-                name=group.name,
-                owner_id=group.owner_id,
-                owner_name=group.owner_name,
-                member_count=group.member_count,
-                transaction_count=group.transaction_count,
-                total_amount=float(group.total_amount),
-                created_at=group.created_at.isoformat(),
-                last_transaction_at=group.last_transaction_at.isoformat() if group.last_transaction_at else None
-            )
-            for group in groups_data
-        ]
+
 
     def invite_user_to_group(self, group_id: int, user_email: str, inviter_id: int) -> bool:
         """Invite a user to a group (only group admin can do this)."""

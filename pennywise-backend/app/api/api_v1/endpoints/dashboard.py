@@ -3,21 +3,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import UserResponse
 from app.services.dashboard_service import DashboardService, RecentTransaction
-from app.services.group_service import GroupService, GroupStats
 from app.api.api_v1.endpoints.auth import get_current_user
 from typing import List
 
 router = APIRouter()
-
-
-@router.get("/groups", response_model=List[GroupStats])
-def get_user_groups_with_stats(
-    db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
-):
-    """Get all user's groups with detailed statistics."""
-    group_service = GroupService(db)
-    return group_service.get_user_groups_with_stats(current_user.id)
 
 
 @router.get("/recent-transactions", response_model=List[RecentTransaction])
