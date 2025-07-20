@@ -6,6 +6,7 @@ import { Box, Fade } from '@mui/material';
 import { useStore } from '@/stores/StoreProvider';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import DataProvider from '@/components/providers/DataProvider';
 import { UI_CONSTANTS } from '@/constants/ui';
 
 interface AuthenticatedLayoutProps {
@@ -46,62 +47,64 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {/* Header - Fixed at top */}
-      <Box sx={{ 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 1100,
-        backgroundColor: 'background.paper',
-        borderBottom: 1,
-        borderColor: 'divider'
-      }}>
-        <Header onMenuClick={handleMenuClick} />
-      </Box>
-      
-      {/* Content Area - Sidebar and Main Content */}
-      <Box sx={{ 
-        display: 'flex', 
-        flex: 1,
-        minHeight: 0, // Important for proper flex behavior
-        overflow: 'hidden' // Prevent body scroll
-      }}>
-        {/* Sidebar */}
-        <Sidebar
-          open={sidebarOpen}
-          onClose={handleSidebarClose}
-          collapsed={ui.sidebarCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-        />
-        
-        {/* Main Content Area */}
+    <DataProvider>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        {/* Header - Fixed at top */}
         <Box sx={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0, // Prevent flex overflow
-          overflow: 'hidden'
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 1100,
+          backgroundColor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider'
         }}>
-          <Box
-            component="main"
-            sx={{
-              flex: 1,
-              p: 3,
-              overflow: 'auto', // Independent scroll for main content
-              height: '100%',
-              paddingTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, // Ensure content starts below header
-            }}
-          >
-            {/* Content Transition Wrapper */}
-            <Fade in={true} timeout={300}>
-              <Box>
-                {children}
-              </Box>
-            </Fade>
+          <Header onMenuClick={handleMenuClick} />
+        </Box>
+        
+        {/* Content Area - Sidebar and Main Content */}
+        <Box sx={{ 
+          display: 'flex', 
+          flex: 1,
+          minHeight: 0, // Important for proper flex behavior
+          overflow: 'hidden' // Prevent body scroll
+        }}>
+          {/* Sidebar */}
+          <Sidebar
+            open={sidebarOpen}
+            onClose={handleSidebarClose}
+            collapsed={ui.sidebarCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+          
+          {/* Main Content Area */}
+          <Box sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0, // Prevent flex overflow
+            overflow: 'hidden'
+          }}>
+            <Box
+              component="main"
+              sx={{
+                flex: 1,
+                p: 3,
+                overflow: 'auto', // Independent scroll for main content
+                height: '100%',
+                paddingTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, // Ensure content starts below header
+              }}
+            >
+              {/* Content Transition Wrapper */}
+              <Fade in={true} timeout={300}>
+                <Box>
+                  {children}
+                </Box>
+              </Fade>
+            </Box>
           </Box>
         </Box>
       </Box>
-    </Box>
+    </DataProvider>
   );
 });
 

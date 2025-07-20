@@ -33,7 +33,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { groupService, GroupStats } from '@/services/groupService';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
@@ -47,17 +47,12 @@ import { LoadingSpinner, ErrorAlert } from '@/components/common';
 
 const GroupsContent = observer(() => {
   const router = useRouter();
-  const { ui, auth } = useStore();
+  const { ui, auth, data } = useStore();
 
-  // Fetch user's groups with stats for display and management
-  const {
-    data: groups = [],
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ['groups-with-stats'],
-    queryFn: () => groupService.getGroupsWithStats(),
-  });
+  // Use centralized groups data from store
+  const groups = data.groupsWithStats;
+  const isLoading = data.groupsLoading;
+  const error = data.groupsError;
 
   // Sort groups by last_transaction_at in descending order
   const sortedGroups = React.useMemo(() => {

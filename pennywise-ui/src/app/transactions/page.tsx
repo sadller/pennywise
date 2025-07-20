@@ -5,7 +5,6 @@ import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { groupService } from '@/services/groupService';
-import { dashboardService } from '@/services/dashboardService';
 import { useStore } from '@/stores/StoreProvider';
 import { LoadingSpinner, EmptyState, ErrorAlert } from '@/components/common';
 import { Transactions } from '@/components/transactions';
@@ -16,18 +15,12 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 
 const TransactionsPage = observer(() => {
-  const { auth, ui } = useStore();
+  const { auth, ui, data } = useStore();
   const router = useRouter();
 
-  // Fetch user's groups with stats to validate membership and group selection
-  const {
-    data: userGroups = [],
-    isLoading: groupsLoading
-  } = useQuery({
-    queryKey: ['groups-with-stats'],
-    queryFn: () => dashboardService.getGroupsWithStats(),
-    enabled: !!auth.user,
-  });
+  // Use centralized groups data from store
+  const userGroups = data.groupsWithStats;
+  const groupsLoading = data.groupsLoading;
 
 
 

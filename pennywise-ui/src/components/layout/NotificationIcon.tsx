@@ -1,25 +1,20 @@
 'use client';
 
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { Badge, IconButton, Tooltip } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import { useQuery } from '@tanstack/react-query';
-import { notificationService } from '@/services/notificationService';
+import { useStore } from '@/stores/StoreProvider';
 
 interface NotificationIconProps {
   onOpenNotifications: () => void;
 }
 
-export default function NotificationIcon({ onOpenNotifications }: NotificationIconProps) {
-  const { data: unreadCountData, isLoading } = useQuery({
-    queryKey: ['notification-unread-count'],
-    queryFn: () => notificationService.getUnreadCount(),
-    refetchOnWindowFocus: true, // Refetch when user comes back to the tab
-    staleTime: 30000, // Consider data fresh for 30 seconds (shorter for notifications)
-    select: (data) => data.unread_count,
-  });
+const NotificationIcon = observer(({ onOpenNotifications }: NotificationIconProps) => {
+  const { data } = useStore();
 
-  const unreadCount = unreadCountData || 0;
+  const unreadCount = data.unreadCount;
+  const isLoading = data.notificationsLoading;
 
   const handleClick = () => {
     onOpenNotifications();
@@ -49,4 +44,6 @@ export default function NotificationIcon({ onOpenNotifications }: NotificationIc
       </IconButton>
     </Tooltip>
   );
-} 
+});
+
+export default NotificationIcon;

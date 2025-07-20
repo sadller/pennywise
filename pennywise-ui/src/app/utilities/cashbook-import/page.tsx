@@ -7,8 +7,6 @@ import PageHeader from '@/components/common/PageHeader';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import { useQuery } from '@tanstack/react-query';
-import { groupService } from '@/services/groupService';
 import {
   ImportStepper,
   StepOneContent,
@@ -26,16 +24,11 @@ const MAX_FILES = 20;
 
 
 const CashbookImportContent: React.FC = observer(() => {
-  const { cashbookImport } = useStore();
+  const { cashbookImport, data } = useStore();
 
-  // Fetch user's groups
-  const {
-    data: userGroups = [],
-    isLoading: groupsLoading
-  } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: () => groupService.getUserGroups(),
-  });
+  // Use centralized groups data from store
+  const userGroups = data.groupsWithStats;
+  const groupsLoading = data.groupsLoading;
 
   const handleNext = () => {
     if (cashbookImport.selectedGroupId && cashbookImport.files.length > 0) {
