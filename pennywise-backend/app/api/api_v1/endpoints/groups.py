@@ -38,6 +38,16 @@ def list_user_groups(
     return group_service.get_user_groups(current_user.id)
 
 
+@router.get("/stats", response_model=List[GroupStats])
+def get_user_groups_with_stats(
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Get all groups with statistics where the current user is a member."""
+    group_service = GroupService(db)
+    return group_service.get_user_groups_with_stats(current_user.id)
+
+
 @router.get("/{group_id}/stats", response_model=GroupStats)
 def get_group_stats(
     group_id: int,

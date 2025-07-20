@@ -33,8 +33,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { groupService } from '@/services/groupService';
-import { dashboardService, GroupStats } from '@/services/dashboardService';
+import { groupService, GroupStats } from '@/services/groupService';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
 import EditGroupForm from '@/components/groups/EditGroupForm';
@@ -56,7 +55,7 @@ const GroupsContent = observer(() => {
     error
   } = useQuery({
     queryKey: ['groups-with-stats'],
-    queryFn: () => dashboardService.getGroupsWithStats(),
+    queryFn: () => groupService.getGroupsWithStats(),
   });
 
   // Sort groups by last_transaction_at in descending order

@@ -3,6 +3,18 @@ import { User } from '@/types/user';
 import { apiClient } from './apiClient';
 import { API_CONSTANTS } from '@/constants';
 
+export interface GroupStats {
+  id: number;
+  name: string;
+  owner_id: number;
+  owner_name: string;
+  member_count: number;
+  transaction_count: number;
+  total_amount: number;
+  created_at: string;
+  last_transaction_at?: string;
+}
+
 export interface DeleteGroupResponse {
   message: string;
   deleted_transactions_count: number;
@@ -39,5 +51,9 @@ export const groupService = {
 
   async deleteGroup(groupId: number): Promise<DeleteGroupResponse> {
     return apiClient.delete<DeleteGroupResponse>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/${groupId}`);
+  },
+
+  async getGroupsWithStats(): Promise<GroupStats[]> {
+    return apiClient.get<GroupStats[]>(`${API_CONSTANTS.ENDPOINTS.GROUPS.BASE}/stats`);
   },
 }; 

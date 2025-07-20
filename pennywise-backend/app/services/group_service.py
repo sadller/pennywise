@@ -111,6 +111,48 @@ class GroupService:
             last_transaction_at=group_data.last_transaction_at.isoformat() if group_data.last_transaction_at else None
         )
 
+    def get_user_groups_with_stats(self, user_id: int) -> List[GroupStats]:
+        """Get all groups with statistics where user is a member."""
+        # Get groups with stats using raw SQL
+        query = text("""
+            SELECT 
+                g.id,
+                g.name,
+                g.owner_id,
+                g.created_at,
+                g.updated_at,
+                u.full_name as owner_name,
+                COUNT(DISTINCT gm.user_id) as member_count,
+                COUNT(t.id) as transaction_count,
+                COALESCE(SUM(t.amount), 0) as total_amount,
+                MAX(t.date) as last_transaction_at
+            FROM groups g
+            JOIN group_members gm ON g.id = gm.group_id
+            JOIN users u ON g.owner_id = u.id
+            LEFT JOIN transactions t ON g.id = t.group_id
+            WHERE gm.user_id = :user_id
+            GROUP BY g.id, g.name, g.owner_id, g.created_at, g.updated_at, u.full_name
+            ORDER BY g.updated_at DESC
+        """)
+        
+        result = self.db.execute(query, {"user_id": user_id})
+        groups_data = result.fetchall()
+        
+        return [
+            GroupStats(
+                id=group_data.id,
+                name=group_data.name,
+                owner_id=group_data.owner_id,
+                owner_name=group_data.owner_name,
+                member_count=group_data.member_count,
+                transaction_count=group_data.transaction_count,
+                total_amount=float(group_data.total_amount),
+                created_at=group_data.created_at.isoformat(),
+                last_transaction_at=group_data.last_transaction_at.isoformat() if group_data.last_transaction_at else None
+            )
+            for group_data in groups_data
+        ]
+
 
 
     def invite_user_to_group(self, group_id: int, user_email: str, inviter_id: int) -> bool:
