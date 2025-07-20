@@ -12,17 +12,15 @@ import GroupIcon from '@mui/icons-material/Group';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import { useAutoSelectGroup } from '@/hooks/useAutoSelectGroup';
 
 
 const TransactionsPage = observer(() => {
-  const { auth, ui, data } = useStore();
+  const { auth, ui } = useStore();
   const router = useRouter();
-
-  // Use centralized groups data from store
-  const userGroups = data.groupsWithStats;
-  const groupsLoading = data.groupsLoading;
-
-
+  
+  // Use the auto-select group hook
+  const { userGroups, groupsLoading } = useAutoSelectGroup();
 
   // Validate that user is a member of the selected group
   useEffect(() => {
