@@ -46,6 +46,11 @@ class UIStore {
     this.inviteGroupName = '';
   }
 
+  openDeleteDialog(group: Group) {
+    this.groupToDelete = group;
+    this.isDeleteDialogOpen = true;
+  }
+
   closeDeleteDialog() {
     this.isDeleteDialogOpen = false;
     this.selectedTransaction = null;

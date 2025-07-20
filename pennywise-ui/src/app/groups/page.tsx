@@ -32,6 +32,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { groupService, GroupStats } from '@/services/groupService';
 import InviteMemberForm from '@/components/groups/InviteMemberForm';
@@ -46,7 +47,7 @@ import { LoadingSpinner, ErrorAlert } from '@/components/common';
 
 const GroupsContent = observer(() => {
   const router = useRouter();
-  const { ui } = useStore();
+  const { ui, auth } = useStore();
 
   // Fetch user's groups with stats for display and management
   const {
@@ -414,30 +415,46 @@ const GroupsContent = observer(() => {
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="Invite Member">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleInviteMember(group.id, group.name);
-                            }}
-                            sx={{ color: 'primary.main' }}
-                          >
-                            <PersonAddIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit Group">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditGroup(group.id, group.name);
-                            }}
-                            sx={{ color: 'text.secondary' }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {auth.user?.id === group.owner_id && (
+                          <>
+                            <Tooltip title="Invite Member">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleInviteMember(group.id, group.name);
+                                }}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                <PersonAddIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit Group">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditGroup(group.id, group.name);
+                                }}
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete Group">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  ui.openDeleteDialog(group);
+                                }}
+                                sx={{ color: 'error.main' }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
                       </Box>
                     </Box>
                     
@@ -498,18 +515,20 @@ const GroupsContent = observer(() => {
                   
                   <CardActions sx={{ p: 2, pt: 1 }}>
                     <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                      <Tooltip title="Clear All Transactions">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleClearTransactions(group.id, group.name);
-                          }}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {auth.user?.id === group.owner_id && (
+                        <Tooltip title="Clear All Transactions">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearTransactions(group.id, group.name);
+                            }}
+                            sx={{ color: 'warning.main' }}
+                          >
+                            <ClearAllIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       <Box sx={{ flex: 1 }} />
                       <Button
                         variant="outlined"
