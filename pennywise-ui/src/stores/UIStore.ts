@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 import { Transaction } from '@/types/transaction';
-import { GroupStats } from '@/services/dashboardService';
+import { Group } from '@/types/group';
 
 class UIStore {
   // Modal states
@@ -16,7 +16,7 @@ class UIStore {
   currentGroupName: string | null = null;
   selectedGroupId: number | null = null;
   selectedTransaction: Transaction | null = null;
-  groupToDelete: GroupStats | null = null;
+  groupToDelete: Group | null = null;
   
   // Sidebar state
   sidebarCollapsed = false;
@@ -26,14 +26,6 @@ class UIStore {
   }
 
   // Modal actions
-  openAddTransactionForm() {
-    this.isAddTransactionFormOpen = true;
-  }
-
-  closeAddTransactionForm() {
-    this.isAddTransactionFormOpen = false;
-  }
-
   openCreateGroupForm() {
     this.isCreateGroupFormOpen = true;
   }
@@ -52,15 +44,6 @@ class UIStore {
     this.isInviteMemberFormOpen = false;
     this.inviteGroupId = null;
     this.inviteGroupName = '';
-  }
-
-  openDeleteDialog(item: Transaction | GroupStats) {
-    if ('amount' in item) {
-      this.selectedTransaction = item as Transaction;
-    } else {
-      this.groupToDelete = item as GroupStats;
-    }
-    this.isDeleteDialogOpen = true;
   }
 
   closeDeleteDialog() {
@@ -83,15 +66,12 @@ class UIStore {
     this.currentGroupName = groupName;
   }
 
-
-
   clearGroupSelection() {
     this.setSelectedGroup(null, null);
   }
 
   clearAllState() {
     // Clear modal states
-    this.isAddTransactionFormOpen = false;
     this.isCreateGroupFormOpen = false;
     this.isInviteMemberFormOpen = false;
     this.isDeleteDialogOpen = false;
@@ -112,14 +92,6 @@ class UIStore {
   // Sidebar actions
   toggleSidebar() {
     this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
-
-  // Computed
-  get hasOpenModals() {
-    return this.isAddTransactionFormOpen || 
-           this.isCreateGroupFormOpen || 
-           this.isInviteMemberFormOpen || 
-           this.isDeleteDialogOpen;
   }
 }
 

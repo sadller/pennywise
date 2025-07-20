@@ -9,11 +9,11 @@ import {
   Alert,
   Box,
 } from '@mui/material';
-import { GroupStats } from '@/services/dashboardService';
+import { Group } from '@/types/group';
 
 interface DeleteGroupDialogProps {
   open: boolean;
-  groupToDelete: GroupStats | null;
+  groupToDelete: Group | null;
   isDeleting: boolean;
   onClose: () => void;
   onConfirm: () => void;

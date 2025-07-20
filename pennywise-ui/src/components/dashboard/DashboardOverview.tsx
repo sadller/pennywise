@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { observer } from 'mobx-react-lite';
-import { useStore } from '@/stores/StoreProvider';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -10,10 +9,9 @@ import {
   Container,
 } from '@mui/material';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '@/services/dashboardService';
 import { User } from '@/types/user';
-import { LoadingSpinner, EmptyState } from '@/components/common';
 import RecentTransactions from './RecentTransactions';
 
 
@@ -23,8 +21,6 @@ interface DashboardOverviewProps {
 
 const DashboardOverview = observer(({ currentUser }: DashboardOverviewProps) => {
   const router = useRouter();
-  const { ui } = useStore();
-  const queryClient = useQueryClient();
 
   // Fetch recent transactions for activity feed
   const {

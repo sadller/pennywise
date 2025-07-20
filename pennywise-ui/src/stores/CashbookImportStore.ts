@@ -65,20 +65,8 @@ class CashbookImportStore {
     this.activeStep = step;
   }
 
-  setMappingModalOpen(open: boolean) {
-    this.mappingModalOpen = open;
-  }
-
-
-
-
-
   setNotification(notification: Notification | null) {
     this.notification = notification;
-  }
-
-  setIsUploading(uploading: boolean) {
-    this.isUploading = uploading;
   }
 
   // File management
@@ -160,7 +148,7 @@ class CashbookImportStore {
   async uploadFiles() {
     if (this.files.length === 0 || !this.selectedGroupId) return;
 
-    this.setIsUploading(true);
+    this.isUploading = true;
     
     try {
       let totalImported = 0;
@@ -238,7 +226,7 @@ class CashbookImportStore {
         type: 'error'
       });
     } finally {
-      this.setIsUploading(false);
+      this.isUploading = false;
     }
   }
 

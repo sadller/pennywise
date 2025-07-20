@@ -19,7 +19,6 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Receipt as ReceiptIcon } from '@mui/icons-material';
 import { Transaction, TransactionType } from '@/types/transaction';
-import { User } from '@/types/user';
 import { format } from 'date-fns';
 import { transactionService } from '@/services/transactionService';
 import { EmptyState } from '@/components/common';
@@ -27,14 +26,12 @@ import { EmptyState } from '@/components/common';
 interface TransactionListProps {
   transactions: Transaction[];
   isLoading?: boolean;
-  groupMembers?: User[];
   onTransactionDeleted?: () => void;
 }
 
 export default function TransactionList({ 
   transactions, 
   isLoading, 
-  groupMembers = [],
   onTransactionDeleted
 }: TransactionListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -54,10 +51,9 @@ export default function TransactionList({
     return type === TransactionType.INCOME ? 'success' : 'error';
   };
 
-  const getPaidByName = (paidById?: number): string => {
-    if (!paidById) return 'Unknown';
-    const member = groupMembers.find(m => m.id === paidById);
-    return member?.full_name || member?.email || 'Unknown';
+  const getPaidByName = (transaction: Transaction): string => {
+    if (!transaction.paid_by) return 'Unknown';
+    return transaction.paid_by_name || 'Unknown';
   };
 
   const handleDeleteClick = (transaction: Transaction) => {
@@ -135,7 +131,7 @@ export default function TransactionList({
                       
                       {transaction.paid_by && (
                         <Typography variant="body2" color="text.secondary">
-                          Paid by: {getPaidByName(transaction.paid_by)}
+                          Paid by: {getPaidByName(transaction)}
                         </Typography>
                       )}
                       

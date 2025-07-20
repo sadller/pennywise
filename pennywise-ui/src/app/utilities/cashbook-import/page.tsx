@@ -23,11 +23,6 @@ import { useStore } from '@/stores/StoreProvider';
 
 const MAX_FILES = 20;
 
-const STEPS = [
-  'Select Group & Files',
-  'Review & Import'
-] as const;
-
 
 
 const CashbookImportContent: React.FC = observer(() => {
@@ -84,7 +79,7 @@ const CashbookImportContent: React.FC = observer(() => {
         subtitle="Import your transactions from Cashbook application"
       />
       
-      <ImportStepper activeStep={cashbookImport.activeStep} steps={STEPS} />
+      <ImportStepper activeStep={cashbookImport.activeStep} steps={['Select Group & Files', 'Review & Import']} />
 
       <Box sx={{ 
         mt: 4,

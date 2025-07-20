@@ -122,7 +122,7 @@ const GroupsContent = observer(() => {
     onError: (error: unknown) => {
       console.error('Failed to update group:', error);
       const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as any)?.response?.data?.detail || 'Failed to update group name'
+        ? (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to update group name'
         : 'Failed to update group name';
       setErrorSnackbar({
         open: true,
@@ -142,7 +142,7 @@ const GroupsContent = observer(() => {
     onError: (error: unknown) => {
       console.error('Failed to clear transactions:', error);
       const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as any)?.response?.data?.detail || 'Failed to clear transactions'
+        ? (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to clear transactions'
         : 'Failed to clear transactions';
       setErrorSnackbar({
         open: true,
@@ -306,13 +306,13 @@ const GroupsContent = observer(() => {
             icon={<GroupIcon />}
           />
           <Chip 
-            label={`${groups.reduce((acc, group) => acc + group.member_count, 0)} Total Members`}
+            label={`${groups.reduce((acc: number, group: GroupStats) => acc + group.member_count, 0)} Total Members`}
             color="secondary"
             variant="outlined"
             icon={<GroupIcon />}
           />
           <Chip 
-            label={`${groups.reduce((acc, group) => acc + group.transaction_count, 0)} Total Transactions`}
+            label={`${groups.reduce((acc: number, group: GroupStats) => acc + group.transaction_count, 0)} Total Transactions`}
             color="info"
             variant="outlined"
             icon={<TrendingUpIcon />}

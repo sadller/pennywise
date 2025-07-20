@@ -112,7 +112,6 @@ export default function Transactions({
       <TransactionList 
         transactions={transactions} 
         isLoading={isLoading}
-        groupMembers={groupMembers}
         onTransactionDeleted={() => {
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }}

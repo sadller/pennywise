@@ -14,6 +14,9 @@ export interface Transaction {
   payment_mode?: string;
   date: string;
   paid_by?: number;
+  paid_by_name?: string;
+  paid_by_email?: string;
+  group_name?: string;
 }
 
 export interface TransactionCreate {
