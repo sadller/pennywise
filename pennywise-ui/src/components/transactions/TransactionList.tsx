@@ -17,7 +17,7 @@ import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import { EmptyState } from '@/components/common';
 import TransactionCard from './TransactionCard';
-import TransactionTable from './TransactionTable';
+import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
 
 type ViewMode = 'cards' | 'table';
@@ -33,7 +33,7 @@ export default function TransactionList({
   isLoading, 
   onTransactionDeleted
 }: TransactionListProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -136,7 +136,7 @@ export default function TransactionList({
           ))}
         </Box>
       ) : (
-        <TransactionTable
+        <TransactionDataGrid
           transactions={transactions}
           isLoading={isLoading}
         />
