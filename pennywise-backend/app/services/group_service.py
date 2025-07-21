@@ -120,7 +120,6 @@ class GroupService:
                 g.name,
                 g.owner_id,
                 g.created_at,
-                g.updated_at,
                 u.full_name as owner_name,
                 COUNT(DISTINCT gm.user_id) as member_count,
                 COUNT(t.id) as transaction_count,
@@ -131,8 +130,7 @@ class GroupService:
             JOIN users u ON g.owner_id = u.id
             LEFT JOIN transactions t ON g.id = t.group_id
             WHERE gm.user_id = :user_id
-            GROUP BY g.id, g.name, g.owner_id, g.created_at, g.updated_at, u.full_name
-            ORDER BY g.updated_at DESC
+            GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
         """)
         
         result = self.db.execute(query, {"user_id": user_id})

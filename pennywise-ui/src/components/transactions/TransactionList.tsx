@@ -131,7 +131,6 @@ export default function TransactionList({
               <TransactionCard
                 transaction={transaction}
                 onDelete={handleDeleteClick}
-                isLast={false}
               />
             </Box>
           ))}

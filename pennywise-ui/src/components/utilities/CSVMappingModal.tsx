@@ -27,7 +27,7 @@ interface GroupMember {
   user_id: number;
   role: string;
   email: string;
-  full_name: string;
+  full_name?: string;
   avatar_url?: string;
 }
 

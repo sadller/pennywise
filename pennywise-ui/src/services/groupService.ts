@@ -11,6 +11,7 @@ export interface GroupStats {
   transaction_count: number;
   total_amount: number;
   created_at: string;
+  updated_at: string;
   last_transaction_at?: string;
 }
 
