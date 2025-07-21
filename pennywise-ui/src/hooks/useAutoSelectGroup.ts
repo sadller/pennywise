@@ -7,9 +7,12 @@ export const useAutoSelectGroup = () => {
   const groupsLoading = data.groupsLoading;
 
   useEffect(() => {
-    if (!ui.selectedGroupId && userGroups.length > 0 && !groupsLoading) {
+    // Ensure userGroups is always an array
+    const safeUserGroups = Array.isArray(userGroups) ? userGroups : [];
+    
+    if (!ui.selectedGroupId && safeUserGroups.length > 0 && !groupsLoading) {
       // Find the group with the most recent last_transaction_at
-      const groupsWithLastTransaction = userGroups.filter(group => group.last_transaction_at);
+      const groupsWithLastTransaction = safeUserGroups.filter(group => group.last_transaction_at);
       
       if (groupsWithLastTransaction.length > 0) {
         // Sort by last_transaction_at descending and select the first one
@@ -20,14 +23,14 @@ export const useAutoSelectGroup = () => {
         ui.setSelectedGroup(mostRecentGroup.id, mostRecentGroup.name);
       } else {
         // If no groups have last_transaction_at, select the first group
-        const firstGroup = userGroups[0];
+        const firstGroup = safeUserGroups[0];
         ui.setSelectedGroup(firstGroup.id, firstGroup.name);
       }
     }
   }, [ui.selectedGroupId, userGroups, groupsLoading, ui]);
 
   return {
-    userGroups,
+    userGroups: Array.isArray(userGroups) ? userGroups : [],
     groupsLoading,
     selectedGroupId: ui.selectedGroupId,
     selectedGroupName: ui.currentGroupName,

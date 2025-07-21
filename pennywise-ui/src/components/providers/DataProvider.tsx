@@ -43,9 +43,16 @@ const DataProvider = observer(({ children }: DataProviderProps) => {
 
   // Update store with fetched data
   useEffect(() => {
-    if (groupsWithStats.length > 0 || groupsLoading) {
-      data.setGroupsWithStats(groupsWithStats);
+    // Always ensure we have an array, even if the API returns null/undefined
+    const safeGroupsWithStats = Array.isArray(groupsWithStats) ? groupsWithStats : [];
+    
+    if (safeGroupsWithStats.length > 0 || groupsLoading) {
+      data.setGroupsWithStats(safeGroupsWithStats);
       data.setGroupsLoading(groupsLoading);
+    } else if (!groupsLoading && !groupsError) {
+      // If not loading and no error, set empty array
+      data.setGroupsWithStats([]);
+      data.setGroupsLoading(false);
     }
     
     if (groupsError) {

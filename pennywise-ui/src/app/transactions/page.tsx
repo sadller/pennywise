@@ -24,14 +24,17 @@ const TransactionsPage = observer(() => {
 
   // Validate that user is a member of the selected group
   useEffect(() => {
-    if (ui.selectedGroupId && userGroups.length > 0) {
-      const isMember = userGroups.some(group => group.id === ui.selectedGroupId);
+    // Ensure userGroups is always an array
+    const safeUserGroups = Array.isArray(userGroups) ? userGroups : [];
+    
+    if (ui.selectedGroupId && safeUserGroups.length > 0) {
+      const isMember = safeUserGroups.some(group => group.id === ui.selectedGroupId);
       
       if (!isMember) {
         // User is not a member of this group, clear the selection
         ui.clearGroupSelection();
       }
-    } else if (ui.selectedGroupId && !groupsLoading && userGroups.length === 0) {
+    } else if (ui.selectedGroupId && !groupsLoading && safeUserGroups.length === 0) {
       // User has no groups, so they can't be a member of any group
       ui.clearGroupSelection();
     }
@@ -43,7 +46,7 @@ const TransactionsPage = observer(() => {
   } = useQuery({
     queryKey: ['group-members', ui.selectedGroupId],
     queryFn: () => groupService.getGroupMembers(ui.selectedGroupId!),
-    enabled: !!ui.selectedGroupId && userGroups.some(group => group.id === ui.selectedGroupId),
+    enabled: !!ui.selectedGroupId && Array.isArray(userGroups) && userGroups.some(group => group.id === ui.selectedGroupId),
   });
 
   if (auth.isLoading || groupsLoading) {
@@ -54,22 +57,23 @@ const TransactionsPage = observer(() => {
 
   // Show message if no group is selected
   if (!ui.selectedGroupId) {
+    const safeUserGroups = Array.isArray(userGroups) ? userGroups : [];
     return (
       <EmptyState
         icon={GroupIcon}
         title="No Group Selected"
         description={`To view transactions, you need to select a group first. ${
-          userGroups.length === 0 
+          safeUserGroups.length === 0 
             ? "You don't have any groups yet. Create your first group to get started!"
             : "Choose from your existing groups or create a new one."
         }`}
         actions={[
           {
-            label: userGroups.length === 0 ? 'Create Your First Group' : 'Select a Group',
+            label: safeUserGroups.length === 0 ? 'Create Your First Group' : 'Select a Group',
             onClick: () => router.push('/groups'),
             variant: 'contained' as const
           },
-          ...(userGroups.length > 0 ? [{
+          ...(safeUserGroups.length > 0 ? [{
             label: 'Back to Dashboard',
             onClick: () => router.push('/dashboard'),
             variant: 'outlined' as const
@@ -80,7 +84,8 @@ const TransactionsPage = observer(() => {
   }
 
   // Show error if user is not a member of the selected group
-  const isMember = userGroups.some(group => group.id === ui.selectedGroupId);
+  const safeUserGroups = Array.isArray(userGroups) ? userGroups : [];
+  const isMember = safeUserGroups.some(group => group.id === ui.selectedGroupId);
   if (!isMember) {
     return (
       <ErrorAlert
