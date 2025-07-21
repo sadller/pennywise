@@ -91,7 +91,21 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
                   </ListItemAvatar>
                   <ListItemText
                     primary={`₹${transaction.amount.toFixed(2)} - ${transaction.note || 'No description'}`}
-                    secondary={`${transaction.paid_by_name || 'Unknown'} • ${new Date(transaction.date).toLocaleDateString()}`}
+                    secondary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {transaction.paid_by_full_name || 'Unknown'}
+                        </Typography>
+                        {transaction.paid_by_email && (
+                          <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
+                            ({transaction.paid_by_email})
+                          </Typography>
+                        )}
+                        <Typography variant="caption" color="text.secondary">
+                          • {new Date(transaction.date).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    }
                   />
                   <Chip
                     label={transaction.group_name}

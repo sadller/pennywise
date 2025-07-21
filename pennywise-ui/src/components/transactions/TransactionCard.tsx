@@ -9,6 +9,7 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Avatar,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { Transaction, TransactionType } from '@/types/transaction';
@@ -38,7 +39,16 @@ export default function TransactionCard({
 
   const getPaidByName = (transaction: Transaction): string => {
     if (!transaction.paid_by) return 'Unknown';
-    return transaction.paid_by_name || 'Unknown';
+    return transaction.paid_by_full_name || 'Unknown';
+  };
+
+  const getUserInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -93,10 +103,23 @@ export default function TransactionCard({
             {format(new Date(transaction.date), 'MMM dd, yyyy HH:mm')}
           </Typography>
           
+          {/* Enhanced Paid By Information */}
           {transaction.paid_by && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem' }}>
-              Paid by: {getPaidByName(transaction)}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+              <Avatar 
+                sx={{ 
+                  width: 16, 
+                  height: 16, 
+                  fontSize: '0.5rem',
+                  bgcolor: 'primary.main'
+                }}
+              >
+                {getUserInitials(getPaidByName(transaction))}
+              </Avatar>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                {getPaidByName(transaction)}
+              </Typography>
+            </Box>
           )}
         </Box>
         

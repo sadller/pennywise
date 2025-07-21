@@ -14,8 +14,15 @@ export interface Transaction {
   payment_mode?: string;
   date: string;
   paid_by?: number;
-  paid_by_name?: string;
+  // User information
+  user_full_name?: string;
+  user_email?: string;
+  user_username?: string;
+  // Paid by user information
+  paid_by_full_name?: string;
   paid_by_email?: string;
+  paid_by_username?: string;
+
   group_name?: string;
 }
 

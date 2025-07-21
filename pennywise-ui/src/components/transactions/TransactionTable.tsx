@@ -241,9 +241,16 @@ export default function TransactionTable({
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                       {transaction.note || 'No description'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      by {transaction.paid_by_name || 'You'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        by {transaction.paid_by_full_name || 'You'}
+                      </Typography>
+                      {transaction.paid_by_email && (
+                        <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
+                          ({transaction.paid_by_email})
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 </TableCell>
                 <TableCell>

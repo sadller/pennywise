@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Avatar } from '@mui/material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 
@@ -30,6 +30,20 @@ export default function TransactionDataGrid({
       };
     });
   }, [transactions]);
+
+  const getUserInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getPaidByName = (transaction: Transaction): string => {
+    if (!transaction.paid_by) return 'Unknown';
+    return transaction.paid_by_full_name || 'Unknown';
+  };
 
   const columns: GridColDef<(typeof transactionsWithBalance)[number]>[] = [
     {
@@ -65,7 +79,37 @@ export default function TransactionDataGrid({
     {
       field: 'payment_mode',
       headerName: 'Payment Mode',
-      width: 120,
+      width: 150,
+    },
+    {
+      field: 'paid_by',
+      headerName: 'Paid By',
+      width: 100,
+      renderCell: (params) => {
+        const transaction = params.row;
+        return (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            height: '100%'
+          }}>
+            <Avatar 
+              sx={{ 
+                width: 20, 
+                height: 20, 
+                fontSize: '0.6rem',
+                bgcolor: 'primary.main'
+              }}
+            >
+              {getUserInitials(getPaidByName(transaction))}
+            </Avatar>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {getPaidByName(transaction)}
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       field: 'amount',
@@ -90,7 +134,7 @@ export default function TransactionDataGrid({
   }
 
   return (
-    <Box sx={{ height: 600, width: '100%', bgcolor: 'white', borderRadius: 1, p: 2 }}>
+    <Box sx={{ height: 600, width: '100%', bgcolor: 'white', borderRadius: 1, p: 2, pr: 3 }}>
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}

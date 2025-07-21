@@ -27,6 +27,14 @@ class BulkTransactionCreate(BaseModel):
 class TransactionResponse(TransactionBase):
     id: int
     date: Optional[datetime] = None
+    # User information
+    user_full_name: Optional[str] = None
+    user_email: Optional[str] = None
+    user_username: Optional[str] = None
+    # Paid by user information
+    paid_by_full_name: Optional[str] = None
+    paid_by_email: Optional[str] = None
+    paid_by_username: Optional[str] = None
 
     class Config:
         from_attributes = True 

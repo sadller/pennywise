@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import desc
 from typing import List, Optional
 from app.models.transaction import Transaction
 from app.models.group_member import GroupMember
+from app.models.user import User
 from app.schemas.transaction import TransactionCreate, BulkTransactionCreate
 from fastapi import HTTPException, status
 
@@ -113,7 +114,22 @@ class TransactionService:
         limit: int = 100
     ) -> List[Transaction]:
         """Get transactions for a user with optional group filtering."""
-        query = self.db.query(Transaction)
+        # Query with user joins to get user information
+        PaidByUser = aliased(User)
+        
+        query = self.db.query(
+            Transaction,
+            User.full_name.label('user_full_name'),
+            User.email.label('user_email'),
+            User.username.label('user_username'),
+            PaidByUser.full_name.label('paid_by_full_name'),
+            PaidByUser.email.label('paid_by_email'),
+            PaidByUser.username.label('paid_by_username')
+        ).join(
+            User, Transaction.user_id == User.id
+        ).outerjoin(
+            PaidByUser, Transaction.paid_by == PaidByUser.id
+        )
         
         if group_id:
             # Validate user is member of the group
@@ -139,7 +155,22 @@ class TransactionService:
             else:
                 return []
         
-        return query.order_by(desc(Transaction.date)).offset(skip).limit(limit).all()
+        results = query.order_by(desc(Transaction.date)).offset(skip).limit(limit).all()
+        
+        # Convert results to Transaction objects with user information
+        transactions = []
+        for result in results:
+            transaction = result[0]  # The Transaction object
+            # Add user information to the transaction object
+            transaction.user_full_name = result[1]
+            transaction.user_email = result[2]
+            transaction.user_username = result[3]
+            transaction.paid_by_full_name = result[4]
+            transaction.paid_by_email = result[5]
+            transaction.paid_by_username = result[6]
+            transactions.append(transaction)
+        
+        return transactions
 
     def delete_transaction(self, transaction_id: int, user_id: int) -> bool:
         """Delete a transaction if user has permission."""

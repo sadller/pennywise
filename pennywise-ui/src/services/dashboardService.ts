@@ -11,6 +11,9 @@ export interface RecentTransaction {
   date: string;
   paid_by: number;
   paid_by_name: string;
+  paid_by_full_name?: string;
+  paid_by_email?: string;
+  paid_by_username?: string;
   group_id: number;
   group_name: string;
 }
