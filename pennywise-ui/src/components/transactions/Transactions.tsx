@@ -22,6 +22,7 @@ import TransactionFilters from './TransactionFilters';
 import TransactionSummary from './TransactionSummary';
 import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
 import { useTransactionFilters } from './useTransactionFilters';
+import { GridPaginationModel } from '@mui/x-data-grid';
 
 interface TransactionsProps {
   groupId?: number;
@@ -35,18 +36,25 @@ export default function Transactions({
   groupMembers = []
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 20,
+  });
   const queryClient = useQueryClient();
   const { ui } = useStore();
 
-  // Fetch transactions
+  // Calculate skip for pagination
+  const skip = paginationModel.page * paginationModel.pageSize;
+
+  // Fetch transactions with pagination
   const {
-    data: transactions = [],
+    data: paginatedData,
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['transactions', groupId],
-    queryFn: () => transactionService.getTransactions(groupId),
+    queryKey: ['transactions', groupId, skip, paginationModel.pageSize],
+    queryFn: () => transactionService.getTransactions(groupId, skip, paginationModel.pageSize),
     enabled: !!groupId,
     retry: (failureCount, error) => {
       if (ErrorHandler.isPermissionError(error)) {
@@ -55,6 +63,9 @@ export default function Transactions({
       return failureCount < 3;
     },
   });
+
+  // Extract transactions from paginated response
+  const transactions = paginatedData?.transactions || [];
 
   // Fetch user groups for dropdown
   const {
@@ -91,6 +102,14 @@ export default function Transactions({
   const handleGroupChange = (groupId: number) => {
     const selectedGroup = (userGroups || []).find(g => g.id === groupId);
     ui.setSelectedGroup(groupId, selectedGroup?.name || null);
+  };
+
+  const handleTransactionDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  };
+
+  const handlePaginationModelChange = (newModel: GridPaginationModel) => {
+    setPaginationModel(newModel);
   };
 
   if (error) {
@@ -162,10 +181,11 @@ export default function Transactions({
       {/* Transactions List */}
       <TransactionList 
         transactions={summaryData.filteredTransactions} 
-        isLoading={false}
-        onTransactionDeleted={() => {
-          queryClient.invalidateQueries({ queryKey: ['transactions'] });
-        }}
+        isLoading={isLoading}
+        onTransactionDeleted={handleTransactionDeleted}
+        rowCount={paginatedData?.total}
+        paginationModel={paginationModel}
+        onPaginationModelChange={handlePaginationModelChange}
       />
 
       <AddTransactionForm

@@ -37,4 +37,11 @@ class TransactionResponse(TransactionBase):
     paid_by_username: Optional[str] = None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class PaginatedTransactionResponse(BaseModel):
+    transactions: List[TransactionResponse]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool 

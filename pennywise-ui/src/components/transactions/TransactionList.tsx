@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import {
-  Paper,
   Box,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  Alert,
 } from '@mui/material';
 import { 
   ViewList as ListIcon, 
@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/common';
 import TransactionCard from './TransactionCard';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
+import { GridPaginationModel } from '@mui/x-data-grid';
 
 type ViewMode = 'cards' | 'table';
 
@@ -26,12 +27,18 @@ interface TransactionListProps {
   transactions: Transaction[];
   isLoading?: boolean;
   onTransactionDeleted?: () => void;
+  rowCount?: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
 }
 
 export default function TransactionList({ 
   transactions, 
   isLoading, 
-  onTransactionDeleted
+  onTransactionDeleted,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange
 }: TransactionListProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -76,9 +83,9 @@ export default function TransactionList({
 
   if (isLoading) {
     return (
-      <Paper sx={{ p: 2 }}>
-        <div>Loading transactions...</div>
-      </Paper>
+      <Box sx={{ p: 2 }}>
+        <Alert severity="info">Loading transactions...</Alert>
+      </Box>
     );
   }
 
@@ -103,7 +110,7 @@ export default function TransactionList({
         mb: 2 
       }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Transactions ({transactions.length})
+          Transactions ({rowCount || transactions.length})
         </Typography>
         
         <ToggleButtonGroup
@@ -125,7 +132,16 @@ export default function TransactionList({
 
       {/* Transaction Display */}
       {viewMode === 'cards' ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: '1fr', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)', 
+            lg: 'repeat(4, 1fr)' 
+          }, 
+          gap: 2 
+        }}>
           {transactions.map((transaction) => (
             <Box key={transaction.id}>
               <TransactionCard
@@ -139,6 +155,9 @@ export default function TransactionList({
         <TransactionDataGrid
           transactions={transactions}
           isLoading={isLoading}
+          rowCount={rowCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={onPaginationModelChange}
         />
       )}
 

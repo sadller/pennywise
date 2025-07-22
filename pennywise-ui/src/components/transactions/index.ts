@@ -6,7 +6,6 @@ export { default as AddTransactionForm } from './AddTransactionForm';
 export { default as TransactionHeader } from './TransactionHeader';
 export { default as TransactionFilters } from './TransactionFilters';
 export { default as TransactionSummary } from './TransactionSummary';
-export { default as TransactionTable } from './TransactionTable';
 export { default as TransactionDataGrid } from './TransactionDataGrid';
 export { default as TransactionLoadingSkeleton } from './TransactionLoadingSkeleton';
 export { useTransactionFilters } from './useTransactionFilters'; 

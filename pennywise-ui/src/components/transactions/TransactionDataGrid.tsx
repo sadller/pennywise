@@ -1,19 +1,25 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, Typography, Avatar } from '@mui/material';
+import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { Box, Typography, Avatar, Alert } from '@mui/material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 
 interface TransactionDataGridProps {
   transactions: Transaction[];
   isLoading?: boolean;
+  rowCount?: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
 }
 
 export default function TransactionDataGrid({
   transactions,
   isLoading,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange,
 }: TransactionDataGridProps) {
   // Calculate cumulative balance
   const transactionsWithBalance = useMemo(() => {
@@ -55,7 +61,7 @@ export default function TransactionDataGrid({
         const isTodayDate = isToday(date);
         
         return (
-          <Box sx={{ pt: 1, m: 0, lineHeight: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
+          <Box sx={{ pt: 1.1, m: 0, lineHeight: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
             <Typography variant="body2" sx={{ lineHeight: 1, mb: 0 }}>
               {isTodayDate ? 'Today' : format(date, 'dd MMM, yyyy')}
             </Typography>
@@ -88,12 +94,7 @@ export default function TransactionDataGrid({
       renderCell: (params) => {
         const transaction = params.row;
         return (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 0.5,
-            height: '100%'
-          }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Avatar 
               sx={{ 
                 width: 20, 
@@ -126,41 +127,35 @@ export default function TransactionDataGrid({
   ];
 
   if (isLoading) {
-    return <div>Loading transactions...</div>;
+    return (
+      <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography>Loading transactions...</Typography>
+      </Box>
+    );
   }
 
   if (transactions.length === 0) {
-    return <div>No transactions found</div>;
+    return (
+      <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography>No transactions found</Typography>
+      </Box>
+    );
   }
 
   return (
-    <Box sx={{ height: 600, width: '100%', bgcolor: 'white', borderRadius: 1, p: 2, pr: 3 }}>
+    <Box sx={{ height: 600, width: '100%' }}>
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
-        }}
-        pageSizeOptions={[5, 10, 25, 100]}
         checkboxSelection
         disableRowSelectionOnClick
         loading={isLoading}
-        sx={{
-          bgcolor: 'white',
-          '& .MuiDataGrid-root': {
-            bgcolor: 'white',
-          },
-          '& .MuiDataGrid-main': {
-            bgcolor: 'white',
-          },
-          '& .MuiDataGrid-virtualScroller': {
-            bgcolor: 'white',
-          },
-        }}
+        pagination
+        paginationMode="server"
+        rowCount={rowCount || 0}
+        paginationModel={paginationModel}
+        pageSizeOptions={[10, 20, 50, 100]}
+        onPaginationModelChange={onPaginationModelChange}
       />
     </Box>
   );

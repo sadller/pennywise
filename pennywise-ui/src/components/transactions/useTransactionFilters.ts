@@ -17,7 +17,7 @@ export interface SummaryData {
   filteredTransactions: Transaction[];
 }
 
-export function useTransactionFilters(transactions: Transaction[]) {
+export function useTransactionFilters(transactions: Transaction[] = []) {
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     selectedDuration: 'all',
@@ -28,7 +28,10 @@ export function useTransactionFilters(transactions: Transaction[]) {
   });
 
   const summaryData = useMemo((): SummaryData => {
-    const filteredTransactions = transactions.filter(transaction => {
+    // Ensure transactions is always an array
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    
+    const filteredTransactions = safeTransactions.filter(transaction => {
       // Apply search filter
       if (filters.searchQuery) {
         const searchLower = filters.searchQuery.toLowerCase();

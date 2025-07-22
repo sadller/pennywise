@@ -155,6 +155,7 @@ class TransactionService:
             else:
                 return []
         
+        # Apply pagination
         results = query.order_by(desc(Transaction.date)).offset(skip).limit(limit).all()
         
         # Convert results to Transaction objects with user information
