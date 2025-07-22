@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import { Box, Typography, Avatar, Alert } from '@mui/material';
+import { Box, Typography, Avatar } from '@mui/material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 
