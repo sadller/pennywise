@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import { Box, Typography, Avatar } from '@mui/material';
+import { Box, Typography, Avatar, Chip } from '@mui/material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 
@@ -51,6 +51,29 @@ export default function TransactionDataGrid({
     return transaction.paid_by_full_name || 'Unknown';
   };
 
+  // Generate consistent colors for categories and users
+  const generateColor = (text: string): string => {
+    const colors = [
+      '#64B5F6', '#81C784', '#FFB74D', '#BA68C8', '#E57373',
+      '#4DD0E1', '#AED581', '#FF8A65', '#F06292', '#7986CB',
+      '#4DB6AC', '#A1887F', '#FF8A65', '#9575CD', '#42A5F5',
+      '#9CCC65', '#EF5350', '#FF7043', '#F48FB1', '#80CBC4'
+    ];
+    const hash = text.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const getCategoryColor = (category: string): string => {
+    return generateColor(category || 'Unknown');
+  };
+
+  const getUserColor = (userName: string): string => {
+    return generateColor(userName);
+  };
+
   const columns: GridColDef<(typeof transactionsWithBalance)[number]>[] = [
     {
       field: 'date',
@@ -92,7 +115,27 @@ export default function TransactionDataGrid({
     {
       field: 'category',
       headerName: 'Category',
-      width: 120,
+      width: 150,
+      renderCell: (params) => {
+        const category = params.value || 'Unknown';
+        return (
+          <Chip
+            label={category}
+            size="small"
+            sx={{
+              backgroundColor: getCategoryColor(category),
+              color: 'white',
+              fontWeight: 500,
+              width: '100px',
+              justifyContent: 'center',
+              '& .MuiChip-label': {
+                px: 1,
+                textAlign: 'center',
+              },
+            }}
+          />
+        );
+      },
     },
     {
       field: 'payment_mode',
@@ -105,28 +148,32 @@ export default function TransactionDataGrid({
       width: 150,
       renderCell: (params) => {
         const transaction = params.row;
+        const paidByName = getPaidByName(transaction);
         return (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 0.5,
-            height: '100%',
-            justifyContent: 'center'
-          }}>
-            <Avatar 
-              sx={{ 
-                width: 20, 
-                height: 20, 
-                fontSize: '0.6rem',
-                bgcolor: 'primary.main'
-              }}
-            >
-              {getUserInitials(getPaidByName(transaction))}
-            </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              {getPaidByName(transaction)}
-            </Typography>
-          </Box>
+          <Chip
+            label={paidByName}
+            size="small"
+            avatar={
+              <Avatar 
+                sx={{ 
+                  width: 16, 
+                  height: 16, 
+                  fontSize: '0.5rem',
+                  bgcolor: getUserColor(paidByName)
+                }}
+              >
+                {getUserInitials(paidByName)}
+              </Avatar>
+            }
+            sx={{
+              backgroundColor: getUserColor(paidByName),
+              color: 'white',
+              fontWeight: 500,
+              '& .MuiChip-label': {
+                px: 1,
+              },
+            }}
+          />
         );
       },
     },
