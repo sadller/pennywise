@@ -71,6 +71,18 @@ export default function TransactionDataGrid({
           </Box>
         );
       },
+      // Add custom quick filter for date column to search by year
+      getApplyQuickFilterFn: (value) => {
+        if (!value || value.length !== 4 || !/\d{4}/.test(value)) {
+          return null;
+        }
+        return (cellValue) => {
+          if (cellValue instanceof Date) {
+            return cellValue.getFullYear() === Number(value);
+          }
+          return false;
+        };
+      },
     },
     {
       field: 'note',
@@ -147,7 +159,9 @@ export default function TransactionDataGrid({
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}
-        checkboxSelection
+        showColumnVerticalBorder={true}
+        showCellVerticalBorder={true}
+        // checkboxSelection
         disableRowSelectionOnClick
         loading={isLoading}
         pagination
@@ -156,6 +170,41 @@ export default function TransactionDataGrid({
         paginationModel={paginationModel}
         pageSizeOptions={[10, 20, 50, 100]}
         onPaginationModelChange={onPaginationModelChange}
+        showToolbar
+        ignoreDiacritics
+        initialState={{
+          filter: {
+            filterModel: {
+              items: [],
+              quickFilterExcludeHiddenColumns: false,
+            },
+          },
+        }}
+        slotProps={{
+          toolbar: {
+            quickFilterProps: {
+              debounceMs: 200,
+            },
+          },
+        }}
+        sx={{
+          border: '0.5px solid',
+          borderColor: 'grey.100',
+          backgroundColor: 'white',
+          '& .MuiDataGrid-cell': {
+            borderBottom: '0.5px solid',
+            borderColor: 'grey.100',
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            borderBottom: '1px solid',
+            borderColor: 'grey.200',
+            backgroundColor: 'white',
+          },
+          '& .MuiDataGrid-columnHeader': {
+            borderRight: '0.5px solid',
+            borderColor: 'grey.100',
+          },
+        }}
       />
     </Box>
   );
