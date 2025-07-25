@@ -50,16 +50,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
     <DataProvider>
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {/* Header - Fixed at top */}
-        <Box sx={{ 
-          position: 'sticky', 
-          top: 0, 
-          zIndex: 1100,
-          backgroundColor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider'
-        }}>
-          <Header onMenuClick={handleMenuClick} />
-        </Box>
+        <Header onMenuClick={handleMenuClick} />
         
         {/* Content Area - Sidebar and Main Content */}
         <Box sx={{ 
@@ -91,7 +82,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
                 p: 3,
                 overflow: 'auto', // Independent scroll for main content
                 height: '100%',
-                paddingTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, // Ensure content starts below header
+                marginTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,
               }}
             >
               {/* Content Transition Wrapper */}

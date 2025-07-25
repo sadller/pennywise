@@ -202,7 +202,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
-              disableScrollLock={false}
+              disableScrollLock={true}
               PaperProps={{
                 sx: {
                   marginTop: '8px',
