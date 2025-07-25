@@ -50,12 +50,17 @@ export default function TransactionHeader({
         <FormControl fullWidth size="small">
           <InputLabel>Select Group</InputLabel>
           <Select
-            value={selectedGroupId || ''}
-            onChange={(e) => onGroupChange(e.target.value as number)}
+            value={selectedGroupId ? selectedGroupId.toString() : ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value !== '') {
+                onGroupChange(Number(value));
+              }
+            }}
             label="Select Group"
           >
             {(userGroups || []).map((group) => (
-              <MenuItem key={group.id || group.name} value={group.id || ''}>
+              <MenuItem key={group.id} value={group.id}>
                 {group.name}
               </MenuItem>
             ))}

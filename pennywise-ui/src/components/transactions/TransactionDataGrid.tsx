@@ -144,22 +144,6 @@ export default function TransactionDataGrid({
     },
   ];
 
-  if (isLoading) {
-    return (
-      <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography>Loading transactions...</Typography>
-      </Box>
-    );
-  }
-
-  if (transactions.length === 0) {
-    return (
-      <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography>No transactions found</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ height: 600, width: '100%' }}>
       <DataGrid
@@ -185,6 +169,33 @@ export default function TransactionDataGrid({
               quickFilterExcludeHiddenColumns: false,
             },
           },
+        }}
+        slots={{
+          noRowsOverlay: () => (
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              height: '100%',
+              gap: 2,
+              p: 3
+            }}>
+              <Box sx={{ 
+                fontSize: '3rem', 
+                color: 'grey.400',
+                mb: 1
+              }}>
+                💰
+              </Box>
+              <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                No transactions yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" align="center">
+                Start tracking your expenses and income to see your financial journey here
+              </Typography>
+            </Box>
+          ),
         }}
         slotProps={{
           toolbar: {

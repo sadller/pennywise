@@ -6,10 +6,8 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import { Receipt as ReceiptIcon } from '@mui/icons-material';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
-import { EmptyState } from '@/components/common';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
 import { GridPaginationModel } from '@mui/x-data-grid';
@@ -70,16 +68,7 @@ export default function TransactionList({
     );
   }
 
-  if (transactions.length === 0) {
-    return (
-      <EmptyState
-        icon={ReceiptIcon}
-        title="No transactions found"
-        description="Add your first transaction to get started."
-        maxWidth={400}
-      />
-    );
-  }
+
 
   return (
     <>
