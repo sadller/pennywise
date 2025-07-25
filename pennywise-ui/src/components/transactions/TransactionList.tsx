@@ -3,25 +3,16 @@
 import React, { useState } from 'react';
 import {
   Box,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
   Alert,
 } from '@mui/material';
-import { 
-  ViewList as ListIcon, 
-  ViewModule as CardIcon 
-} from '@mui/icons-material';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
 import { Transaction } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import { EmptyState } from '@/components/common';
-import TransactionCard from './TransactionCard';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
 import { GridPaginationModel } from '@mui/x-data-grid';
-
-type ViewMode = 'cards' | 'table';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -40,19 +31,9 @@ export default function TransactionList({
   paginationModel,
   onPaginationModelChange
 }: TransactionListProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleViewModeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newMode: ViewMode | null,
-  ) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
 
   const handleDeleteClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -102,7 +83,7 @@ export default function TransactionList({
 
   return (
     <>
-      {/* View Mode Toggle */}
+      {/* Header */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -112,54 +93,16 @@ export default function TransactionList({
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Transactions ({rowCount ?? transactions.length})
         </Typography>
-        
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          size="small"
-        >
-          <ToggleButton value="cards" aria-label="card view">
-            <CardIcon sx={{ mr: 1 }} />
-            Cards
-          </ToggleButton>
-          <ToggleButton value="table" aria-label="table view">
-            <ListIcon sx={{ mr: 1 }} />
-            Table
-          </ToggleButton>
-        </ToggleButtonGroup>
       </Box>
 
-      {/* Transaction Display */}
-      {viewMode === 'cards' ? (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: '1fr', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(3, 1fr)', 
-            lg: 'repeat(4, 1fr)' 
-          }, 
-          gap: 2 
-        }}>
-          {transactions.map((transaction) => (
-            <Box key={transaction.id}>
-              <TransactionCard
-                transaction={transaction}
-                onDelete={handleDeleteClick}
-              />
-            </Box>
-          ))}
-        </Box>
-      ) : (
-        <TransactionDataGrid
-          transactions={transactions}
-          isLoading={isLoading}
-          rowCount={rowCount}
-          paginationModel={paginationModel}
-          onPaginationModelChange={onPaginationModelChange}
-        />
-      )}
+      {/* Transaction Data Grid */}
+      <TransactionDataGrid
+        transactions={transactions}
+        isLoading={isLoading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+      />
 
       <DeleteTransactionDialog
         open={deleteDialogOpen}

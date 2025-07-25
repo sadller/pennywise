@@ -10,7 +10,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
 import { groupService } from '@/services/groupService';
-import { TransactionCreate } from '@/types/transaction';
+import { TransactionCreate, TransactionType } from '@/types/transaction';
 import { User } from '@/types/user';
 import { GroupMember } from '@/types/group';
 import { ErrorHandler } from '@/utils/errorHandler';
@@ -18,10 +18,8 @@ import { useStore } from '@/stores/StoreProvider';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
 import TransactionHeader from './TransactionHeader';
-import TransactionFilters from './TransactionFilters';
 import TransactionSummary from './TransactionSummary';
 import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
-import { useTransactionFilters } from './useTransactionFilters';
 import { GridPaginationModel } from '@mui/x-data-grid';
 
 interface TransactionsProps {
@@ -75,9 +73,6 @@ export default function Transactions({
     queryKey: ['user-groups'],
     queryFn: () => groupService.getUserGroups(),
   });
-
-  // Use custom hook for filters
-  const { filters, summaryData, updateFilter } = useTransactionFilters(transactions);
 
   // Create transaction mutation
   const createTransactionMutation = useMutation({
@@ -154,34 +149,16 @@ export default function Transactions({
         onGroupChange={handleGroupChange}
       />
 
-      {/* Filters Section */}
-      <TransactionFilters
-        searchQuery={filters.searchQuery}
-        onSearchChange={(query) => updateFilter('searchQuery', query)}
-        selectedDuration={filters.selectedDuration}
-        onDurationChange={(duration) => updateFilter('selectedDuration', duration)}
-        selectedTypes={filters.selectedTypes}
-        onTypesChange={(types) => updateFilter('selectedTypes', types)}
-        selectedMembers={filters.selectedMembers}
-        onMembersChange={(members) => updateFilter('selectedMembers', members)}
-        selectedPaymentModes={filters.selectedPaymentModes}
-        onPaymentModesChange={(modes) => updateFilter('selectedPaymentModes', modes)}
-        selectedCategories={filters.selectedCategories}
-        onCategoriesChange={(categories) => updateFilter('selectedCategories', categories)}
-        groupMembers={groupMembers}
-        onAddTransaction={handleOpenAddForm}
-      />
-
       {/* Summary Section */}
       <TransactionSummary
-        cashIn={summaryData.cashIn}
-        cashOut={summaryData.cashOut}
-        netBalance={summaryData.netBalance}
+        cashIn={transactions.reduce((sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : 0), 0)}
+        cashOut={transactions.reduce((sum, t) => sum + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0)}
+        netBalance={transactions.reduce((sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : -t.amount), 0)}
       />
 
       {/* Transactions List */}
       <TransactionList 
-        transactions={summaryData.filteredTransactions} 
+        transactions={transactions} 
         isLoading={isLoading}
         onTransactionDeleted={handleTransactionDeleted}
         rowCount={totalCount}

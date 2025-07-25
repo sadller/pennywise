@@ -102,11 +102,17 @@ export default function TransactionDataGrid({
     {
       field: 'paid_by',
       headerName: 'Paid By',
-      width: 100,
+      width: 150,
       renderCell: (params) => {
         const transaction = params.row;
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            height: '100%',
+            justifyContent: 'center'
+          }}>
             <Avatar 
               sx={{ 
                 width: 20, 
@@ -160,7 +166,7 @@ export default function TransactionDataGrid({
         rows={transactionsWithBalance}
         columns={columns}
         showColumnVerticalBorder={true}
-        showCellVerticalBorder={true}
+        // showCellVerticalBorder={true}
         // checkboxSelection
         disableRowSelectionOnClick
         loading={isLoading}
@@ -188,21 +194,35 @@ export default function TransactionDataGrid({
           },
         }}
         sx={{
-          border: '0.5px solid',
+          border: '2px solid',
           borderColor: 'grey.100',
           backgroundColor: 'white',
           '& .MuiDataGrid-cell': {
-            borderBottom: '0.5px solid',
+            borderBottom: '1px solid',
             borderColor: 'grey.100',
           },
           '& .MuiDataGrid-columnHeaders': {
             borderBottom: '1px solid',
             borderColor: 'grey.200',
-            backgroundColor: 'white',
+            backgroundColor: 'grey.50',
           },
           '& .MuiDataGrid-columnHeader': {
-            borderRight: '0.5px solid',
-            borderColor: 'grey.100',
+            borderRight: '1px solid',
+            borderColor: 'grey.200',
+          },
+          '& .MuiDataGrid-toolbar': {
+            backgroundColor: 'grey.50 !important',
+            borderBottom: '1px solid',
+            borderColor: 'grey.200',
+          },
+          '& .MuiDataGrid-toolbarContainer': {
+            backgroundColor: 'grey.50 !important',
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#e3f2fd',
+            '& .MuiDataGrid-cell': {
+              border: 'none',
+            },
           },
         }}
       />
