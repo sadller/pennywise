@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import UserResponse
-from app.schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate
+from app.schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate, PaginatedTransactionResponse
 from app.services.transaction_service import TransactionService
 from app.api.api_v1.endpoints.auth import get_current_user
 from typing import List, Optional
@@ -32,7 +32,7 @@ def create_bulk_transactions(
     return transaction_service.create_bulk_transactions(bulk_data, current_user.id)
 
 
-@router.get("/", response_model=List[TransactionResponse])
+@router.get("/", response_model=PaginatedTransactionResponse)
 def list_transactions(
     group_id: Optional[int] = Query(None, description="Filter by group ID"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
@@ -42,7 +42,7 @@ def list_transactions(
 ):
     """Get transactions for the current user with optional group filtering."""
     transaction_service = TransactionService(db)
-    transactions, _ = transaction_service.get_user_transactions(
+    transactions, total_count = transaction_service.get_user_transactions_with_count(
         user_id=current_user.id,
         group_id=group_id,
         skip=skip,
@@ -52,7 +52,13 @@ def list_transactions(
     # Convert Transaction objects to TransactionResponse objects
     transaction_responses = [TransactionResponse.from_orm(transaction) for transaction in transactions]
     
-    return transaction_responses
+    return {
+        "transactions": transaction_responses,
+        "total": total_count,
+        "skip": skip,
+        "limit": limit,
+        "has_more": (skip + limit) < total_count
+    }
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)

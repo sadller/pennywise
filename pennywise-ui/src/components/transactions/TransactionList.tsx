@@ -110,7 +110,7 @@ export default function TransactionList({
         mb: 2 
       }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Transactions ({rowCount || transactions.length})
+          Transactions ({rowCount ?? transactions.length})
         </Typography>
         
         <ToggleButtonGroup

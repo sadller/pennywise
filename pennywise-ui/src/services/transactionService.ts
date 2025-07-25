@@ -1,21 +1,13 @@
 import { apiClient } from './apiClient';
-import { Transaction, TransactionCreate } from '@/types/transaction';
+import { Transaction, TransactionCreate, PaginatedTransactionResponse } from '@/types/transaction';
 import { API_CONSTANTS } from '@/constants';
-
-export interface PaginatedTransactionsResponse {
-  transactions: Transaction[];
-  total: number;
-  skip: number;
-  limit: number;
-  has_more: boolean;
-}
 
 export const transactionService = {
   async getTransactions(
     groupId?: number, 
     skip: number = 0, 
     limit: number = 20
-  ): Promise<PaginatedTransactionsResponse> {
+  ): Promise<PaginatedTransactionResponse> {
     const params = new URLSearchParams();
     if (groupId) {
       params.append('group_id', groupId.toString());
@@ -23,7 +15,8 @@ export const transactionService = {
     params.append('skip', skip.toString());
     params.append('limit', limit.toString());
     
-    return apiClient.get<PaginatedTransactionsResponse>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}?${params.toString()}`);
+    const response = await apiClient.get<PaginatedTransactionResponse>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}?${params.toString()}`);
+    return response;
   },
 
   async createTransaction(transaction: TransactionCreate): Promise<Transaction> {

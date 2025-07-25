@@ -66,6 +66,7 @@ export default function Transactions({
 
   // Extract transactions from paginated response
   const transactions = paginatedData?.transactions || [];
+  const totalCount = paginatedData?.total || 0;
 
   // Fetch user groups for dropdown
   const {
@@ -183,7 +184,7 @@ export default function Transactions({
         transactions={summaryData.filteredTransactions} 
         isLoading={isLoading}
         onTransactionDeleted={handleTransactionDeleted}
-        rowCount={paginatedData?.total}
+        rowCount={totalCount}
         paginationModel={paginationModel}
         onPaginationModelChange={handlePaginationModelChange}
       />

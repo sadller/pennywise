@@ -152,7 +152,7 @@ export default function TransactionDataGrid({
         loading={isLoading}
         pagination
         paginationMode="server"
-        rowCount={rowCount || 0}
+        rowCount={rowCount ?? 0}
         paginationModel={paginationModel}
         pageSizeOptions={[10, 20, 50, 100]}
         onPaginationModelChange={onPaginationModelChange}

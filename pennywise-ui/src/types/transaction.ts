@@ -38,4 +38,10 @@ export interface TransactionCreate {
   paid_by?: number;
 }
 
- 
+export interface PaginatedTransactionResponse {
+  transactions: Transaction[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}

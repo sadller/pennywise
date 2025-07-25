@@ -114,6 +114,17 @@ class TransactionService:
         limit: int = 100
     ) -> List[Transaction]:
         """Get transactions for a user with optional group filtering."""
+        transactions, _ = self.get_user_transactions_with_count(user_id, group_id, skip, limit)
+        return transactions
+
+    def get_user_transactions_with_count(
+        self, 
+        user_id: int, 
+        group_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> tuple[List[Transaction], int]:
+        """Get transactions for a user with optional group filtering and total count."""
         # Query with user joins to get user information
         PaidByUser = aliased(User)
         
@@ -153,7 +164,10 @@ class TransactionService:
             if user_group_ids:
                 query = query.filter(Transaction.group_id.in_(user_group_ids))
             else:
-                return []
+                return [], 0
+        
+        # Get total count before applying pagination
+        total_count = query.count()
         
         # Apply pagination
         results = query.order_by(desc(Transaction.date)).offset(skip).limit(limit).all()
@@ -171,7 +185,7 @@ class TransactionService:
             transaction.paid_by_username = result[6]
             transactions.append(transaction)
         
-        return transactions
+        return transactions, total_count
 
     def delete_transaction(self, transaction_id: int, user_id: int) -> bool:
         """Delete a transaction if user has permission."""
