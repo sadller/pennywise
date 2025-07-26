@@ -1,5 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 import { GroupStats } from '@/services/groupService';
+import { Transaction } from '@/types/transaction';
 
 class DataStore {
   // Group data
@@ -11,6 +12,11 @@ class DataStore {
   unreadCount = 0;
   notificationsLoading = false;
   notificationsError: string | null = null;
+
+  // Transaction data
+  allTransactions: Transaction[] = [];
+  transactionsLoading = false;
+  transactionsError: string | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -48,6 +54,22 @@ class DataStore {
     this.notificationsLoading = false;
   }
 
+  // Transaction actions
+  setAllTransactions(transactions: Transaction[]) {
+    this.allTransactions = transactions;
+    this.transactionsLoading = false;
+    this.transactionsError = null;
+  }
+
+  setTransactionsLoading(loading: boolean) {
+    this.transactionsLoading = loading;
+  }
+
+  setTransactionsError(error: string | null) {
+    this.transactionsError = error;
+    this.transactionsLoading = false;
+  }
+
   // Clear all data
   clearAllData() {
     this.groupsWithStats = [];
@@ -56,6 +78,9 @@ class DataStore {
     this.unreadCount = 0;
     this.notificationsLoading = false;
     this.notificationsError = null;
+    this.allTransactions = [];
+    this.transactionsLoading = false;
+    this.transactionsError = null;
   }
 
   // Helper methods

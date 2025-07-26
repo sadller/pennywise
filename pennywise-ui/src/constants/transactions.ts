@@ -1,6 +1,28 @@
 // Transaction-related constants used across the application
 import { TransactionType } from '@/types/transaction';
 
+// Currency symbol
+export const CURRENCY_SYMBOL = '₹';
+
+// Category colors for charts and UI
+export const CATEGORY_COLORS: { [key: string]: string } = {
+  food: '#FF6B6B',
+  travel: '#4ECDC4',
+  utilities: '#45B7D1',
+  entertainment: '#96CEB4',
+  shopping: '#FFEAA7',
+  health: '#DDA0DD',
+  other: '#A8E6CF',
+  'food & dining': '#FF6B6B',
+  transportation: '#4ECDC4',
+  education: '#45B7D1',
+  rent: '#96CEB4',
+  salary: '#FFEAA7',
+  freelance: '#DDA0DD',
+  investment: '#A8E6CF',
+  healthcare: '#FF6B6B',
+};
+
 // Transaction Categories
 export const TRANSACTION_CATEGORIES = [
   'Food & Dining',

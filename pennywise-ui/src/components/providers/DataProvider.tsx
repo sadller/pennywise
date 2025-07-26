@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useStore } from '@/stores/StoreProvider';
 import { groupService } from '@/services/groupService';
 import { notificationService } from '@/services/notificationService';
+import { transactionService } from '@/services/transactionService';
 
 interface DataProviderProps {
   children: React.ReactNode;
@@ -41,6 +42,19 @@ const DataProvider = observer(({ children }: DataProviderProps) => {
     refetchInterval: 60 * 1000, // Refetch every minute
   });
 
+  // Fetch all transactions for dashboard - parent level API
+  const {
+    data: allTransactionsData,
+    isLoading: transactionsLoading,
+    error: transactionsError,
+  } = useQuery({
+    queryKey: ['all-transactions'],
+    queryFn: () => transactionService.getTransactions(), // Get all transactions without group filter
+    enabled: !!auth.user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true,
+  });
+
   // Update store with fetched data
   useEffect(() => {
     // Always ensure we have an array, even if the API returns null/undefined
@@ -70,6 +84,17 @@ const DataProvider = observer(({ children }: DataProviderProps) => {
       data.setNotificationsError(notificationsError instanceof Error ? notificationsError.message : 'Failed to load notifications');
     }
   }, [unreadCountData, notificationsLoading, notificationsError, data]);
+
+  useEffect(() => {
+    if (allTransactionsData || transactionsLoading) {
+      data.setAllTransactions(allTransactionsData?.transactions || []);
+      data.setTransactionsLoading(transactionsLoading);
+    }
+    
+    if (transactionsError) {
+      data.setTransactionsError(transactionsError instanceof Error ? transactionsError.message : 'Failed to load transactions');
+    }
+  }, [allTransactionsData, transactionsLoading, transactionsError, data]);
 
   // Clear data when user logs out
   useEffect(() => {
