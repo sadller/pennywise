@@ -138,7 +138,15 @@ export default function TransactionDataGrid({
       minWidth: 120,
       flex: 0.8,
       maxWidth: 150,
-      editable: false,
+      editable: true,
+      type: 'date',
+      valueGetter: (value: string | Date) => {
+        return new Date(value);
+      },
+      valueSetter: (value: string | Date, row: Transaction) => {
+        const date = new Date(value);
+        return { ...row, date: date.toISOString() };
+      },
       renderCell: (params) => {
         const date = new Date(params.value);
         const isTodayDate = isToday(date);
