@@ -16,6 +16,7 @@ import { transactionService } from '@/services/transactionService';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
 import { GridPaginationModel } from '@mui/x-data-grid';
+import { GroupMember } from '@/types/group';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -27,6 +28,7 @@ interface TransactionListProps {
   onPaginationModelChange: (model: GridPaginationModel) => void;
   onAddTransaction?: (type: TransactionType) => void;
   selectedGroupId: number | null;
+  groupMembers: GroupMember[];
 }
 
 export default function TransactionList({ 
@@ -38,7 +40,8 @@ export default function TransactionList({
   paginationModel,
   onPaginationModelChange,
   onAddTransaction,
-  selectedGroupId
+  selectedGroupId,
+  groupMembers
 }: TransactionListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -124,6 +127,7 @@ export default function TransactionList({
         onPaginationModelChange={onPaginationModelChange}
         onDeleteTransaction={handleDeleteClick}
         onTransactionUpdated={onTransactionUpdated}
+        groupMembers={groupMembers}
       />
 
       <DeleteTransactionDialog

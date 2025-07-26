@@ -176,6 +176,7 @@ export default function Transactions({
         onPaginationModelChange={handlePaginationModelChange}
         onAddTransaction={handleOpenAddForm}
         selectedGroupId={ui.selectedGroupId}
+        groupMembers={groupMembers}
       />
 
       <AddTransactionForm

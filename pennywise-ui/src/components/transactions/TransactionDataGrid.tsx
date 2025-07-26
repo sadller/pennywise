@@ -18,6 +18,7 @@ import {
   getTransactionTypeLabel,
   getTransactionTypeColor
 } from '@/constants/transactions';
+import { GroupMember } from '@/types/group';
 
 interface TransactionDataGridProps {
   transactions: Transaction[];
@@ -27,6 +28,7 @@ interface TransactionDataGridProps {
   onPaginationModelChange: (model: GridPaginationModel) => void;
   onDeleteTransaction?: (transaction: Transaction) => void;
   onTransactionUpdated?: () => void;
+  groupMembers: GroupMember[]; // Add this line
 }
 
 export default function TransactionDataGrid({
@@ -37,6 +39,7 @@ export default function TransactionDataGrid({
   onPaginationModelChange,
   onDeleteTransaction,
   onTransactionUpdated,
+  groupMembers, // Add this line
 }: TransactionDataGridProps) {
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [updatingTransactionId, setUpdatingTransactionId] = useState<number | null>(null);
@@ -219,7 +222,12 @@ export default function TransactionDataGrid({
       minWidth: 140,
       flex: 1,
       maxWidth: 220,
-      editable: false, // This would need user selection from group members
+      editable: true,
+      type: 'singleSelect',
+      valueOptions: groupMembers.map(member => ({
+        value: member.user_id,
+        label: member.full_name || member.email
+      })),
       renderCell: (params) => {
         const transaction = params.row;
         const paidByName = getPaidByName(transaction);
