@@ -1,6 +1,9 @@
 import { createTheme } from '@mui/material/styles';
 import type {} from '@mui/x-data-grid/themeAugmentation';
 
+// Helper to check if we're in the browser
+const isBrowser = typeof document !== 'undefined';
+
 export const theme = createTheme({
   shape: {
     borderRadius: 2, // base border radius
@@ -159,7 +162,7 @@ export const theme = createTheme({
     },
     MuiDialog: {
       defaultProps: {
-        container: document.body,
+        container: isBrowser ? document.body : undefined,
         disableScrollLock: true,
         scroll: 'body',
       },
@@ -201,7 +204,7 @@ export const theme = createTheme({
     },
     MuiPopover: {
       defaultProps: {
-        container: document.body,
+        container: isBrowser ? document.body : undefined,
         disableScrollLock: true,
       },
       styleOverrides: {
@@ -212,7 +215,7 @@ export const theme = createTheme({
     },
     MuiMenu: {
       defaultProps: {
-        container: document.body,
+        container: isBrowser ? document.body : undefined,
         disableScrollLock: true,
       },
       styleOverrides: {

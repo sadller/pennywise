@@ -156,7 +156,6 @@ export default function Transactions({
         userGroups={userGroups}
         selectedGroupId={ui.selectedGroupId}
         onGroupChange={handleGroupChange}
-        onAddTransaction={handleOpenAddForm}
       />
 
       {/* Summary Section */}
