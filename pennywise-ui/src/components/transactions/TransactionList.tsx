@@ -5,8 +5,13 @@ import {
   Box,
   Typography,
   Alert,
+  Button,
 } from '@mui/material';
-import { Transaction } from '@/types/transaction';
+import {
+  Add as AddIcon,
+  Remove as RemoveIcon,
+} from '@mui/icons-material';
+import { Transaction, TransactionType } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
@@ -16,18 +21,24 @@ interface TransactionListProps {
   transactions: Transaction[];
   isLoading?: boolean;
   onTransactionDeleted?: () => void;
+  onTransactionUpdated?: () => void;
   rowCount?: number;
   paginationModel: GridPaginationModel;
   onPaginationModelChange: (model: GridPaginationModel) => void;
+  onAddTransaction?: (type: TransactionType) => void;
+  selectedGroupId: number | null;
 }
 
 export default function TransactionList({ 
   transactions, 
   isLoading, 
   onTransactionDeleted,
+  onTransactionUpdated,
   rowCount,
   paginationModel,
-  onPaginationModelChange
+  onPaginationModelChange,
+  onAddTransaction,
+  selectedGroupId
 }: TransactionListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -68,8 +79,6 @@ export default function TransactionList({
     );
   }
 
-
-
   return (
     <>
       {/* Header */}
@@ -82,6 +91,28 @@ export default function TransactionList({
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Transactions ({rowCount ?? transactions.length})
         </Typography>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1 }}>
+          <Button
+            size="small"
+            variant="contained"
+            color="success"
+            startIcon={<AddIcon />}
+            onClick={() => onAddTransaction?.(TransactionType.INCOME)}
+            disabled={!selectedGroupId}
+          >
+            Cash In
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            startIcon={<RemoveIcon />}
+            onClick={() => onAddTransaction?.(TransactionType.EXPENSE)}
+            disabled={!selectedGroupId}
+          >
+            Cash Out
+          </Button>
+        </Box>
       </Box>
 
       {/* Transaction Data Grid */}
@@ -91,6 +122,8 @@ export default function TransactionList({
         rowCount={rowCount}
         paginationModel={paginationModel}
         onPaginationModelChange={onPaginationModelChange}
+        onDeleteTransaction={handleDeleteClick}
+        onTransactionUpdated={onTransactionUpdated}
       />
 
       <DeleteTransactionDialog

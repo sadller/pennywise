@@ -29,5 +29,9 @@ export const transactionService = {
 
   async deleteTransaction(id: number): Promise<void> {
     await apiClient.delete<void>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}/${id}`);
+  },
+
+  async updateTransaction(id: number, transaction: TransactionCreate): Promise<Transaction> {
+    return apiClient.put<Transaction>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}/${id}`, transaction);
   }
 }; 

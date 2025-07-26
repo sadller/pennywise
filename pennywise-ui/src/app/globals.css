@@ -18,13 +18,7 @@
   }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-/* Prevent layout shifts when dialogs/menus open */
+/* Remove aggressive reset and let MUI CssBaseline handle it */
 html {
   scrollbar-gutter: stable;
 }
@@ -32,43 +26,26 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-  /* Ensure consistent scrollbar behavior */
   overflow-y: scroll;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
+/* Only reset specific elements that won't conflict with MUI */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-button {
-  font-family: inherit;
+/* Fix for MUI Popover and Menu positioning */
+.MuiPopover-root,
+.MuiMenu-root,
+.MuiAutocomplete-popper {
+  position: fixed !important;
+  z-index: 1300 !important;
 }
 
-/* Prevent layout shifts for Material-UI components */
-.MuiDialog-root {
-  /* Ensure dialog doesn't affect page layout */
-  position: fixed;
-  z-index: 1300;
-}
-
-.MuiMenu-root {
-  /* Ensure menu doesn't affect page layout */
-  position: fixed;
-  z-index: 1300;
-}
-
-/* Custom scrollbar styling for better consistency */
+/* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
 }

@@ -4,7 +4,7 @@ from typing import List, Optional
 from app.models.transaction import Transaction
 from app.models.group_member import GroupMember
 from app.models.user import User
-from app.schemas.transaction import TransactionCreate, BulkTransactionCreate
+from app.schemas.transaction import TransactionCreate, BulkTransactionCreate, TransactionUpdate
 from fastapi import HTTPException, status
 
 
@@ -213,6 +213,95 @@ class TransactionService:
         self.db.commit()
         
         return True
+
+    def update_transaction(self, transaction_id: int, transaction_update: TransactionUpdate, user_id: int) -> Transaction:
+        """Update a transaction if user has permission."""
+        # Verify transaction exists
+        transaction = self.db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not transaction:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Transaction not found"
+            )
+
+        # Check if user has permission (member of the group)
+        member = self.db.query(GroupMember).filter(
+            GroupMember.user_id == user_id,
+            GroupMember.group_id == transaction.group_id
+        ).first()
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to update this transaction"
+            )
+
+        # Validate that the new group_id is accessible by the user
+        if transaction_update.group_id != transaction.group_id:
+            new_group_member = self.db.query(GroupMember).filter(
+                GroupMember.user_id == user_id,
+                GroupMember.group_id == transaction_update.group_id
+            ).first()
+            if not new_group_member:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to move this transaction to the specified group"
+                )
+
+        # Validate paid_by user if specified
+        if transaction_update.paid_by is not None:
+            paid_by_member = self.db.query(GroupMember).filter(
+                GroupMember.user_id == transaction_update.paid_by,
+                GroupMember.group_id == transaction_update.group_id
+            ).first()
+            if not paid_by_member:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The 'paid_by' user is not a member of the group"
+                )
+
+        # Update all transaction fields from the update data
+        # Only update the model fields, not the user information fields
+        model_fields = [
+            'group_id', 'user_id', 'amount', 'type', 'note', 
+            'category', 'payment_mode', 'date', 'paid_by'
+        ]
+        for field in model_fields:
+            value = getattr(transaction_update, field)
+            setattr(transaction, field, value)
+
+        self.db.commit()
+        self.db.refresh(transaction)
+
+        # Query to get the updated transaction with user information
+        PaidByUser = aliased(User)
+        result = self.db.query(
+            Transaction,
+            User.full_name.label('user_full_name'),
+            User.email.label('user_email'),
+            User.username.label('user_username'),
+            PaidByUser.full_name.label('paid_by_full_name'),
+            PaidByUser.email.label('paid_by_email'),
+            PaidByUser.username.label('paid_by_username')
+        ).join(
+            User, Transaction.user_id == User.id
+        ).outerjoin(
+            PaidByUser, Transaction.paid_by == PaidByUser.id
+        ).filter(
+            Transaction.id == transaction_id
+        ).first()
+
+        if result:
+            updated_transaction = result[0]
+            # Add user information to the transaction object
+            updated_transaction.user_full_name = result[1]
+            updated_transaction.user_email = result[2]
+            updated_transaction.user_username = result[3]
+            updated_transaction.paid_by_full_name = result[4]
+            updated_transaction.paid_by_email = result[5]
+            updated_transaction.paid_by_username = result[6]
+            return updated_transaction
+
+        return transaction
 
     def get_transaction_by_id(self, transaction_id: int, user_id: int) -> Optional[Transaction]:
         """Get a specific transaction if user has access."""

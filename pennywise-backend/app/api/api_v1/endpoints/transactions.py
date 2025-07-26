@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import UserResponse
-from app.schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate, PaginatedTransactionResponse
+from app.schemas.transaction import TransactionCreate, TransactionResponse, BulkTransactionCreate, PaginatedTransactionResponse, TransactionUpdate
 from app.services.transaction_service import TransactionService
 from app.api.api_v1.endpoints.auth import get_current_user
 from typing import List, Optional
@@ -89,4 +89,16 @@ def delete_transaction(
     """Delete a transaction."""
     transaction_service = TransactionService(db)
     transaction_service.delete_transaction(transaction_id, current_user.id)
-    return {"message": "Transaction deleted successfully"} 
+    return {"message": "Transaction deleted successfully"}
+
+
+@router.put("/{transaction_id}", response_model=TransactionResponse)
+def update_transaction(
+    transaction_id: int,
+    transaction_update: TransactionUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Update a transaction with complete transaction data."""
+    transaction_service = TransactionService(db)
+    return transaction_service.update_transaction(transaction_id, transaction_update, current_user.id) 

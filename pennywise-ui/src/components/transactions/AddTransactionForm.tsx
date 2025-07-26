@@ -19,6 +19,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { TransactionType, TransactionCreate } from '@/types/transaction';
 import { User } from '@/types/user';
 import { GroupMember } from '@/types/group';
+import { TRANSACTION_CATEGORIES, PAYMENT_MODES } from '@/constants/transactions';
 
 interface AddTransactionFormProps {
   open: boolean;
@@ -28,32 +29,8 @@ interface AddTransactionFormProps {
   currentUser: User;
   groupMembers?: GroupMember[];
   isLoading?: boolean;
+  initialTransactionType?: TransactionType | null;
 }
-
-const CATEGORIES = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Healthcare',
-  'Education',
-  'Utilities',
-  'Rent',
-  'Salary',
-  'Freelance',
-  'Investment',
-  'Other'
-];
-
-const PAYMENT_MODES = [
-  'Cash',
-  'UPI',
-  'Credit Card',
-  'Debit Card',
-  'Bank Transfer',
-  'Digital Wallet',
-  'Other'
-];
 
 export default function AddTransactionForm({
   open,
@@ -62,7 +39,8 @@ export default function AddTransactionForm({
   groupId,
   currentUser,
   groupMembers = [],
-  isLoading = false
+  isLoading = false,
+  initialTransactionType = null
 }: AddTransactionFormProps) {
   const [error, setError] = useState<string>('');
   
@@ -84,7 +62,7 @@ export default function AddTransactionForm({
     defaultValues: {
       group_id: groupId,
       user_id: currentUser.id,
-      type: TransactionType.EXPENSE,
+      type: initialTransactionType || TransactionType.EXPENSE,
       amount: '',
       note: '',
       category: '',
@@ -203,7 +181,7 @@ export default function AddTransactionForm({
                 <FormControl fullWidth>
                   <InputLabel>Category</InputLabel>
                   <Select {...field} label="Category">
-                    {CATEGORIES.map((category) => (
+                    {TRANSACTION_CATEGORIES.map((category) => (
                       <MenuItem key={category} value={category}>
                         {category}
                       </MenuItem>

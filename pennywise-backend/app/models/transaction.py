@@ -2,11 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enu
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-import enum
-
-class TransactionType(enum.Enum):
-    INCOME = "INCOME"
-    EXPENSE = "EXPENSE"
+from app.constants.transactions import TransactionType
 
 class Transaction(Base):
     __tablename__ = "transactions"

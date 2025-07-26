@@ -1,11 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
-from enum import Enum
-
-class TransactionType(str, Enum):
-    INCOME = "INCOME"
-    EXPENSE = "EXPENSE"
+from app.constants.transactions import TransactionType
 
 class TransactionBase(BaseModel):
     group_id: int  # Refers to Group
@@ -20,6 +16,27 @@ class TransactionBase(BaseModel):
 
 class TransactionCreate(TransactionBase):
     pass
+
+class TransactionUpdate(BaseModel):
+    """Complete transaction object for updates - includes all fields"""
+    id: int
+    group_id: int
+    user_id: int
+    amount: float
+    type: TransactionType
+    note: Optional[str] = None
+    category: Optional[str] = None
+    payment_mode: Optional[str] = None
+    date: Optional[datetime] = None
+    paid_by: Optional[int] = None
+    # User information (optional for updates)
+    user_full_name: Optional[str] = None
+    user_email: Optional[str] = None
+    user_username: Optional[str] = None
+    # Paid by user information (optional for updates)
+    paid_by_full_name: Optional[str] = None
+    paid_by_email: Optional[str] = None
+    paid_by_username: Optional[str] = None
 
 class BulkTransactionCreate(BaseModel):
     transactions: List[TransactionCreate]

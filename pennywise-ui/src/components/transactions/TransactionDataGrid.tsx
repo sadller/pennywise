@@ -1,10 +1,23 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import React, { useMemo, useState } from 'react';
+import { DataGrid, GridColDef, GridPaginationModel, GridRowModel, GridRowId, GridRowModes, GridRowModesModel, GridRowEditStopReasons, GridActionsCellItem, GridRowEditStopParams, MuiEvent, MuiBaseEvent } from '@mui/x-data-grid';
 import { Box, Typography, Avatar, Chip } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
+import { transactionService } from '@/services/transactionService';
+import { 
+  TRANSACTION_CATEGORIES, 
+  PAYMENT_MODES, 
+  TRANSACTION_TYPES,
+  getCategoryColor,
+  getUserColor,
+  getTransactionTypeLabel,
+  getTransactionTypeColor
+} from '@/constants/transactions';
 
 interface TransactionDataGridProps {
   transactions: Transaction[];
@@ -12,6 +25,8 @@ interface TransactionDataGridProps {
   rowCount?: number;
   paginationModel: GridPaginationModel;
   onPaginationModelChange: (model: GridPaginationModel) => void;
+  onDeleteTransaction?: (transaction: Transaction) => void;
+  onTransactionUpdated?: () => void;
 }
 
 export default function TransactionDataGrid({
@@ -20,7 +35,12 @@ export default function TransactionDataGrid({
   rowCount,
   paginationModel,
   onPaginationModelChange,
+  onDeleteTransaction,
+  onTransactionUpdated,
 }: TransactionDataGridProps) {
+  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
+  const [updatingTransactionId, setUpdatingTransactionId] = useState<number | null>(null);
+
   // Calculate cumulative balance
   const transactionsWithBalance = useMemo(() => {
     let runningBalance = 0;
@@ -51,36 +71,71 @@ export default function TransactionDataGrid({
     return transaction.paid_by_full_name || 'Unknown';
   };
 
-  // Generate consistent colors for categories and users
-  const generateColor = (text: string): string => {
-    const colors = [
-      '#64B5F6', '#81C784', '#FFB74D', '#BA68C8', '#E57373',
-      '#4DD0E1', '#AED581', '#FF8A65', '#F06292', '#7986CB',
-      '#4DB6AC', '#A1887F', '#FF8A65', '#9575CD', '#42A5F5',
-      '#9CCC65', '#EF5350', '#FF7043', '#F48FB1', '#80CBC4'
-    ];
-    const hash = text.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return colors[Math.abs(hash) % colors.length];
+  const handleRowEditStop = (params: GridRowEditStopParams, event: MuiEvent<MuiBaseEvent>) => {
+    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
+      event.defaultMuiPrevented = true;
+    }
+    // Cancel edit mode on ESC key
+    if (params.reason === GridRowEditStopReasons.escapeKeyDown) {
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [params.id]: { mode: GridRowModes.View, ignoreModifications: true },
+      }));
+    }
   };
 
-  const getCategoryColor = (category: string): string => {
-    return generateColor(category || 'Unknown');
+  const handleSaveClick = (id: GridRowId) => () => {
+    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
   };
 
-  const getUserColor = (userName: string): string => {
-    return generateColor(userName);
+  const handleCancelClick = (id: GridRowId) => () => {
+    setRowModesModel({
+      ...rowModesModel,
+      [id]: { mode: GridRowModes.View, ignoreModifications: true },
+    });
   };
 
-  const columns: GridColDef<(typeof transactionsWithBalance)[number]>[] = [
+  const processRowUpdate = async (newRow: GridRowModel) => {
+    const updatedTransaction = newRow as Transaction;
+    setUpdatingTransactionId(updatedTransaction.id);
+    
+    try {
+      // Find the original transaction to preserve all existing fields
+      const originalTransaction = transactions.find(t => t.id === updatedTransaction.id);
+      if (!originalTransaction) {
+        throw new Error('Original transaction not found');
+      }
+
+      // Create complete transaction object with all existing fields plus updated ones
+      const completeTransactionData = {
+        ...originalTransaction, // Preserve all existing fields
+        ...updatedTransaction,  // Override with updated fields
+        id: originalTransaction.id, // Ensure ID is preserved
+      };
+
+      await transactionService.updateTransaction(updatedTransaction.id, completeTransactionData);
+      onTransactionUpdated?.();
+      return updatedTransaction;
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    } finally {
+      setUpdatingTransactionId(null);
+    }
+  };
+
+  const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
+    setRowModesModel(newRowModesModel);
+  };
+
+  const columns: GridColDef[] = [
     {
       field: 'date',
       headerName: 'Date & Time',
       minWidth: 140,
       flex: 1,
       maxWidth: 200,
+      editable: false,
       renderCell: (params) => {
         const date = new Date(params.value);
         const isTodayDate = isToday(date);
@@ -115,6 +170,8 @@ export default function TransactionDataGrid({
       minWidth: 200,
       flex: 2,
       maxWidth: 400,
+      editable: true,
+      type: 'string',
     },
     {
       field: 'category',
@@ -122,6 +179,9 @@ export default function TransactionDataGrid({
       minWidth: 120,
       flex: 0.8,
       maxWidth: 180,
+      editable: true,
+      type: 'singleSelect',
+      valueOptions: TRANSACTION_CATEGORIES,
       renderCell: (params) => {
         const category = params.value || 'Unknown';
         return (
@@ -149,6 +209,9 @@ export default function TransactionDataGrid({
       minWidth: 120,
       flex: 0.8,
       maxWidth: 180,
+      editable: true,
+      type: 'singleSelect',
+      valueOptions: PAYMENT_MODES,
     },
     {
       field: 'paid_by',
@@ -156,6 +219,7 @@ export default function TransactionDataGrid({
       minWidth: 140,
       flex: 1,
       maxWidth: 220,
+      editable: false, // This would need user selection from group members
       renderCell: (params) => {
         const transaction = params.row;
         const paidByName = getPaidByName(transaction);
@@ -194,6 +258,35 @@ export default function TransactionDataGrid({
       minWidth: 100,
       flex: 0.6,
       maxWidth: 150,
+      editable: true,
+      preProcessEditCellProps: (params) => {
+        const hasError = params.props.value <= 0;
+        return { ...params.props, error: hasError };
+      },
+    },
+    {
+      field: 'type',
+      headerName: 'Type',
+      minWidth: 100,
+      flex: 0.6,
+      maxWidth: 150,
+      editable: true,
+      type: 'singleSelect',
+      valueOptions: TRANSACTION_TYPES,
+      renderCell: (params) => {
+        const type = params.value;
+        return (
+          <Chip
+            label={getTransactionTypeLabel(type)}
+            size="small"
+            sx={{
+              backgroundColor: getTransactionTypeColor(type),
+              color: 'white',
+              fontWeight: 500,
+            }}
+          />
+        );
+      },
     },
     {
       field: 'balance',
@@ -202,6 +295,52 @@ export default function TransactionDataGrid({
       minWidth: 100,
       flex: 0.6,
       maxWidth: 150,
+      editable: false,
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      cellClassName: 'actions',
+      getActions: ({ id }) => {
+        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
+        const isUpdating = updatingTransactionId === id;
+
+        if (isInEditMode) {
+          return [
+            <GridActionsCellItem
+              key="save"
+              icon={<SaveIcon />}
+              label="Save"
+              onClick={handleSaveClick(id)}
+              disabled={isUpdating}
+              color="primary"
+            />,
+            <GridActionsCellItem
+              key="cancel"
+              icon={<CancelIcon />}
+              label="Cancel"
+              onClick={handleCancelClick(id)}
+              disabled={isUpdating}
+              color="inherit"
+            />,
+          ];
+        }
+
+        return [
+          <GridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon />}
+            label="Delete"
+            onClick={() => onDeleteTransaction?.(transactionsWithBalance.find(t => t.id === id)!)}
+            disabled={isUpdating}
+            className="textError"
+            color="inherit"
+            showInMenu={false}
+          />,
+        ];
+      },
     },
   ];
 
@@ -210,9 +349,12 @@ export default function TransactionDataGrid({
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}
+        editMode="row"
+        rowModesModel={rowModesModel}
+        onRowModesModelChange={handleRowModesModelChange}
+        onRowEditStop={handleRowEditStop}
+        processRowUpdate={processRowUpdate}
         showColumnVerticalBorder={true}
-        // showCellVerticalBorder={true}
-        // checkboxSelection
         disableRowSelectionOnClick
         loading={isLoading}
         pagination
@@ -262,38 +404,6 @@ export default function TransactionDataGrid({
           toolbar: {
             quickFilterProps: {
               debounceMs: 200,
-            },
-          },
-        }}
-        sx={{
-          border: '2px solid',
-          borderColor: 'grey.100',
-          backgroundColor: 'white',
-          '& .MuiDataGrid-cell': {
-            borderBottom: '1px solid',
-            borderColor: 'grey.100',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            borderBottom: '1px solid',
-            borderColor: 'grey.200',
-            backgroundColor: 'grey.50',
-          },
-          '& .MuiDataGrid-columnHeader': {
-            borderRight: '1px solid',
-            borderColor: 'grey.200',
-          },
-          '& .MuiDataGrid-toolbar': {
-            backgroundColor: 'grey.50 !important',
-            borderBottom: '1px solid',
-            borderColor: 'grey.200',
-          },
-          '& .MuiDataGrid-toolbarContainer': {
-            backgroundColor: 'grey.50 !important',
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: '#e3f2fd',
-            '& .MuiDataGrid-cell': {
-              border: 'none',
             },
           },
         }}

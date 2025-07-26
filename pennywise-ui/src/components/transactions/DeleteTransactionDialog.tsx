@@ -38,30 +38,48 @@ export default function DeleteTransactionDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Delete Transaction</DialogTitle>
-      <DialogContent>
-        <Typography>
-          Are you sure you want to delete this transaction? This action cannot be undone.
-        </Typography>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="xs"
+      disableScrollLock
+      container={document.body}
+      scroll="body"
+    >
+      <DialogTitle sx={{ pb: 1 }}>Delete Transaction</DialogTitle>
+      <DialogContent sx={{ pb: 1 }}>
         {transaction && (
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-            <Typography variant="body2">
-              <strong>Amount:</strong> {formatAmount(transaction.amount, transaction.type)}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Are you sure you want to delete this transaction?
             </Typography>
-            {transaction.note && (
-              <Typography variant="body2">
-                <strong>Note:</strong> {transaction.note}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 0.5,
+              p: 1.5, 
+              bgcolor: 'grey.50', 
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'grey.200'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {formatAmount(transaction.amount, transaction.type)}
+                {transaction.note && ` • ${transaction.note}`}
               </Typography>
-            )}
-            <Typography variant="body2">
-              <strong>Date:</strong> {format(new Date(transaction.date), 'MMM dd, yyyy HH:mm')}
-            </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {format(new Date(transaction.date), 'MMM dd, yyyy HH:mm')}
+              </Typography>
+            </Box>
           </Box>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={isDeleting}>
+      <DialogActions sx={{ px: 2.5, pb: 2 }}>
+        <Button 
+          onClick={onClose} 
+          disabled={isDeleting}
+          size="small"
+        >
           Cancel
         </Button>
         <Button 
@@ -69,6 +87,7 @@ export default function DeleteTransactionDialog({
           color="error" 
           variant="contained"
           disabled={isDeleting}
+          size="small"
         >
           {isDeleting ? 'Deleting...' : 'Delete'}
         </Button>

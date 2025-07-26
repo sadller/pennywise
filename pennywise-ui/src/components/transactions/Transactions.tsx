@@ -34,6 +34,7 @@ export default function Transactions({
   groupMembers = []
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [initialTransactionType, setInitialTransactionType] = useState<TransactionType | null>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 20,
@@ -87,12 +88,16 @@ export default function Transactions({
     await createTransactionMutation.mutateAsync(data);
   };
 
-  const handleOpenAddForm = () => {
+  const handleOpenAddForm = (type?: TransactionType) => {
+    if (type) {
+      setInitialTransactionType(type);
+    }
     setIsAddFormOpen(true);
   };
 
   const handleCloseAddForm = () => {
     setIsAddFormOpen(false);
+    setInitialTransactionType(null);
   };
 
   const handleGroupChange = (groupId: number) => {
@@ -101,6 +106,10 @@ export default function Transactions({
   };
 
   const handleTransactionDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  };
+
+  const handleTransactionUpdated = () => {
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
   };
 
@@ -147,6 +156,7 @@ export default function Transactions({
         userGroups={userGroups}
         selectedGroupId={ui.selectedGroupId}
         onGroupChange={handleGroupChange}
+        onAddTransaction={handleOpenAddForm}
       />
 
       {/* Summary Section */}
@@ -161,9 +171,12 @@ export default function Transactions({
         transactions={transactions} 
         isLoading={isLoading}
         onTransactionDeleted={handleTransactionDeleted}
+        onTransactionUpdated={handleTransactionUpdated}
         rowCount={totalCount}
         paginationModel={paginationModel}
         onPaginationModelChange={handlePaginationModelChange}
+        onAddTransaction={handleOpenAddForm}
+        selectedGroupId={ui.selectedGroupId}
       />
 
       <AddTransactionForm
@@ -174,6 +187,7 @@ export default function Transactions({
         currentUser={currentUser}
         groupMembers={groupMembers}
         isLoading={createTransactionMutation.isPending}
+        initialTransactionType={initialTransactionType}
       />
 
       {/* Floating Action Button for mobile */}
@@ -186,7 +200,7 @@ export default function Transactions({
           right: 16,
           display: { xs: 'flex', sm: 'none' }
         }}
-        onClick={handleOpenAddForm}
+        onClick={() => handleOpenAddForm()}
         disabled={!groupId}
       >
         <AddIcon />
