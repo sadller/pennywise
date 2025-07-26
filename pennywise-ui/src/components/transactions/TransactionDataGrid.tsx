@@ -134,22 +134,24 @@ export default function TransactionDataGrid({
   const columns: GridColDef[] = [
     {
       field: 'date',
-      headerName: 'Date & Time',
-      minWidth: 140,
-      flex: 1,
-      maxWidth: 200,
+      headerName: 'Date',
+      minWidth: 120,
+      flex: 0.8,
+      maxWidth: 150,
       editable: false,
       renderCell: (params) => {
         const date = new Date(params.value);
         const isTodayDate = isToday(date);
+        const formattedDate = isTodayDate ? 'Today' : format(date, 'dd MMM, yyyy');
         
         return (
-          <Box sx={{ pt: 1.1, m: 0, lineHeight: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', height: '100%' }}>
-            <Typography variant="body2" sx={{ lineHeight: 1, mb: 0 }}>
-              {isTodayDate ? 'Today' : format(date, 'dd MMM, yyyy')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1, mt: 0 }}>
-              {format(date, 'hh:mm a')}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            height: '100%'
+          }}>
+            <Typography variant="body2">
+              {formattedDate}
             </Typography>
           </Box>
         );
