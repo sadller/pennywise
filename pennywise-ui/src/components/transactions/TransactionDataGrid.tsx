@@ -78,7 +78,9 @@ export default function TransactionDataGrid({
     {
       field: 'date',
       headerName: 'Date & Time',
-      width: 200,
+      minWidth: 140,
+      flex: 1,
+      maxWidth: 200,
       renderCell: (params) => {
         const date = new Date(params.value);
         const isTodayDate = isToday(date);
@@ -110,12 +112,16 @@ export default function TransactionDataGrid({
     {
       field: 'note',
       headerName: 'Description',
-      width: 250,
+      minWidth: 200,
+      flex: 2,
+      maxWidth: 400,
     },
     {
       field: 'category',
       headerName: 'Category',
-      width: 150,
+      minWidth: 120,
+      flex: 0.8,
+      maxWidth: 180,
       renderCell: (params) => {
         const category = params.value || 'Unknown';
         return (
@@ -140,12 +146,16 @@ export default function TransactionDataGrid({
     {
       field: 'payment_mode',
       headerName: 'Payment Mode',
-      width: 150,
+      minWidth: 120,
+      flex: 0.8,
+      maxWidth: 180,
     },
     {
       field: 'paid_by',
       headerName: 'Paid By',
-      width: 150,
+      minWidth: 140,
+      flex: 1,
+      maxWidth: 220,
       renderCell: (params) => {
         const transaction = params.row;
         const paidByName = getPaidByName(transaction);
@@ -181,13 +191,17 @@ export default function TransactionDataGrid({
       field: 'amount',
       headerName: 'Amount',
       type: 'number',
-      width: 120,
+      minWidth: 100,
+      flex: 0.6,
+      maxWidth: 150,
     },
     {
       field: 'balance',
       headerName: 'Balance',
       type: 'number',
-      width: 120,
+      minWidth: 100,
+      flex: 0.6,
+      maxWidth: 150,
     },
   ];
 
