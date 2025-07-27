@@ -32,11 +32,10 @@ const DashboardContent = observer(() => {
   });
 
   useEffect(() => {
-    if (!auth.user) {
+    if (!auth.isLoading && !auth.user) {
       router.replace('/');
-      return;
     }
-  }, [auth.user, router]);
+  }, [auth.isLoading, auth.user, router]);
 
   // Filter transactions based on active filters
   const filteredTransactions = React.useMemo(() => {

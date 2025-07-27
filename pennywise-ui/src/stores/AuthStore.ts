@@ -24,6 +24,11 @@ class AuthStore {
     } catch {
       console.error('Error fetching user profile');
       this.clearAuth();
+    } finally {
+      // Mark loading as complete once we have attempted to fetch the user
+      runInAction(() => {
+        this.isLoading = false;
+      });
     }
   }
 
@@ -93,6 +98,11 @@ class AuthStore {
       });
       return;
     }
+
+    // Begin loading state while we determine authentication
+    runInAction(() => {
+      this.isLoading = true;
+    });
     
     // Check for existing token on app load
     const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -105,20 +115,22 @@ class AuthStore {
             runInAction(() => {
               this.token = storedToken;
             });
+            // fetchUserProfile will set isLoading to false when done
             this.fetchUserProfile();
-          } else {
-            // Token is expired, try to refresh
-            this.refreshTokenAndFetchUser();
+            return; // Do not clear loading state yet
           }
+          // Token is expired, try to refresh (this function will handle loading state)
+          this.refreshTokenAndFetchUser();
+          return;
         }
       } catch {
         this.clearAuth();
+        return;
       }
     }
-    
-    runInAction(() => {
-      this.isLoading = false;
-    });
+
+    // No valid token found – clear auth state and stop loading
+    this.clearAuth();
   }
 
   async login(email: string, password: string) {

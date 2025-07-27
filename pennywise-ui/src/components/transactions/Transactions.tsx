@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import {
   Box,
   Fab,
@@ -28,7 +29,7 @@ interface TransactionsProps {
   groupMembers?: GroupMember[];
 }
 
-export default function Transactions({ 
+function Transactions({ 
   groupId, 
   currentUser, 
   groupMembers = []
@@ -210,4 +211,6 @@ export default function Transactions({
       </Fab>
     </Box>
   );
-} 
+}
+
+export default observer(Transactions); 
