@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTheme, alpha } from '@mui/material/styles';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -38,14 +39,15 @@ const DailyExpenseChart: React.FC<DailyExpenseChartProps> = ({
   data,
   title = 'Daily Expenses',
 }) => {
+  const theme = useTheme();
   const chartData = {
     labels: data.map(item => item.date),
     datasets: [
       {
         label: 'Daily Expense',
         data: data.map(item => item.amount),
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
-        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: alpha(theme.palette.primary.main, 0.8),
+        borderColor: theme.palette.primary.main,
         borderWidth: 1,
       },
     ],
@@ -80,7 +82,7 @@ const DailyExpenseChart: React.FC<DailyExpenseChartProps> = ({
 
   return (
     <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 300 }}>
         {title}
       </Typography>
       <Box sx={{ height: 300, position: 'relative' }}>

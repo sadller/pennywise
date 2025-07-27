@@ -83,7 +83,7 @@ const ExpenseTrendChart: React.FC<ExpenseTrendChartProps> = ({
 
   return (
     <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 300 }}>
         {title}
       </Typography>
       <Box sx={{ height: 300, position: 'relative' }}>

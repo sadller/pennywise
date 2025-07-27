@@ -13,8 +13,9 @@ import {
   Legend,
   ChartOptions,
 } from 'chart.js';
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, alpha } from '@mui/material';
 import { CURRENCY_SYMBOL } from '@/constants/transactions';
+import { theme } from '@/theme';
 
 ChartJS.register(
   CategoryScale,
@@ -46,8 +47,8 @@ const IncomeTrendChart: React.FC<IncomeTrendChartProps> = ({
       {
         label: 'Cumulative Income',
         data: data.map(item => item.cumulativeIncome),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderColor: theme.palette.primary.main,
+        backgroundColor: alpha(theme.palette.primary.main, 0.2),
         tension: 0.4,
         fill: true,
       },
@@ -83,7 +84,7 @@ const IncomeTrendChart: React.FC<IncomeTrendChartProps> = ({
 
   return (
     <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 300 }}>
         {title}
       </Typography>
       <Box sx={{ height: 300, position: 'relative' }}>
