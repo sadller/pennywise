@@ -6,7 +6,7 @@ import {
   Fab,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
 import { groupService } from '@/services/groupService';
@@ -45,27 +45,30 @@ export default function Transactions({
   // Calculate skip for pagination
   const skip = paginationModel.page * paginationModel.pageSize;
 
-  // Fetch transactions with pagination
-  const {
-    data: paginatedData,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['transactions', groupId, skip, paginationModel.pageSize],
-    queryFn: () => transactionService.getTransactions(groupId, skip, paginationModel.pageSize),
-    enabled: !!groupId,
-    retry: (failureCount, error) => {
-      if (ErrorHandler.isPermissionError(error)) {
-        return false;
-      }
-      return failureCount < 3;
-    },
-  });
+  // Get transactions from store and filter by group
+  const { data } = useStore();
+  const allTransactions = data.allTransactions;
+  
+  // Filter transactions by group and apply pagination
+  const filteredTransactions = React.useMemo(() => {
+    if (!groupId || !allTransactions.length) return [];
+    
+    return allTransactions
+      .filter(transaction => transaction.group_id === groupId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allTransactions, groupId]);
 
-  // Extract transactions from paginated response
-  const transactions = paginatedData?.transactions || [];
-  const totalCount = paginatedData?.total || 0;
+  // Apply pagination to filtered transactions
+  const paginatedTransactions = React.useMemo(() => {
+    const start = skip;
+    const end = start + paginationModel.pageSize;
+    return filteredTransactions.slice(start, end);
+  }, [filteredTransactions, skip, paginationModel.pageSize]);
+
+  const transactions = paginatedTransactions;
+  const totalCount = filteredTransactions.length;
+  const isLoading = data.transactionsLoading;
+  const error = data.transactionsError;
 
   // Fetch user groups for dropdown
   const {
@@ -80,7 +83,7 @@ export default function Transactions({
     mutationFn: (data: TransactionCreate) => 
       transactionService.createTransaction(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
     },
   });
 
@@ -106,11 +109,11 @@ export default function Transactions({
   };
 
   const handleTransactionDeleted = () => {
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
   };
 
   const handleTransactionUpdated = () => {
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
   };
 
   const handlePaginationModelChange = (newModel: GridPaginationModel) => {
@@ -132,14 +135,14 @@ export default function Transactions({
         <Fab
           color="primary"
           aria-label="retry"
-          onClick={() => refetch()}
+          onClick={() => window.location.reload()}
           sx={{
             position: 'fixed',
             bottom: 16,
             right: 16,
           }}
         >
-          <AddIcon />
+          <RefreshIcon />
         </Fab>
       </Box>
     );

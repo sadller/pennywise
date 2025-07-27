@@ -31,14 +31,46 @@ export interface DashboardData {
   highValueTransactions: Transaction[];
 }
 
+export interface DashboardDateRange {
+  startDate?: Date;
+  endDate?: Date;
+}
+
 const getCategoryColor = (category: string): string => {
   return CATEGORY_COLORS[category.toLowerCase()] || CATEGORY_COLORS.other;
 };
 
-const processTransactionData = (transactions: Transaction[]): DashboardData => {
+const processTransactionData = (
+  transactions: Transaction[],
+  dateRange?: DashboardDateRange
+): DashboardData => {
+  // Determine date range for trends
+  let startDate: Date;
+  let endDate: Date;
+  if (dateRange?.startDate && dateRange?.endDate) {
+    startDate = new Date(dateRange.startDate);
+    endDate = new Date(dateRange.endDate);
+  } else {
+    endDate = new Date();
+    startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 29); // default 30-day window
+  }
+  // Ensure startDate is before endDate
+  if (startDate > endDate) {
+    const tmp = startDate;
+    startDate = endDate;
+    endDate = tmp;
+  }
+
+  // Filter transactions within date range for calculations
+  const rangeFiltered = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d >= startDate && d <= endDate;
+  });
+
   // Filter only expense transactions for breakdown
-  const expenseTransactions = transactions.filter(t => t.type === TransactionType.EXPENSE);
-  
+  const expenseTransactions = rangeFiltered.filter(t => t.type === TransactionType.EXPENSE);
+
   // Group by category for expense breakdown
   const categoryMap = new Map<string, number>();
   expenseTransactions.forEach(transaction => {
@@ -52,64 +84,35 @@ const processTransactionData = (transactions: Transaction[]): DashboardData => {
     color: getCategoryColor(category),
   }));
 
-  // Calculate income trend data (last 30 days)
+  // Calculate income & expense trends (cumulative)
   const incomeTrendData: IncomeTrendData[] = [];
   const expenseTrendData: ExpenseTrendData[] = [];
-  const today = new Date();
-  
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toLocaleDateString();
-    
-    // Calculate cumulative income up to this date
-    const cumulativeIncome = transactions
-      .filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate <= date && t.type === TransactionType.INCOME;
-      })
+
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = new Date(d).toLocaleDateString();
+    const cumulativeIncome = rangeFiltered
+      .filter(t => new Date(t.date) <= d && t.type === TransactionType.INCOME)
       .reduce((sum, t) => sum + t.amount, 0);
-    
-    // Calculate cumulative expense up to this date
-    const cumulativeExpense = transactions
-      .filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate <= date && t.type === TransactionType.EXPENSE;
-      })
+    const cumulativeExpense = rangeFiltered
+      .filter(t => new Date(t.date) <= d && t.type === TransactionType.EXPENSE)
       .reduce((sum, t) => sum + t.amount, 0);
-    
     incomeTrendData.push({ date: dateStr, cumulativeIncome });
     expenseTrendData.push({ date: dateStr, cumulativeExpense });
   }
 
-  // Calculate daily expenses (last 7 days)
+  // Daily expenses for the entire selected date range
   const dailyExpenses: DailyExpenseData[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toLocaleDateString();
-    
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = new Date(d).toLocaleDateString();
     const dailyAmount = expenseTransactions
-      .filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.toDateString() === date.toDateString();
-      })
+      .filter(t => new Date(t.date).toDateString() === d.toDateString())
       .reduce((sum, t) => sum + t.amount, 0);
-    
     dailyExpenses.push({ date: dateStr, amount: dailyAmount });
   }
 
-  // Get recent transactions (last 10)
-  const recentTransactions = transactions
-    .slice() // Create a copy to avoid mutating the observable array
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10);
-
-  // Get high value transactions (top 5 by amount)
-  const highValueTransactions = transactions
-    .slice()
-    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
-    .slice(0, 5);
+  // Recent & high value transactions from rangeFiltered
+  const recentTransactions = rangeFiltered.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+  const highValueTransactions = rangeFiltered.slice().sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 5);
 
   return {
     expenseBreakdown,
@@ -122,7 +125,7 @@ const processTransactionData = (transactions: Transaction[]): DashboardData => {
 };
 
 export const dashboardService = {
-  getDashboardDataFromTransactions(transactions: Transaction[]): DashboardData {
-    return processTransactionData(transactions);
+  getDashboardDataFromTransactions(transactions: Transaction[], dateRange?: DashboardDateRange): DashboardData {
+    return processTransactionData(transactions, dateRange);
   },
 }; 

@@ -6,14 +6,19 @@ export const transactionService = {
   async getTransactions(
     groupId?: number, 
     skip: number = 0, 
-    limit: number = 20
+    limit: number = 20,
+    all?: boolean
   ): Promise<PaginatedTransactionResponse> {
     const params = new URLSearchParams();
     if (groupId) {
       params.append('group_id', groupId.toString());
     }
-    params.append('skip', skip.toString());
-    params.append('limit', limit.toString());
+    if (all) {
+      params.append('all', 'true');
+    } else {
+      params.append('skip', skip.toString());
+      params.append('limit', limit.toString());
+    }
     
     const response = await apiClient.get<PaginatedTransactionResponse>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}?${params.toString()}`);
     return response;

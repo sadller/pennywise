@@ -49,7 +49,7 @@ const DataProvider = observer(({ children }: DataProviderProps) => {
     error: transactionsError,
   } = useQuery({
     queryKey: ['all-transactions'],
-    queryFn: () => transactionService.getTransactions(), // Get all transactions without group filter
+    queryFn: () => transactionService.getTransactions(undefined, undefined, undefined, true), // Use only all=true for dashboard
     enabled: !!auth.user,
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: true,
