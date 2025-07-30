@@ -146,8 +146,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         {/* Left column: Paid By & Category (30%) */}
         <Box
           sx={{
-            flex: '0 0 30%',
-            minWidth: 250,
+            flex: { xs: '1 1 100%', md: '0 0 30%' },
+            minWidth: { xs: '100%', md: 250 },
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
@@ -189,7 +189,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </Box>
 
         {/* Right column: Duration (pushed to right) */}
-        <Box sx={{ flex: '0 0 auto', minWidth: 300, ml: 'auto' }}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: { xs: '100%', md: 300 }, ml: { xs: 0, md: 'auto' } }}>
           <Typography variant="subtitle2" gutterBottom>
             Duration
           </Typography>
