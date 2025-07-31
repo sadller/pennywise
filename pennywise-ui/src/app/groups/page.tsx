@@ -68,6 +68,7 @@ const GroupsContent = observer(() => {
     mutationFn: (groupId: number) => groupService.deleteGroup(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
       ui.closeDeleteDialog();
       
       // If the deleted group was the currently selected group, clear the selection
@@ -85,6 +86,7 @@ const GroupsContent = observer(() => {
     mutationFn: (data: { name: string }) => groupService.createGroup(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
       ui.closeCreateGroupForm();
     },
     onError: (error) => {

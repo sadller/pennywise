@@ -85,6 +85,7 @@ function Transactions({
       transactionService.createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
     },
   });
 
@@ -111,10 +112,12 @@ function Transactions({
 
   const handleTransactionDeleted = () => {
     queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
   };
 
   const handleTransactionUpdated = () => {
     queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
   };
 
   const handlePaginationModelChange = (newModel: GridPaginationModel) => {
