@@ -48,6 +48,7 @@ export default function AddTransactionForm({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<{
     group_id: number;
@@ -70,6 +71,12 @@ export default function AddTransactionForm({
       paid_by: currentUser.id,
     }
   });
+
+  React.useEffect(() => {
+    if (initialTransactionType) {
+      setValue('type', initialTransactionType);
+    }
+  }, [initialTransactionType, setValue]);
 
   const handleFormSubmit = async (data: {
     group_id: number;
