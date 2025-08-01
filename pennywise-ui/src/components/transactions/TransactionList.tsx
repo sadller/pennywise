@@ -6,15 +6,21 @@ import {
   Typography,
   Alert,
   Button,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
+  Mic as MicIcon,
 } from '@mui/icons-material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
+import { SpeechToTextRecorder } from '@/components/common';
 import { GridPaginationModel } from '@mui/x-data-grid';
 import { GroupMember } from '@/types/group';
 
@@ -46,6 +52,7 @@ export default function TransactionList({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showRecorder, setShowRecorder] = useState(false);
 
   const handleDeleteClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -94,7 +101,15 @@ export default function TransactionList({
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Transactions ({rowCount ?? transactions.length})
         </Typography>
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1 }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, alignItems: 'center' }}>
+          <IconButton
+            size="small"
+            onClick={() => setShowRecorder(prev => !prev)}
+            color={showRecorder ? 'primary' : 'default'}
+            aria-label="toggle voice recorder"
+          >
+            <MicIcon />
+          </IconButton>
           <Button
             size="small"
             variant="contained"
@@ -137,6 +152,19 @@ export default function TransactionList({
         onClose={handleCloseDialog}
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* Speech Recorder Dialog */}
+      <Dialog
+        open={showRecorder}
+        onClose={() => setShowRecorder(false)}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle>Voice Recorder</DialogTitle>
+        <DialogContent sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
+          <SpeechToTextRecorder />
+        </DialogContent>
+      </Dialog>
     </>
   );
 } 
