@@ -20,7 +20,15 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, format } from 'date-fns';
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  startOfYear,
+  endOfYear,
+  subYears,
+  format,
+} from 'date-fns';
 import { Transaction } from '@/types/transaction';
 
 export interface FilterState {
@@ -48,7 +56,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   });
   const [customDateDialog, setCustomDateDialog] = useState(false);
 
-  // Get unique paid by users
+  // Memo helpers --------------------------------------------------
   const paidByUsers = React.useMemo(() => {
     const users = new Set<string>();
     transactions.forEach(t => {
@@ -58,42 +66,30 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     return Array.from(users).sort();
   }, [transactions]);
 
-  // Get unique categories
   const categories = React.useMemo(() => {
     const cats = new Set<string>();
     transactions.forEach(t => {
-      if (t.category) {
-        cats.add(t.category);
-      }
+      if (t.category) cats.add(t.category);
     });
     return Array.from(cats).sort();
   }, [transactions]);
 
-  // Get unique groups
   const groups = React.useMemo(() => {
     const gs = new Set<string>();
-
-    // Prefer names from store (authoritative)
-    data.groupsWithStats.forEach(g => {
-      gs.add(g.name);
-    });
-
-    // Fallback: extract from transactions if present
+    // authoritative list from store
+    data.groupsWithStats.forEach(g => gs.add(g.name));
+    // fallback from transactions
     transactions.forEach(t => {
-      if (t.group_name) {
-        gs.add(t.group_name);
-      }
+      if (t.group_name) gs.add(t.group_name);
     });
-
     return Array.from(gs).sort();
   }, [transactions, data.groupsWithStats]);
 
+  // Handlers ------------------------------------------------------
   const handleDurationChange = (duration: FilterState['duration']) => {
     let startDate: Date | undefined;
     let endDate: Date | undefined;
-
     const now = new Date();
-
     switch (duration) {
       case 'current_month':
         startDate = startOfMonth(now);
@@ -105,7 +101,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         break;
       case 'current_year':
         startDate = startOfYear(now);
-        endDate = now; // Use current date as end date
+        endDate = now;
         break;
       case 'last_year':
         startDate = startOfYear(subYears(now, 1));
@@ -115,7 +111,6 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         setCustomDateDialog(true);
         return;
     }
-
     const newFilters: FilterState = { ...filters, duration, startDate, endDate };
     setFilters(newFilters);
     onFiltersChange(newFilters);
@@ -167,40 +162,38 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     }
   };
 
+  // Common style for dropdowns
+  const dropdownSx = {
+    flex: { xs: '1 1 100%', sm: '0 0 250px' },
+    minWidth: { xs: '100%', sm: 200 },
+    maxWidth: 250,
+  } as const;
+
   return (
     <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-      {/* Title removed as per design */}
-      
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-        {/* Left column: Paid By & Category (30%) */}
-        <Box
-          sx={{
-            flex: { xs: '1 1 100%', md: '0 0 30%' },
-            minWidth: { xs: '100%', md: 250 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          }}
-        >
-          {/* Paid By */}
-          <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-            <InputLabel>Paid By</InputLabel>
+      {/* Filters Layout */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Row 1: Group & Category */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {/* Group */}
+          <FormControl fullWidth size="small" sx={dropdownSx}>
+            <InputLabel>Group</InputLabel>
             <Select
-              value={filters.paidBy || 'all'}
-              label="Paid By"
-              onChange={(e) => handlePaidByChange(e.target.value)}
+              value={filters.group || 'all'}
+              label="Group"
+              onChange={(e) => handleGroupChange(e.target.value)}
             >
-              <MenuItem value="all">All Users</MenuItem>
-              {paidByUsers.map((user) => (
-                <MenuItem key={user} value={user}>
-                  {user}
+              <MenuItem value="all">All Groups</MenuItem>
+              {groups.map((group) => (
+                <MenuItem key={group} value={group}>
+                  {group}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           {/* Category */}
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" sx={dropdownSx}>
             <InputLabel>Category</InputLabel>
             <Select
               value={filters.category || 'all'}
@@ -217,65 +210,43 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           </FormControl>
         </Box>
 
-        {/* Right column: Duration (pushed to right) */}
-        <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: { xs: '100%', md: 300 }, ml: { xs: 0, md: 'auto' } }}>
-          {/* Group Filter */}
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>Group</InputLabel>
+        {/* Row 2: Paid By & Duration */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          {/* Paid By */}
+          <FormControl fullWidth size="small" sx={dropdownSx}>
+            <InputLabel>Paid By</InputLabel>
             <Select
-              value={filters.group || 'all'}
-              label="Group"
-              onChange={(e) => handleGroupChange(e.target.value)}
+              value={filters.paidBy || 'all'}
+              label="Paid By"
+              onChange={(e) => handlePaidByChange(e.target.value)}
             >
-              <MenuItem value="all">All Groups</MenuItem>
-              {groups.map((group) => (
-                <MenuItem key={group} value={group}>
-                  {group}
+              <MenuItem value="all">All Users</MenuItem>
+              {paidByUsers.map((user) => (
+                <MenuItem key={user} value={user}>
+                  {user}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <Typography variant="subtitle2" gutterBottom>
-            Duration
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <Chip
-              label="Current Month"
-              color={filters.duration === 'current_month' ? 'primary' : 'default'}
-              onClick={() => handleDurationChange('current_month')}
-              size="small"
-            />
-            <Chip
-              label="Last Month"
-              color={filters.duration === 'last_month' ? 'primary' : 'default'}
-              onClick={() => handleDurationChange('last_month')}
-              size="small"
-            />
-            <Chip
-              label="Current Year"
-              color={filters.duration === 'current_year' ? 'primary' : 'default'}
-              onClick={() => handleDurationChange('current_year')}
-              size="small"
-            />
-            <Chip
-              label="Last Year"
-              color={filters.duration === 'last_year' ? 'primary' : 'default'}
-              onClick={() => handleDurationChange('last_year')}
-              size="small"
-            />
-            <Chip
-              label="Custom"
-              color={filters.duration === 'custom' ? 'primary' : 'default'}
-              onClick={() => handleDurationChange('custom')}
-              size="small"
-            />
-          </Box>
-          {filters.duration === 'custom' && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              {getDurationLabel()}
+          {/* Duration */}
+          <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 250 } }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Duration
             </Typography>
-          )}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Chip label="Current Month" color={filters.duration === 'current_month' ? 'primary' : 'default'} onClick={() => handleDurationChange('current_month')} size="small" />
+              <Chip label="Last Month" color={filters.duration === 'last_month' ? 'primary' : 'default'} onClick={() => handleDurationChange('last_month')} size="small" />
+              <Chip label="Current Year" color={filters.duration === 'current_year' ? 'primary' : 'default'} onClick={() => handleDurationChange('current_year')} size="small" />
+              <Chip label="Last Year" color={filters.duration === 'last_year' ? 'primary' : 'default'} onClick={() => handleDurationChange('last_year')} size="small" />
+              <Chip label="Custom" color={filters.duration === 'custom' ? 'primary' : 'default'} onClick={() => handleDurationChange('custom')} size="small" />
+            </Box>
+            {filters.duration === 'custom' && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                {getDurationLabel()}
+              </Typography>
+            )}
+          </Box>
         </Box>
       </Box>
 
@@ -306,11 +277,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCustomDateDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={handleCustomDateConfirm}
-            variant="contained"
-            disabled={!filters.startDate || !filters.endDate}
-          >
+          <Button onClick={handleCustomDateConfirm} variant="contained" disabled={!filters.startDate || !filters.endDate}>
             Apply
           </Button>
         </DialogActions>
@@ -319,4 +286,4 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   );
 };
 
-export default DashboardFilters; 
+export default DashboardFilters;
