@@ -29,6 +29,7 @@ const DashboardContent = observer(() => {
     endDate: undefined as Date | undefined,
     paidBy: undefined as string | undefined,
     category: undefined as string | undefined,
+    group: undefined as string | undefined,
   });
 
   useEffect(() => {
@@ -63,9 +64,17 @@ const DashboardContent = observer(() => {
         return false;
       }
 
+      // Group filtering
+      if (activeFilters.group) {
+        const groupName = transaction.group_name || (data.groupsWithStats.find(g => g.id === transaction.group_id)?.name ?? `Group ${transaction.group_id}`);
+        if (groupName !== activeFilters.group) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [data.allTransactions, activeFilters]);
+  }, [data.allTransactions, data.groupsWithStats, activeFilters]);
 
   // Process filtered transaction data for dashboard
   const dashboardData = filteredTransactions.length > 0 
@@ -93,6 +102,7 @@ const DashboardContent = observer(() => {
             endDate: filters.endDate,
             paidBy: filters.paidBy,
             category: filters.category,
+            group: filters.group,
           });
         }}
       />
@@ -102,7 +112,7 @@ const DashboardContent = observer(() => {
         <Typography variant="body2" color="info.contrastText">
           Total transactions: {data.allTransactions.length} | 
           Filtered transactions: {filteredTransactions.length} | 
-          Active filters: {activeFilters.paidBy ? 'Paid by' : ''} {activeFilters.category ? 'Category' : ''} {activeFilters.startDate ? 'Date' : ''}
+          Active filters: {activeFilters.paidBy ? 'Paid by' : ''} {activeFilters.category ? 'Category' : ''} {activeFilters.group ? 'Group' : ''} {activeFilters.startDate ? 'Date' : ''}
           {activeFilters.startDate && activeFilters.endDate && 
             ` • Date range: ${activeFilters.startDate.toLocaleDateString()} - ${activeFilters.endDate.toLocaleDateString()}`
           }

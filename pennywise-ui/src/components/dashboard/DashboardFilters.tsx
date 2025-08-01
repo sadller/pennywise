@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useStore } from '@/stores/StoreProvider';
 import {
   Paper,
   Typography,
@@ -28,6 +29,7 @@ export interface FilterState {
   endDate?: Date;
   paidBy?: string;
   category?: string;
+  group?: string;
 }
 
 interface DashboardFiltersProps {
@@ -39,6 +41,8 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   transactions,
   onFiltersChange,
 }) => {
+  const { data } = useStore();
+
   const [filters, setFilters] = useState<FilterState>({
     duration: 'current_month',
   });
@@ -64,6 +68,25 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     });
     return Array.from(cats).sort();
   }, [transactions]);
+
+  // Get unique groups
+  const groups = React.useMemo(() => {
+    const gs = new Set<string>();
+
+    // Prefer names from store (authoritative)
+    data.groupsWithStats.forEach(g => {
+      gs.add(g.name);
+    });
+
+    // Fallback: extract from transactions if present
+    transactions.forEach(t => {
+      if (t.group_name) {
+        gs.add(t.group_name);
+      }
+    });
+
+    return Array.from(gs).sort();
+  }, [transactions, data.groupsWithStats]);
 
   const handleDurationChange = (duration: FilterState['duration']) => {
     let startDate: Date | undefined;
@@ -115,6 +138,12 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 
   const handleCategoryChange = (category: string) => {
     const newFilters = { ...filters, category: category === 'all' ? undefined : category } as FilterState;
+    setFilters(newFilters);
+    onFiltersChange(newFilters);
+  };
+
+  const handleGroupChange = (group: string) => {
+    const newFilters = { ...filters, group: group === 'all' ? undefined : group } as FilterState;
     setFilters(newFilters);
     onFiltersChange(newFilters);
   };
@@ -190,6 +219,23 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
 
         {/* Right column: Duration (pushed to right) */}
         <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: { xs: '100%', md: 300 }, ml: { xs: 0, md: 'auto' } }}>
+          {/* Group Filter */}
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Group</InputLabel>
+            <Select
+              value={filters.group || 'all'}
+              label="Group"
+              onChange={(e) => handleGroupChange(e.target.value)}
+            >
+              <MenuItem value="all">All Groups</MenuItem>
+              {groups.map((group) => (
+                <MenuItem key={group} value={group}>
+                  {group}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <Typography variant="subtitle2" gutterBottom>
             Duration
           </Typography>
