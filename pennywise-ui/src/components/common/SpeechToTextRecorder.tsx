@@ -150,8 +150,7 @@ export default function SpeechToTextRecorder({ onTranscriptChange, onProcessTran
   const handleProcessClick = () => {
     if (editableTranscript.trim()) {
       onProcessTranscript?.(editableTranscript);
-      setEditableTranscript('');
-      setFinalTranscript('');
+      // Transcript persists - don't clear it
     }
   };
 

@@ -7,6 +7,7 @@ import json
 import re
 from typing import Dict, List
 from app.core.config import settings
+from app.constants.ai_models import AI_MODELS, DEFAULT_MODELS
 
 
 class AIService:
@@ -16,13 +17,13 @@ class AIService:
         self.api_key = settings.OPENROUTER_API_KEY
         self.base_url = "https://openrouter.ai/api/v1"
     
-    def chat_completion(self, messages: List[Dict[str, str]], model: str = "deepseek/deepseek-r1-0528:free") -> str:
+    def chat_completion(self, messages: List[Dict[str, str]], model: str = AI_MODELS["DEFAULT"]) -> str:
         """
         Make a chat completion request to OpenRouter API.
         
         Args:
             messages: List of message objects with role and content
-            model: AI model to use
+            model: AI model to use (defaults to DEFAULT model)
             
         Returns:
             Generated content from the AI model
@@ -72,6 +73,27 @@ class AIService:
             
         except Exception as e:
             raise Exception(f"OpenRouter API call failed: {str(e)}")
+    
+    def get_model_for_feature(self, feature: str) -> str:
+        """
+        Get the appropriate model for a specific feature.
+        
+        Args:
+            feature: The feature type (TEXT_GENERATION, CODE_GENERATION, etc.)
+            
+        Returns:
+            Model name for the feature
+        """
+        return DEFAULT_MODELS.get(feature, AI_MODELS["DEFAULT"])
+    
+    def get_available_models(self) -> Dict[str, str]:
+        """
+        Get all available models.
+        
+        Returns:
+            Dictionary of model names and their identifiers
+        """
+        return AI_MODELS.copy()
 
 
 # Create singleton instance

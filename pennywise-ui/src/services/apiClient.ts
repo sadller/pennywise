@@ -197,7 +197,7 @@ class ApiClient {
     return this.request<T>(url);
   }
 
-  async post<T>(url: string, data?: unknown): Promise<T> {
+  async post<T>(url: string, data?: unknown, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {};
     if (data) {
       headers['Content-Type'] = 'application/json';
@@ -207,6 +207,7 @@ class ApiClient {
       method: 'POST',
       headers,
       body: data ? JSON.stringify(data) : undefined,
+      ...options,
     });
   }
 

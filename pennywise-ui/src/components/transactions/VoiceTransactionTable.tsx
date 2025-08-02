@@ -1,22 +1,21 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Select,
+  MenuItem,
+  Skeleton,
 } from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridRowsProp,
-  GridRowModesModel,
-  GridRowId,
-  GridRowEditStopParams,
-  MuiEvent,
-} from '@mui/x-data-grid';
-
-import { transactionExtractionService } from '@/services/transactionExtractionService';
 import { TransactionCreate, TransactionType } from '@/types/transaction';
 
 interface VoiceTransactionRow extends Partial<TransactionCreate> {
@@ -24,128 +23,172 @@ interface VoiceTransactionRow extends Partial<TransactionCreate> {
 }
 
 interface VoiceTransactionTableProps {
-  transcript: string;
+  rows: VoiceTransactionRow[];
+  onSubmitAll: () => void;
+  isLoading?: boolean;
 }
 
-export default function VoiceTransactionTable({ transcript }: VoiceTransactionTableProps) {
-  const [rows, setRows] = useState<VoiceTransactionRow[]>([{ id: 1 }]);
-  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
-  const currentRowIdRef = useRef<GridRowId>(1);
+export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = false }: VoiceTransactionTableProps) {
+  const [editableRows, setEditableRows] = useState<VoiceTransactionRow[]>(rows);
 
-  // DataGrid columns, compact styling
-  const columns = useMemo<GridColDef[]>(
-    () => [
-      { field: 'amount', headerName: 'Amount', width: 90, editable: true },
-      { field: 'payment_mode', headerName: 'Mode', width: 90, editable: true },
-      { field: 'date', headerName: 'Date', width: 120, editable: true },
-      { field: 'note', headerName: 'Note', flex: 1, editable: true },
-      { 
-        field: 'type', 
-        headerName: 'Type', 
-        width: 100, 
-        editable: true,
-        type: 'singleSelect',
-        valueOptions: [
-          { value: TransactionType.EXPENSE, label: 'Expense' },
-          { value: TransactionType.INCOME, label: 'Income' }
-        ]
-      },
-    ],
-    []
-  );
-
-  // Process transcript when it's provided (called from parent)
-  const processTranscript = async (text: string) => {
-    if (!text.trim()) return;
-    try {
-      const extracted_transactions = await transactionExtractionService.extractTransactions(text);
-      
-      if (extracted_transactions.length > 0) {
-        // Add new transactions to the grid
-        const newRows = extracted_transactions.map((transaction: Partial<TransactionCreate>, index: number) => ({
-          id: Number(currentRowIdRef.current) + index,
-          ...transaction
-        }));
-        
-        setRows(prevRows => {
-          // Remove the current empty row and add new transactions
-          const filteredRows = prevRows.filter(row => row.id !== currentRowIdRef.current);
-          return [...filteredRows, ...newRows];
-        });
-        
-        // Update the current row ID for next transaction
-        currentRowIdRef.current = Number(currentRowIdRef.current) + extracted_transactions.length;
-      }
-    } catch (err) {
-      console.error('Transaction extraction failed', err);
-    }
-  };
-
-  // Process transcript when it changes (called from parent)
+  // Sync editableRows with rows prop changes
   useEffect(() => {
-    if (transcript) {
-      processTranscript(transcript);
+    setEditableRows(rows);
+  }, [rows]);
+
+  const handleCellChange = (rowId: number, field: keyof VoiceTransactionRow, value: string | number) => {
+    setEditableRows(prevRows =>
+      prevRows.map(row =>
+        row.id === rowId ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  const renderEditableCell = (row: VoiceTransactionRow, field: keyof VoiceTransactionRow, value: string | number | undefined) => {
+    switch (field) {
+      case 'type':
+        return (
+          <Select
+            value={value || ''}
+            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
+            displayEmpty
+            size="small"
+            variant="standard"
+            sx={{ 
+              minWidth: 80, 
+              fontSize: '0.875rem',
+              '& .MuiSelect-select': { py: 0 }
+            }}
+          >
+            <MenuItem value={TransactionType.EXPENSE}>Expense</MenuItem>
+            <MenuItem value={TransactionType.INCOME}>Income</MenuItem>
+          </Select>
+        );
+      
+      case 'amount':
+        return (
+          <TextField
+            size="small"
+            value={value || ''}
+            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
+            type="number"
+            variant="standard"
+            sx={{ 
+              '& .MuiInputBase-input': { 
+                fontSize: '0.875rem',
+                textAlign: 'right',
+                py: 0
+              }
+            }}
+          />
+        );
+      
+      default:
+        return (
+          <TextField
+            size="small"
+            value={value || ''}
+            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
+            variant="standard"
+            sx={{ 
+              '& .MuiInputBase-input': { 
+                fontSize: '0.875rem',
+                py: 0
+              }
+            }}
+          />
+        );
     }
-  }, [transcript]);
-
-  // Add compact styles via sx prop
-  const gridSx = {
-    '& .MuiDataGrid-root': { border: 0 },
-    '& .MuiDataGrid-cell': {
-      py: 0.25,
-      px: 0.25,
-    },
-    '& .MuiDataGrid-columnHeaders': {
-      minHeight: '32px !important',
-      height: '32px !important',
-    },
-    '& .MuiDataGrid-columnHeader': {
-      py: 0,
-    },
-    '& .MuiDataGrid-row': {
-      minHeight: '32px !important',
-      height: '32px !important',
-    },
-  } as const;
-
-  const handleRowEditStop = (
-    params: GridRowEditStopParams,
-    event: MuiEvent
-  ) => {
-    event.defaultMuiPrevented = true;
   };
 
-  const handleRowModesModelChange = (model: GridRowModesModel) => {
-    setRowModesModel(model);
-  };
+  const renderSkeletonRows = () => {
+    const columns = [
+      { width: 90 }, // Amount
+      { width: '100%', flex: 1 }, // Note/Remark
+      { width: 100 }, // Category
+      { width: 90 }, // Mode
+      { width: 120 }, // Date
+      { width: 100 } // Type
+    ];
 
-  const handleSubmitAll = () => {
-    console.log('Submitting rows', rows);
-    // TODO: integrate with transaction creation API
+    return [...Array(8)].map((_, index) => (
+      <TableRow key={`skeleton-${index}`}>
+        {columns.map((column, colIndex) => (
+          <TableCell key={colIndex} sx={{ py: 0.5 }}>
+            <Skeleton
+              variant="text"
+              width={column.width}
+              height={24}
+              sx={{ 
+                flex: column.flex
+              }}
+            />
+          </TableCell>
+        ))}
+      </TableRow>
+    ));
   };
 
   return (
-    <Paper sx={{ p: 1 }}>
-      <Box sx={{ height: 300 }}>
-        <DataGrid
-          rows={rows as GridRowsProp}
-          columns={columns}
-          density="compact"
-          disableColumnMenu
-          hideFooter
-          sx={gridSx}
-          rowModesModel={rowModesModel}
-          onRowModesModelChange={handleRowModesModelChange}
-          editMode="row"
-          onRowEditStop={handleRowEditStop}
-        />
-      </Box>
+    <Box sx={{ p: 1 }}>
+      <TableContainer component={Paper} sx={{ height: 300 }}>
+        <Table sx={{ minWidth: 650 }} size="small" aria-label="voice transaction table">
+          <TableHead>
+            <TableRow>
+              <TableCell>Amount</TableCell>
+              <TableCell>Note/Remark</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Mode</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Type</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
+              renderSkeletonRows()
+            ) : (
+              editableRows.length > 0 ? (
+                editableRows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell align="right">
+                      {renderEditableCell(row, 'amount', row.amount)}
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                      {renderEditableCell(row, 'note', row.note)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {renderEditableCell(row, 'category', row.category)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {renderEditableCell(row, 'payment_mode', row.payment_mode)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {renderEditableCell(row, 'date', row.date)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {renderEditableCell(row, 'type', row.type)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : null
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-        <Button variant="contained" size="small" onClick={handleSubmitAll}>
+        <Button 
+          variant="contained" 
+          size="small" 
+          onClick={onSubmitAll}
+          disabled={editableRows.length === 0}
+        >
           Submit All
         </Button>
       </Box>
-    </Paper>
+    </Box>
   );
 }
