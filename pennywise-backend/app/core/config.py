@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = Field(env="GOOGLE_CLIENT_SECRET", default="")
     GOOGLE_REDIRECT_URI: str = Field(env="GOOGLE_REDIRECT_URI", default="http://localhost:8000/api/v1/auth/google/callback")
     
+    # AI settings
+    OPENROUTER_API_KEY: str = Field(env="OPENROUTER_API_KEY", default="")
+    
     @field_validator("ALLOWED_ORIGINS", mode="before")
     def split_origins(cls, v):
         if isinstance(v, str):

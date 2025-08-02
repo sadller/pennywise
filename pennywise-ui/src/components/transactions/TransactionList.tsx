@@ -6,10 +6,7 @@ import {
   Typography,
   Alert,
   Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  IconButton
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -20,7 +17,7 @@ import { Transaction, TransactionType } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import TransactionDataGrid from './TransactionDataGrid';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
-import { SpeechToTextRecorder } from '@/components/common';
+import { VoiceTransaction } from '@/components/transactions';
 import { GridPaginationModel } from '@mui/x-data-grid';
 import { GroupMember } from '@/types/group';
 
@@ -153,18 +150,8 @@ export default function TransactionList({
         onConfirm={handleDeleteConfirm}
       />
 
-      {/* Speech Recorder Dialog */}
-      <Dialog
-        open={showRecorder}
-        onClose={() => setShowRecorder(false)}
-        fullWidth
-        maxWidth="lg"
-      >
-        <DialogTitle>Voice Recorder</DialogTitle>
-        <DialogContent sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
-          <SpeechToTextRecorder />
-        </DialogContent>
-      </Dialog>
+      {/* Voice Transaction Dialog */}
+      <VoiceTransaction open={showRecorder} onClose={() => setShowRecorder(false)} />
     </>
   );
 } 

@@ -61,4 +61,16 @@ class PaginatedTransactionResponse(BaseModel):
     total: int
     skip: int
     limit: int
-    has_more: bool 
+    has_more: bool
+
+
+# AI Transaction Extraction Schemas
+class TransactionExtractRequest(BaseModel):
+    """Request payload for transaction extraction."""
+    text: str = Field(..., description="Free-form text to extract transactions from.")
+
+
+class TransactionExtractResponse(BaseModel):
+    """Response containing extracted transactions."""
+    transactions: List[dict] = Field(..., description="List of extracted transactions.")
+    total_count: int = Field(..., description="Total number of transactions extracted.") 

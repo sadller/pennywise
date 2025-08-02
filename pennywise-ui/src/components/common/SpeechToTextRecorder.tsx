@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 type SpeechRecognition = any;
 type SpeechRecognitionEvent = any;
 type SpeechRecognitionErrorEvent = any;
-import { Box, Button, Typography, Alert } from '@mui/material';
+import { Box, Button, Alert, TextField } from '@mui/material';
 
 // Declare global window typings for webkitSpeechRecognition
 declare global {
@@ -24,6 +24,10 @@ export interface SpeechToTextRecorderProps {
    * Callback that fires whenever the transcript changes
    */
   onTranscriptChange?: (transcript: string) => void;
+  /**
+   * Callback that fires when the Process button is clicked
+   */
+  onProcessTranscript?: (transcript: string) => void;
 }
 
 /**
@@ -36,14 +40,14 @@ export interface SpeechToTextRecorderProps {
  *   listens forever and produces live interim results.
  * • Exposes the live transcript through component state and an optional callback prop.
  */
-export default function SpeechToTextRecorder({
-  onTranscriptChange,
-}: SpeechToTextRecorderProps) {
+type RecorderMode = 'idle' | 'starting' | 'listening';
+
+export default function SpeechToTextRecorder({ onTranscriptChange, onProcessTranscript }: SpeechToTextRecorderProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [finalTranscript, setFinalTranscript] = useState('');
-  const [interimTranscript, setInterimTranscript] = useState('');
-  const [listening, setListening] = useState(false);
+  const [mode, setMode] = useState<RecorderMode>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [editableTranscript, setEditableTranscript] = useState('');
 
   // Initialise SpeechRecognition once on mount
   useEffect(() => {
@@ -65,6 +69,8 @@ export default function SpeechToTextRecorder({
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = '';
       let finalText = '';
@@ -82,30 +88,26 @@ export default function SpeechToTextRecorder({
       if (finalText) {
         setFinalTranscript(prev => {
           const updated = prev + finalText;
-          onTranscriptChange?.((updated + interim).trim());
+          const fullTranscript = updated + interim;
+          setEditableTranscript(fullTranscript);
+          onTranscriptChange?.(fullTranscript);
           return updated;
         });
       } else {
-        onTranscriptChange?.((finalTranscript + interim).trim());
+        const fullTranscript = finalTranscript + interim;
+        setEditableTranscript(fullTranscript);
+        onTranscriptChange?.(fullTranscript);
       }
-      setInterimTranscript(interim);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error', event.error);
       setError(`Speech recognition error: ${event.error}`);
-      setListening(false);
+      setMode('idle');
     };
 
     recognition.onend = () => {
-      // Automatically restart if it stopped unexpectedly while it should be listening
-      if (listening) {
-        try {
-          recognition.start();
-        } catch (err) {
-          console.error('Speech recognition restart error', err);
-        }
-      }
+      setMode('idle');
     };
 
     recognitionRef.current = recognition;
@@ -118,50 +120,117 @@ export default function SpeechToTextRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ------- Handlers -------
-  const handleStart = () => {
+  // Single button handler
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const handleClick = () => {
+    if (mode === 'listening') {
+      recognitionRef.current?.stop();
+      return;
+    }
+
     if (!recognitionRef.current) return;
+
     try {
       recognitionRef.current.start();
-      setListening(true);
+      setMode('starting');
+
+      // This timeout will transition to listening after 1.5s,
+      // regardless of the onstart event.
+      timeoutRef.current = setTimeout(() => {
+        setMode('listening');
+      }, 1500);
+
     } catch (err) {
       console.error('Speech recognition start error', err);
+      setMode('idle');
     }
   };
 
-  const handleStop = () => {
-    if (!recognitionRef.current) return;
-    recognitionRef.current.stop();
-    setListening(false);
+  const handleProcessClick = () => {
+    if (editableTranscript.trim()) {
+      onProcessTranscript?.(editableTranscript);
+      setEditableTranscript('');
+      setFinalTranscript('');
+    }
   };
 
+  useEffect(() => {
+    return () => {
+      if(timeoutRef.current) clearTimeout(timeoutRef.current);
+    }
+  }, []);
+
+  const buttonProps = {
+    variant: 'contained' as const,
+    onClick: handleClick,
+    disabled: mode === 'starting' || !!error,
+    color: mode === 'listening' ? ('error' as const) : ('primary' as const),
+    sx: {
+      ...(mode === 'starting' && {
+        backgroundColor: 'grey.500',
+        color: 'common.white',
+        '&:hover': {
+          backgroundColor: 'grey.600',
+        },
+      }),
+    },
+  };
+
+  const buttonText = {
+    idle: 'Start',
+    starting: 'Starting...',
+    listening: 'Stop',
+  }[mode];
+
   return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ p: 1, display: 'flex', flexDirection: 'column', minHeight: 140 }}>
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
 
       {/* Transcript Area */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-          {(finalTranscript + interimTranscript) || 'Transcript will appear here...'}
-        </Typography>
+      <Box sx={{ flexGrow: 1, overflow: 'auto', mb: 1 }}>
+        <TextField
+          fullWidth
+          multiline
+          rows={4}
+          value={editableTranscript}
+          onChange={(e) => {
+            setEditableTranscript(e.target.value);
+            onTranscriptChange?.(e.target.value);
+          }}
+          placeholder="Transcript will appear here... You can also type manually."
+          variant="outlined"
+          size="small"
+          sx={{ 
+            fontSize: '0.75rem',
+            '& .MuiInputBase-input': {
+              fontSize: '0.75rem',
+            },
+            '& .MuiInputBase-inputMultiline': {
+              fontSize: '0.75rem',
+            }
+          }}
+        />
       </Box>
 
       {/* Control Panel */}
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-        <Button
-          variant="contained"
-          onClick={handleStart}
-          disabled={listening || !!error}
-        >
-          Start
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 0.5 }}>
+        <Button {...buttonProps}>
+          {buttonText}
         </Button>
         <Button
-          variant="outlined"
-          color="secondary"
-          onClick={handleStop}
-          disabled={!listening || !!error}
+          variant="contained"
+          onClick={handleProcessClick}
+          disabled={!editableTranscript.trim()}
+          sx={{
+            backgroundColor: 'warning.main',
+            color: 'warning.contrastText',
+            '&:hover': {
+              backgroundColor: 'warning.dark',
+            },
+          }}
         >
-          Stop
+          Process
         </Button>
       </Box>
     </Box>

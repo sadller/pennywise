@@ -5,7 +5,7 @@ from .endpoints.transactions import router as transactions
 from .endpoints.groups import router as groups
 from .endpoints.dashboard import router as dashboard
 from .endpoints.notifications import router as notifications
-from .endpoints.extract import router as extract_router
+from .endpoints.ai import router as ai_router
 
 api_router = APIRouter()
 
@@ -27,6 +27,6 @@ api_router.include_router(dashboard, prefix="/dashboard", tags=["dashboard"])
 # Include notifications endpoints
 api_router.include_router(notifications, prefix="/notifications", tags=["notifications"])
 
-# NLP extraction endpoint (no extra prefix)
-api_router.include_router(extract_router, tags=["nlp"])
+# AI endpoints (no extra prefix)
+api_router.include_router(ai_router, tags=["ai"])
  
