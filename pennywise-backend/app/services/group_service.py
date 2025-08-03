@@ -81,19 +81,20 @@ class GroupService:
                 g.owner_id,
                 g.created_at,
                 u.full_name as owner_name,
-                COUNT(DISTINCT gm.user_id) as member_count,
+                COUNT(DISTINCT gm_all.user_id) as member_count,
                 COUNT(t.id) as transaction_count,
                 COALESCE(SUM(t.amount), 0) as total_amount,
                 MAX(t.date) as last_transaction_at
             FROM groups g
-            JOIN group_members gm ON g.id = gm.group_id
+            JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = :user_id
             JOIN users u ON g.owner_id = u.id
+            LEFT JOIN group_members gm_all ON g.id = gm_all.group_id
             LEFT JOIN transactions t ON g.id = t.group_id
             WHERE g.id = :group_id
             GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
         """)
         
-        result = self.db.execute(query, {"group_id": group_id})
+        result = self.db.execute(query, {"group_id": group_id, "user_id": user_id})
         group_data = result.fetchone()
         
         if not group_data:
@@ -121,15 +122,15 @@ class GroupService:
                 g.owner_id,
                 g.created_at,
                 u.full_name as owner_name,
-                COUNT(DISTINCT gm.user_id) as member_count,
+                COUNT(DISTINCT gm_all.user_id) as member_count,
                 COUNT(t.id) as transaction_count,
                 COALESCE(SUM(t.amount), 0) as total_amount,
                 MAX(t.date) as last_transaction_at
             FROM groups g
-            JOIN group_members gm ON g.id = gm.group_id
+            JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = :user_id
             JOIN users u ON g.owner_id = u.id
+            LEFT JOIN group_members gm_all ON g.id = gm_all.group_id
             LEFT JOIN transactions t ON g.id = t.group_id
-            WHERE gm.user_id = :user_id
             GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
         """)
         
