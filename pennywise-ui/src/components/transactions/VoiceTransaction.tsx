@@ -6,15 +6,19 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
-  Box,
   Snackbar,
   Alert,
+  Box
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { TransactionCreate } from '@/types/transaction';
+import { useStore } from '@/stores/StoreProvider';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { transactionExtractionService } from '@/services/transactionExtractionService';
+import { transactionService } from '@/services/transactionService';
+import { groupService } from '@/services/groupService';
+import { TransactionCreate, TransactionType } from '@/types/transaction';
 import VoiceTransactionTable from './VoiceTransactionTable';
-import SpeechToTextRecorder from '../common/SpeechToTextRecorder';
+import SpeechToTextRecorder from '@/components/common/SpeechToTextRecorder';
 
 interface VoiceTransactionRow extends Partial<TransactionCreate> {
   id: number;
@@ -26,29 +30,45 @@ interface VoiceTransactionProps {
 }
 
 export default function VoiceTransaction({ open, onClose }: VoiceTransactionProps) {
+  const { auth, ui } = useStore();
+  const queryClient = useQueryClient();
+  
   const [rows, setRows] = useState<VoiceTransactionRow[]>([]);
-  const [transcript, setTranscript] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const currentRowIdRef = useRef<number>(1);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  const currentRowIdRef = useRef(1);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Clear table data when dialog opens
+  // Fetch group members if a group is selected
+  const { data: groupMembers = [] } = useQuery({
+    queryKey: ['group-members', ui.selectedGroupId],
+    queryFn: () => groupService.getGroupMembers(ui.selectedGroupId!),
+    enabled: !!ui.selectedGroupId,
+  });
+
+  // Clear state when dialog opens
   useEffect(() => {
     if (open) {
       setRows([]);
       setIsLoading(false);
+      setIsSubmitting(false);
       setError(null);
+      setSuccess(null);
       currentRowIdRef.current = 1;
     }
   }, [open]);
 
-  // Cancel API calls when dialog closes
+  // Abort API calls when dialog closes
   useEffect(() => {
-    if (!open && abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsLoading(false);
-    }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        setIsLoading(false);
+      }
+    };
   }, [open]);
 
   const handleProcessTranscript = async (text: string) => {
@@ -104,9 +124,56 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
     }
   };
 
-  const handleSubmitAll = () => {
-    console.log('Submitting rows', rows);
-    // TODO: integrate with transaction creation API
+  const handleSubmitAll = async () => {
+    if (rows.length === 0 || !auth.user) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      // Convert rows to TransactionCreate format (remove id field)
+      const transactions: TransactionCreate[] = rows.map((row) => ({
+        amount: row.amount || 0,
+        note: row.note || '',
+        category: row.category || 'Other',
+        payment_mode: row.payment_mode || 'Cash',
+        date: row.date || new Date().toISOString().split('T')[0],
+        type: row.type || TransactionType.EXPENSE,
+        group_id: row.group_id || 1, // Default to group 1 if not specified
+        user_id: auth.user!.id, // Use current logged-in user's ID
+        paid_by: row.paid_by || auth.user!.id // Use the paid_by value from the table or current user as default
+      }));
+      
+      // Call bulk create API
+      const createdTransactions = await transactionService.createBulkTransactions(transactions);
+      
+      // Refresh transaction data
+      await queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+      
+      // Show success message
+      setSuccess(`Successfully created ${createdTransactions.length} transaction(s)!`);
+      
+      // Clear the table after successful submission
+      setRows([]);
+      currentRowIdRef.current = 1;
+      
+      // Close dialog after a short delay to show success message
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+      
+    } catch (err) {
+      console.error('Failed to submit transactions:', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to save transactions. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -119,6 +186,10 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
 
   const handleCloseError = () => {
     setError(null);
+  };
+
+  const handleCloseSuccess = () => {
+    setSuccess(null);
   };
 
   return (
@@ -143,12 +214,14 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
               rows={rows}
               onSubmitAll={handleSubmitAll}
               isLoading={isLoading}
+              isSubmitting={isSubmitting}
+              groupMembers={groupMembers}
+              currentUser={auth.user}
             />
           </Box>
 
           {/* Bottom – recorder */}
           <SpeechToTextRecorder 
-            onTranscriptChange={setTranscript} 
             onProcessTranscript={handleProcessTranscript}
           />
         </DialogContent>
@@ -163,6 +236,18 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
       >
         <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
           {error}
+        </Alert>
+      </Snackbar>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={3000}
+        onClose={handleCloseSuccess}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
+          {success}
         </Alert>
       </Snackbar>
     </>

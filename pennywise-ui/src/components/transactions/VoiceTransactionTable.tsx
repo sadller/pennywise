@@ -2,21 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Button,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
+  Button,
   TextField,
   Select,
   MenuItem,
   Skeleton,
+  Box
 } from '@mui/material';
-import { TransactionCreate, TransactionType } from '@/types/transaction';
+import { TransactionType, TransactionCreate } from '@/types/transaction';
+import { GroupMember } from '@/types/group';
+import { User } from '@/types/user';
 
 interface VoiceTransactionRow extends Partial<TransactionCreate> {
   id: number;
@@ -26,103 +28,132 @@ interface VoiceTransactionTableProps {
   rows: VoiceTransactionRow[];
   onSubmitAll: () => void;
   isLoading?: boolean;
+  isSubmitting?: boolean;
+  groupMembers?: GroupMember[];
+  currentUser?: User | null;
 }
 
-// Single configuration for table columns with rendering logic
-const TABLE_COLUMNS = [
-  { 
-    key: 'amount', 
-    label: 'Amount', 
-    width: 70, 
-    align: 'left',
-    type: 'number' as const,
-    sx: { 
-      '& .MuiInputBase-input': { 
-        fontSize: '0.875rem',
-        textAlign: 'right',
-        py: 0
-      }
-    }
-  },
-  { 
-    key: 'note', 
-    label: 'Note/Remark', 
-    width: 150,
-    minWidth: 100, 
-    maxWidth: 300, 
-    align: 'left' as const,
-    type: 'text' as const,
-    sx: { 
-      '& .MuiInputBase-input': { 
-        fontSize: '0.875rem',
-        py: 0
-      }
-    }
-  },
-  { 
-    key: 'category', 
-    label: 'Category', 
-    width: 100, 
-    align: 'left',
-    type: 'text' as const,
-    sx: { 
-      '& .MuiInputBase-input': { 
-        fontSize: '0.875rem',
-        py: 0
-      }
-    }
-  },
-  { 
-    key: 'payment_mode', 
-    label: 'Mode', 
-    width: 100, 
-    align: 'left',
-    type: 'text' as const,
-    sx: { 
-      '& .MuiInputBase-input': { 
-        fontSize: '0.875rem',
-        py: 0
-      }
-    }
-  },
-  { 
-    key: 'date', 
-    label: 'Date', 
-    width: 100, 
-    align: 'left',
-    type: 'text' as const,
-    sx: { 
-      '& .MuiInputBase-input': { 
-        fontSize: '0.875rem',
-        py: 0
-      }
-    }
-  },
-  { 
-    key: 'type', 
-    label: 'Type', 
-    width: 100, 
-    align: 'left',
-    type: 'select' as const,
-    options: [
-      { value: TransactionType.EXPENSE, label: 'Expense' },
-      { value: TransactionType.INCOME, label: 'Income' }
-    ],
-    sx: { 
-      minWidth: 80, 
-      fontSize: '0.875rem',
-      '& .MuiSelect-select': { py: 0 }
-    }
-  },
-];
-
-export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = false }: VoiceTransactionTableProps) {
+export default function VoiceTransactionTable({ 
+  rows, 
+  onSubmitAll, 
+  isLoading = false, 
+  isSubmitting = false,
+  groupMembers = [],
+  currentUser
+}: VoiceTransactionTableProps) {
   const [editableRows, setEditableRows] = useState<VoiceTransactionRow[]>(rows);
+
+  // Define columns inside component to access props
+  const TABLE_COLUMNS = [
+    {
+      key: 'amount',
+      label: 'Amount',
+      width: 70,
+      align: 'left' as const,
+      type: 'number' as const,
+      sx: {
+        '& .MuiInputBase-input': {
+          fontSize: '0.875rem',
+          textAlign: 'right',
+          py: 0
+        }
+      }
+    },
+    {
+      key: 'note',
+      label: 'Note/Remark',
+      width: 150,
+      minWidth: 100,
+      maxWidth: 300,
+      align: 'left' as const,
+      type: 'text' as const,
+      sx: {
+        '& .MuiInputBase-input': {
+          fontSize: '0.875rem',
+          py: 0
+        }
+      }
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      width: 100,
+      align: 'left' as const,
+      type: 'text' as const,
+      sx: {
+        '& .MuiInputBase-input': {
+          fontSize: '0.875rem',
+          py: 0
+        }
+      }
+    },
+    {
+      key: 'payment_mode',
+      label: 'Mode',
+      width: 100,
+      align: 'left' as const,
+      type: 'text' as const,
+      sx: {
+        '& .MuiInputBase-input': {
+          fontSize: '0.875rem',
+          py: 0
+        }
+      }
+    },
+    {
+      key: 'date',
+      label: 'Date',
+      width: 100,
+      align: 'left' as const,
+      type: 'text' as const,
+      sx: {
+        '& .MuiInputBase-input': {
+          fontSize: '0.875rem',
+          py: 0
+        }
+      }
+    },
+    {
+      key: 'paid_by',
+      label: 'Paid By',
+      width: 100,
+      align: 'left' as const,
+      type: 'select' as const,
+      options: groupMembers.map((member: GroupMember) => ({
+        value: member.user_id,
+        label: member.full_name || member.email
+      })),
+      sx: {
+        minWidth: 80,
+        fontSize: '0.875rem',
+        '& .MuiSelect-select': { py: 0 }
+      }
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      width: 100,
+      align: 'left' as const,
+      type: 'select' as const,
+      options: [
+        { value: TransactionType.EXPENSE, label: 'Expense' },
+        { value: TransactionType.INCOME, label: 'Income' }
+      ],
+      sx: {
+        minWidth: 80,
+        fontSize: '0.875rem',
+        '& .MuiSelect-select': { py: 0 }
+      }
+    },
+  ];
 
   // Sync editableRows with rows prop changes
   useEffect(() => {
-    setEditableRows(rows);
-  }, [rows]);
+    setEditableRows(rows.map(row => ({
+      ...row,
+      paid_by: row.paid_by || (currentUser?.id || (groupMembers.length > 0 ? groupMembers[0].user_id : undefined))
+    })));
+  }, [rows, currentUser, groupMembers]);
 
   const handleCellChange = (rowId: number, field: keyof VoiceTransactionRow, value: string | number) => {
     setEditableRows(prevRows =>
@@ -250,9 +281,9 @@ export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = f
           variant="contained" 
           size="small" 
           onClick={onSubmitAll}
-          disabled={editableRows.length === 0}
+          disabled={editableRows.length === 0 || isSubmitting}
         >
-          Submit All
+          {isSubmitting ? 'Submitting...' : 'Submit All'}
         </Button>
       </Box>
     </Box>
