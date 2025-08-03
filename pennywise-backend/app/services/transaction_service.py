@@ -45,6 +45,35 @@ class TransactionService:
         self.db.commit()
         self.db.refresh(db_transaction)
         
+        # Get transaction with user information
+        PaidByUser = aliased(User)
+        result = self.db.query(
+            Transaction,
+            User.full_name.label('user_full_name'),
+            User.email.label('user_email'),
+            User.username.label('user_username'),
+            PaidByUser.full_name.label('paid_by_full_name'),
+            PaidByUser.email.label('paid_by_email'),
+            PaidByUser.username.label('paid_by_username')
+        ).join(
+            User, Transaction.user_id == User.id
+        ).outerjoin(
+            PaidByUser, Transaction.paid_by == PaidByUser.id
+        ).filter(
+            Transaction.id == db_transaction.id
+        ).first()
+        
+        if result:
+            transaction = result[0]
+            # Add user information to the transaction object
+            transaction.user_full_name = result[1]
+            transaction.user_email = result[2]
+            transaction.user_username = result[3]
+            transaction.paid_by_full_name = result[4]
+            transaction.paid_by_email = result[5]
+            transaction.paid_by_username = result[6]
+            return transaction
+        
         return db_transaction
 
     def create_bulk_transactions(self, bulk_data: BulkTransactionCreate, user_id: int) -> List[Transaction]:
@@ -100,11 +129,41 @@ class TransactionService:
         
         self.db.commit()
         
-        # Refresh all transactions
-        for transaction in db_transactions:
-            self.db.refresh(transaction)
+        # Get all created transaction IDs
+        transaction_ids = [t.id for t in db_transactions]
         
-        return db_transactions
+        # Get transactions with user information
+        PaidByUser = aliased(User)
+        results = self.db.query(
+            Transaction,
+            User.full_name.label('user_full_name'),
+            User.email.label('user_email'),
+            User.username.label('user_username'),
+            PaidByUser.full_name.label('paid_by_full_name'),
+            PaidByUser.email.label('paid_by_email'),
+            PaidByUser.username.label('paid_by_username')
+        ).join(
+            User, Transaction.user_id == User.id
+        ).outerjoin(
+            PaidByUser, Transaction.paid_by == PaidByUser.id
+        ).filter(
+            Transaction.id.in_(transaction_ids)
+        ).all()
+        
+        # Convert results to Transaction objects with user information
+        transactions_with_user_info = []
+        for result in results:
+            transaction = result[0]  # The Transaction object
+            # Add user information to the transaction object
+            transaction.user_full_name = result[1]
+            transaction.user_email = result[2]
+            transaction.user_username = result[3]
+            transaction.paid_by_full_name = result[4]
+            transaction.paid_by_email = result[5]
+            transaction.paid_by_username = result[6]
+            transactions_with_user_info.append(transaction)
+        
+        return transactions_with_user_info
 
     def get_user_transactions(
         self, 

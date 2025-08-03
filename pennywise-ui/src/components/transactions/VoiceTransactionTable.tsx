@@ -31,6 +31,7 @@ interface VoiceTransactionTableProps {
   isSubmitting?: boolean;
   groupMembers?: GroupMember[];
   currentUser?: User | null;
+  onRowsChange?: (updatedRows: VoiceTransactionRow[]) => void;
 }
 
 export default function VoiceTransactionTable({ 
@@ -39,7 +40,8 @@ export default function VoiceTransactionTable({
   isLoading = false, 
   isSubmitting = false,
   groupMembers = [],
-  currentUser
+  currentUser,
+  onRowsChange
 }: VoiceTransactionTableProps) {
   const [editableRows, setEditableRows] = useState<VoiceTransactionRow[]>(rows);
 
@@ -154,6 +156,11 @@ export default function VoiceTransactionTable({
       paid_by: row.paid_by || (currentUser?.id || (groupMembers.length > 0 ? groupMembers[0].user_id : undefined))
     })));
   }, [rows, currentUser, groupMembers]);
+
+  // Notify parent when editableRows change
+  useEffect(() => {
+    onRowsChange?.(editableRows);
+  }, [editableRows, onRowsChange]);
 
   const handleCellChange = (rowId: number, field: keyof VoiceTransactionRow, value: string | number) => {
     setEditableRows(prevRows =>

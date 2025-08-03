@@ -88,7 +88,6 @@ If no transactions are found, return an empty array []."""
                 transactions = json.loads(response)
             except json.JSONDecodeError as e:
                 print(f"JSON parsing failed: {e}")
-                print(f"Raw response: {response}")
                 raise Exception("AI response format is invalid. Please try again with a different description.")
             
             # Validate and clean the extracted transactions

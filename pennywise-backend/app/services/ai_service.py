@@ -17,6 +17,55 @@ class AIService:
         self.api_key = settings.OPENROUTER_API_KEY
         self.base_url = "https://openrouter.ai/api/v1"
     
+    def _clean_json_with_comments(self, json_string: str) -> str:
+        """
+        Clean JSON string by removing comments and fixing common issues.
+        
+        Args:
+            json_string: JSON string that may contain comments
+            
+        Returns:
+            Cleaned JSON string without comments
+        """
+        # Remove single-line comments (// ...)
+        json_string = re.sub(r'//.*?$', '', json_string, flags=re.MULTILINE)
+        
+        # Remove multi-line comments (/* ... */)
+        json_string = re.sub(r'/\*.*?\*/', '', json_string, flags=re.DOTALL)
+        
+        # Remove trailing commas before closing brackets/braces
+        json_string = re.sub(r',(\s*[}\]])', r'\1', json_string)
+        
+        # Remove leading/trailing whitespace
+        json_string = json_string.strip()
+        
+        return json_string
+    
+    def _extract_and_clean_json(self, content: str) -> str:
+        """
+        Extract JSON from AI response content and clean it.
+        
+        Args:
+            content: Raw AI response content
+            
+        Returns:
+            Cleaned JSON string
+        """
+        # Try to extract JSON from markdown code blocks first
+        json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+        if json_match:
+            json_string = json_match.group(1)
+            return self._clean_json_with_comments(json_string)
+        
+        # Try to extract JSON array or object
+        json_match = re.search(r'(\[[\s\S]*\]|\{[\s\S]*\})', content)
+        if json_match:
+            json_string = json_match.group(1)
+            return self._clean_json_with_comments(json_string)
+        
+        # If no JSON found, return the original content
+        return content
+    
     def chat_completion(self, messages: List[Dict[str, str]], model: str = AI_MODELS["DEFAULT"]) -> str:
         """
         Make a chat completion request to OpenRouter API.
@@ -48,7 +97,7 @@ class AIService:
                 f"{self.base_url}/chat/completions",
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=120
             )
             
             if response.status_code != 200:
@@ -60,20 +109,18 @@ class AIService:
             data = response.json()
             content = data["choices"][0]["message"]["content"]
             
-            # Extract JSON from the content (it might be wrapped in markdown code blocks)
-            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content) or re.search(r'\[[\s\S]*\]', content)
-            if json_match:
-                try:
-                    # Parse the extracted JSON to validate it
-                    json_string = json_match.group(1) if json_match.group(1) else json_match.group(0)
-                    json.loads(json_string)  # Validate JSON
-                    return json_string
-                except (json.JSONDecodeError, IndexError) as e:
-                    print(f"Failed to parse JSON from AI response: {e}")
-                    print(f"Attempted to parse: {json_string}")
-                    return content
+            # Extract and clean JSON from the content
+            cleaned_json = self._extract_and_clean_json(content)
             
-            return content
+            # Validate the cleaned JSON
+            try:
+                json.loads(cleaned_json)  # Validate JSON
+                return cleaned_json
+            except json.JSONDecodeError as e:
+                print(f"Failed to parse cleaned JSON: {e}")
+                print(f"Cleaned JSON: {cleaned_json}")
+                # Return original content if JSON parsing fails
+                return content
             
         except Exception as e:
             raise Exception(f"OpenRouter API call failed: {str(e)}")

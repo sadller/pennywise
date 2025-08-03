@@ -34,6 +34,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
   const queryClient = useQueryClient();
   
   const [rows, setRows] = useState<VoiceTransactionRow[]>([]);
+  const [updatedRows, setUpdatedRows] = useState<VoiceTransactionRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
   useEffect(() => {
     if (open) {
       setRows([]);
+      setUpdatedRows([]);
       setIsLoading(false);
       setIsSubmitting(false);
       setError(null);
@@ -70,6 +72,10 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
       }
     };
   }, [open]);
+
+  const handleRowsChange = (newRows: VoiceTransactionRow[]) => {
+    setUpdatedRows(newRows);
+  };
 
   const handleProcessTranscript = async (text: string) => {
     if (!text.trim()) return;
@@ -125,7 +131,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
   };
 
   const handleSubmitAll = async () => {
-    if (rows.length === 0 || !auth.user) return;
+    if (updatedRows.length === 0 || !auth.user) return;
     
     // Validate that a group is selected
     if (!ui.selectedGroupId) {
@@ -138,8 +144,8 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
     setSuccess(null);
     
     try {
-      // Convert rows to TransactionCreate format (remove id field)
-      const transactions: TransactionCreate[] = rows.map((row) => ({
+      // Convert updatedRows to TransactionCreate format (remove id field)
+      const transactions: TransactionCreate[] = updatedRows.map((row) => ({
         amount: row.amount || 0,
         note: row.note || '',
         category: row.category || 'Other',
@@ -166,6 +172,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
       
       // Clear the table after successful submission
       setRows([]);
+      setUpdatedRows([]);
       currentRowIdRef.current = 1;
       
       // Close dialog after a short delay to show success message
@@ -226,6 +233,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
               isSubmitting={isSubmitting}
               groupMembers={groupMembers}
               currentUser={auth.user}
+              onRowsChange={handleRowsChange}
             />
           </Box>
 
