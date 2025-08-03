@@ -81,10 +81,15 @@ If no transactions are found, return an empty array []."""
                     "role": "user",
                     "content": prompt,
                 },
-            ], model = AI_MODELS["GEMINI_FLASH"])
+            ], model = AI_MODELS["DOLPHIN_MISTRAL"])
             
             # Parse the JSON response
-            transactions = json.loads(response)
+            try:
+                transactions = json.loads(response)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing failed: {e}")
+                print(f"Raw response: {response}")
+                raise Exception("AI response format is invalid. Please try again with a different description.")
             
             # Validate and clean the extracted transactions
             validated_transactions = []
@@ -93,11 +98,20 @@ If no transactions are found, return an empty array []."""
                 if validated_transaction:
                     validated_transactions.append(validated_transaction)
             
+            if not validated_transactions:
+                raise Exception("No valid transactions found in your description. Please provide more details about the transaction.")
+            
             return validated_transactions
             
         except Exception as e:
             print(f"Transaction extraction failed: {e}")
-            return []
+            # Re-raise the exception with a user-friendly message
+            if "AI response format is invalid" in str(e):
+                raise e
+            elif "No valid transactions found" in str(e):
+                raise e
+            else:
+                raise Exception("Failed to process your transaction description. Please try again.")
     
     def _validate_and_clean_transaction(self, transaction: Dict[str, Any]) -> Dict[str, Any]:
         """

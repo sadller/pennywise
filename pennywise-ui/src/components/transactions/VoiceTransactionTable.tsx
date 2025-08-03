@@ -28,6 +28,94 @@ interface VoiceTransactionTableProps {
   isLoading?: boolean;
 }
 
+// Single configuration for table columns with rendering logic
+const TABLE_COLUMNS = [
+  { 
+    key: 'amount', 
+    label: 'Amount', 
+    width: 70, 
+    align: 'left',
+    type: 'number' as const,
+    sx: { 
+      '& .MuiInputBase-input': { 
+        fontSize: '0.875rem',
+        textAlign: 'right',
+        py: 0
+      }
+    }
+  },
+  { 
+    key: 'note', 
+    label: 'Note/Remark', 
+    width: 150,
+    minWidth: 100, 
+    maxWidth: 300, 
+    align: 'left' as const,
+    type: 'text' as const,
+    sx: { 
+      '& .MuiInputBase-input': { 
+        fontSize: '0.875rem',
+        py: 0
+      }
+    }
+  },
+  { 
+    key: 'category', 
+    label: 'Category', 
+    width: 100, 
+    align: 'left',
+    type: 'text' as const,
+    sx: { 
+      '& .MuiInputBase-input': { 
+        fontSize: '0.875rem',
+        py: 0
+      }
+    }
+  },
+  { 
+    key: 'payment_mode', 
+    label: 'Mode', 
+    width: 100, 
+    align: 'left',
+    type: 'text' as const,
+    sx: { 
+      '& .MuiInputBase-input': { 
+        fontSize: '0.875rem',
+        py: 0
+      }
+    }
+  },
+  { 
+    key: 'date', 
+    label: 'Date', 
+    width: 100, 
+    align: 'left',
+    type: 'text' as const,
+    sx: { 
+      '& .MuiInputBase-input': { 
+        fontSize: '0.875rem',
+        py: 0
+      }
+    }
+  },
+  { 
+    key: 'type', 
+    label: 'Type', 
+    width: 100, 
+    align: 'left',
+    type: 'select' as const,
+    options: [
+      { value: TransactionType.EXPENSE, label: 'Expense' },
+      { value: TransactionType.INCOME, label: 'Income' }
+    ],
+    sx: { 
+      minWidth: 80, 
+      fontSize: '0.875rem',
+      '& .MuiSelect-select': { py: 0 }
+    }
+  },
+];
+
 export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = false }: VoiceTransactionTableProps) {
   const [editableRows, setEditableRows] = useState<VoiceTransactionRow[]>(rows);
 
@@ -44,42 +132,35 @@ export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = f
     );
   };
 
-  const renderEditableCell = (row: VoiceTransactionRow, field: keyof VoiceTransactionRow, value: string | number | undefined) => {
-    switch (field) {
-      case 'type':
+  const renderEditableCell = (row: VoiceTransactionRow, column: typeof TABLE_COLUMNS[0], value: string | number | undefined) => {
+    switch (column.type) {
+      case 'select':
         return (
           <Select
-            value={value || ''}
-            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
-            displayEmpty
             size="small"
+            value={value || ''}
+            onChange={(e) => handleCellChange(row.id, column.key as keyof VoiceTransactionRow, e.target.value)}
+            displayEmpty
             variant="standard"
-            sx={{ 
-              minWidth: 80, 
-              fontSize: '0.875rem',
-              '& .MuiSelect-select': { py: 0 }
-            }}
+            sx={column.sx}
           >
-            <MenuItem value={TransactionType.EXPENSE}>Expense</MenuItem>
-            <MenuItem value={TransactionType.INCOME}>Income</MenuItem>
+            {column.options?.map(option => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
           </Select>
         );
       
-      case 'amount':
+      case 'number':
         return (
           <TextField
             size="small"
             value={value || ''}
-            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
+            onChange={(e) => handleCellChange(row.id, column.key as keyof VoiceTransactionRow, e.target.value)}
             type="number"
             variant="standard"
-            sx={{ 
-              '& .MuiInputBase-input': { 
-                fontSize: '0.875rem',
-                textAlign: 'right',
-                py: 0
-              }
-            }}
+            sx={column.sx}
           />
         );
       
@@ -88,40 +169,23 @@ export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = f
           <TextField
             size="small"
             value={value || ''}
-            onChange={(e) => handleCellChange(row.id, field, e.target.value)}
+            onChange={(e) => handleCellChange(row.id, column.key as keyof VoiceTransactionRow, e.target.value)}
             variant="standard"
-            sx={{ 
-              '& .MuiInputBase-input': { 
-                fontSize: '0.875rem',
-                py: 0
-              }
-            }}
+            sx={column.sx}
           />
         );
     }
   };
 
   const renderSkeletonRows = () => {
-    const columns = [
-      { width: 90 }, // Amount
-      { width: '100%', flex: 1 }, // Note/Remark
-      { width: 100 }, // Category
-      { width: 90 }, // Mode
-      { width: 120 }, // Date
-      { width: 100 } // Type
-    ];
-
     return [...Array(8)].map((_, index) => (
       <TableRow key={`skeleton-${index}`}>
-        {columns.map((column, colIndex) => (
+        {TABLE_COLUMNS.map((column, colIndex) => (
           <TableCell key={colIndex} sx={{ py: 0.5 }}>
             <Skeleton
               variant="text"
-              width={column.width}
+              width={column.width || 250}
               height={24}
-              sx={{ 
-                flex: column.flex
-              }}
             />
           </TableCell>
         ))}
@@ -135,12 +199,19 @@ export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = f
         <Table sx={{ minWidth: 650 }} size="small" aria-label="voice transaction table">
           <TableHead>
             <TableRow>
-              <TableCell>Amount</TableCell>
-              <TableCell>Note/Remark</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Mode</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Type</TableCell>
+              {TABLE_COLUMNS.map((column) => (
+                <TableCell 
+                  key={column.key}
+                  align={column.align}
+                  sx={{ 
+                    width: column.width,
+                    minWidth: column.minWidth,
+                    maxWidth: column.maxWidth
+                  }}
+                >
+                  {column.label}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -153,24 +224,19 @@ export default function VoiceTransactionTable({ rows, onSubmitAll, isLoading = f
                     key={row.id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
-                    <TableCell align="right">
-                      {renderEditableCell(row, 'amount', row.amount)}
-                    </TableCell>
-                    <TableCell component="th" scope="row">
-                      {renderEditableCell(row, 'note', row.note)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {renderEditableCell(row, 'category', row.category)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {renderEditableCell(row, 'payment_mode', row.payment_mode)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {renderEditableCell(row, 'date', row.date)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {renderEditableCell(row, 'type', row.type)}
-                    </TableCell>
+                    {TABLE_COLUMNS.map((column) => (
+                      <TableCell 
+                        key={column.key}
+                        align={column.align}
+                        sx={{ 
+                          width: column.width,
+                          minWidth: column.minWidth,
+                          maxWidth: column.maxWidth
+                        }}
+                      >
+                        {renderEditableCell(row, column, row[column.key as keyof VoiceTransactionRow])}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               ) : null

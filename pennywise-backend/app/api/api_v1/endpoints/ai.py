@@ -46,4 +46,28 @@ async def extract_transactions(request: TransactionExtractRequest):
         return response
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}") 
+        error_message = str(e)
+        
+        # Return specific error messages for different scenarios
+        if "AI response format is invalid" in error_message:
+            raise HTTPException(
+                status_code=422, 
+                detail="Unable to process your description. Please try rephrasing with more details about the transaction."
+            )
+        elif "No valid transactions found" in error_message:
+            raise HTTPException(
+                status_code=422, 
+                detail="No transactions found in your description. Please provide more details about the amount, category, and payment method."
+            )
+        elif "Failed to process your transaction description" in error_message:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to process your description. Please try again with a different format."
+            )
+        else:
+            # Log the actual error for debugging
+            print(f"Transaction extraction error: {error_message}")
+            raise HTTPException(
+                status_code=500, 
+                detail="An error occurred while processing your request. Please try again."
+            ) 

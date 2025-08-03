@@ -34,8 +34,23 @@ export const transactionExtractionService = {
       if (error instanceof Error && error.name === 'AbortError') {
         throw error;
       }
+      
+      // Handle API errors and extract error message
+      if (error instanceof Error) {
+        // Try to extract error message from API response
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.detail) {
+            throw new Error(errorData.detail);
+          }
+        } catch {
+          // If we can't parse the error message, use a generic one
+          throw new Error('Failed to process your transaction description. Please try again.');
+        }
+      }
+      
       console.error('Transaction extraction failed:', error);
-      return [];
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   },
 }; 

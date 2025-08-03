@@ -54,6 +54,9 @@ class AIService:
             if response.status_code != 200:
                 raise Exception(f"OpenRouter API error: {response.status_code}")
             
+            # Log the raw AI response for debugging
+            print(f"AI response: {response.text}")
+            
             data = response.json()
             content = data["choices"][0]["message"]["content"]
             
@@ -67,6 +70,7 @@ class AIService:
                     return json_string
                 except (json.JSONDecodeError, IndexError) as e:
                     print(f"Failed to parse JSON from AI response: {e}")
+                    print(f"Attempted to parse: {json_string}")
                     return content
             
             return content

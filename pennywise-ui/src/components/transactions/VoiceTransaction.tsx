@@ -5,14 +5,16 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Box,
   IconButton,
+  Box,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import VoiceTransactionTable from './VoiceTransactionTable';
-import { SpeechToTextRecorder } from '@/components/common';
-import { transactionExtractionService } from '@/services/transactionExtractionService';
 import { TransactionCreate } from '@/types/transaction';
+import { transactionExtractionService } from '@/services/transactionExtractionService';
+import VoiceTransactionTable from './VoiceTransactionTable';
+import SpeechToTextRecorder from '../common/SpeechToTextRecorder';
 
 interface VoiceTransactionRow extends Partial<TransactionCreate> {
   id: number;
@@ -23,14 +25,11 @@ interface VoiceTransactionProps {
   onClose: () => void;
 }
 
-/**
- * A large modal that combines the voice-driven transaction table on top
- * and the compact SpeechToTextRecorder at the bottom.
- */
 export default function VoiceTransaction({ open, onClose }: VoiceTransactionProps) {
   const [rows, setRows] = useState<VoiceTransactionRow[]>([]);
   const [transcript, setTranscript] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const currentRowIdRef = useRef<number>(1);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -39,6 +38,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
     if (open) {
       setRows([]);
       setIsLoading(false);
+      setError(null);
       currentRowIdRef.current = 1;
     }
   }, [open]);
@@ -63,6 +63,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
     abortControllerRef.current = new AbortController();
     
     setIsLoading(true);
+    setError(null); // Clear any previous errors
     
     try {
       const extracted_transactions = await transactionExtractionService.extractTransactions(
@@ -90,6 +91,12 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
         console.log('API call was cancelled');
       } else {
         console.error('Transaction extraction failed', err);
+        // Display error message to user
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
       }
     } finally {
       setIsLoading(false);
@@ -110,36 +117,54 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
     onClose();
   };
 
-  return (
-    <Dialog 
-      open={open} 
-      onClose={() => {}} 
-      fullWidth 
-      maxWidth="lg" 
-      disableEscapeKeyDown
-    >
-      <DialogTitle sx={{ pb: 1, pr: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Voice Transaction Entry
-        <IconButton onClick={handleClose} sx={{ color: 'error.main' }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
-        {/* Upper – dynamic table */}
-        <Box sx={{ flexGrow: 1, minHeight: 300 }}>
-          <VoiceTransactionTable 
-            rows={rows}
-            onSubmitAll={handleSubmitAll}
-            isLoading={isLoading}
-          />
-        </Box>
+  const handleCloseError = () => {
+    setError(null);
+  };
 
-        {/* Bottom – recorder */}
-        <SpeechToTextRecorder 
-          onTranscriptChange={setTranscript} 
-          onProcessTranscript={handleProcessTranscript}
-        />
-      </DialogContent>
-    </Dialog>
+  return (
+    <>
+      <Dialog 
+        open={open} 
+        onClose={() => {}} 
+        fullWidth 
+        maxWidth="lg" 
+        disableEscapeKeyDown
+      >
+        <DialogTitle sx={{ pb: 1, pr: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Voice Transaction Entry
+          <IconButton onClick={handleClose} sx={{ color: 'error.main' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+          {/* Upper – dynamic table */}
+          <Box sx={{ flexGrow: 1, minHeight: 300 }}>
+            <VoiceTransactionTable 
+              rows={rows}
+              onSubmitAll={handleSubmitAll}
+              isLoading={isLoading}
+            />
+          </Box>
+
+          {/* Bottom – recorder */}
+          <SpeechToTextRecorder 
+            onTranscriptChange={setTranscript} 
+            onProcessTranscript={handleProcessTranscript}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }
