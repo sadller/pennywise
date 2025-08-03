@@ -30,7 +30,7 @@ interface VoiceTransactionProps {
 }
 
 export default function VoiceTransaction({ open, onClose }: VoiceTransactionProps) {
-  const { auth, ui } = useStore();
+  const { auth, ui, data } = useStore();
   const queryClient = useQueryClient();
   
   const [rows, setRows] = useState<VoiceTransactionRow[]>([]);
@@ -127,6 +127,12 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
   const handleSubmitAll = async () => {
     if (rows.length === 0 || !auth.user) return;
     
+    // Validate that a group is selected
+    if (!ui.selectedGroupId) {
+      setError('Please select a group before submitting transactions.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -140,7 +146,7 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
         payment_mode: row.payment_mode || 'Cash',
         date: row.date || new Date().toISOString().split('T')[0],
         type: row.type || TransactionType.EXPENSE,
-        group_id: row.group_id || 1, // Default to group 1 if not specified
+        group_id: ui.selectedGroupId!, // Use the currently selected group
         user_id: auth.user!.id, // Use current logged-in user's ID
         paid_by: row.paid_by || auth.user!.id // Use the paid_by value from the table or current user as default
       }));
@@ -148,8 +154,11 @@ export default function VoiceTransaction({ open, onClose }: VoiceTransactionProp
       // Call bulk create API
       const createdTransactions = await transactionService.createBulkTransactions(transactions);
       
-      // Refresh transaction data
-      await queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+      // Update the store with the new transactions instead of refetching
+      const updatedTransactions = [...createdTransactions, ...data.allTransactions];
+      data.setAllTransactions(updatedTransactions);
+      
+      // Only invalidate groups stats since transaction count changed
       await queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
       
       // Show success message

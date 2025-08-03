@@ -19,6 +19,7 @@ import {
   getTransactionTypeColor
 } from '@/constants/transactions';
 import { GroupMember } from '@/types/group';
+import { useStore } from '@/stores/StoreProvider';
 
 interface TransactionDataGridProps {
   transactions: Transaction[];
@@ -43,6 +44,7 @@ export default function TransactionDataGrid({
 }: TransactionDataGridProps) {
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [updatingTransactionId, setUpdatingTransactionId] = useState<number | null>(null);
+  const { data } = useStore();
 
   // Calculate cumulative balance
   const transactionsWithBalance = useMemo(() => {
@@ -102,13 +104,13 @@ export default function TransactionDataGrid({
     const updatedTransaction = newRow as Transaction;
     setUpdatingTransactionId(updatedTransaction.id);
     
+    // Find the original transaction to preserve all existing fields
+    const originalTransaction = transactions.find(t => t.id === updatedTransaction.id);
+    if (!originalTransaction) {
+      throw new Error('Original transaction not found');
+    }
+    
     try {
-      // Find the original transaction to preserve all existing fields
-      const originalTransaction = transactions.find(t => t.id === updatedTransaction.id);
-      if (!originalTransaction) {
-        throw new Error('Original transaction not found');
-      }
-
       // Create complete transaction object with all existing fields plus updated ones
       const completeTransactionData = {
         ...originalTransaction, // Preserve all existing fields
@@ -116,11 +118,32 @@ export default function TransactionDataGrid({
         id: originalTransaction.id, // Ensure ID is preserved
       };
 
-      await transactionService.updateTransaction(updatedTransaction.id, completeTransactionData);
+      // Optimistically update the store
+      const updatedTransactions = data.allTransactions.map(t => 
+        t.id === updatedTransaction.id ? { ...t, ...updatedTransaction } : t
+      );
+      data.setAllTransactions(updatedTransactions);
+
+      // Call the API to actually update
+      const response = await transactionService.updateTransaction(updatedTransaction.id, completeTransactionData);
+      
+      // Update with the response data to ensure consistency
+      const finalUpdatedTransactions = data.allTransactions.map(t => 
+        t.id === updatedTransaction.id ? response : t
+      );
+      data.setAllTransactions(finalUpdatedTransactions);
+      
       onTransactionUpdated?.();
       return updatedTransaction;
     } catch (error) {
       console.error('Error updating transaction:', error);
+      
+      // Revert the optimistic update on error
+      const revertedTransactions = data.allTransactions.map(t => 
+        t.id === updatedTransaction.id ? originalTransaction : t
+      );
+      data.setAllTransactions(revertedTransactions);
+      
       throw error;
     } finally {
       setUpdatingTransactionId(null);

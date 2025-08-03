@@ -25,7 +25,7 @@ interface AddTransactionFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: TransactionCreate) => Promise<void>;
-  groupId: number;
+  groupId: number | null;
   currentUser: User;
   groupMembers?: GroupMember[];
   isLoading?: boolean;
@@ -51,7 +51,7 @@ export default function AddTransactionForm({
     setValue,
     formState: { errors }
   } = useForm<{
-    group_id: number;
+    group_id?: number;
     user_id: number;
     type: TransactionType;
     amount: string;
@@ -61,7 +61,7 @@ export default function AddTransactionForm({
     paid_by?: number;
   }>({
     defaultValues: {
-      group_id: groupId,
+      group_id: groupId || undefined,
       user_id: currentUser.id,
       type: initialTransactionType || TransactionType.EXPENSE,
       amount: '',
@@ -78,8 +78,15 @@ export default function AddTransactionForm({
     }
   }, [initialTransactionType, setValue]);
 
+  // Update form when groupId changes
+  React.useEffect(() => {
+    if (groupId) {
+      setValue('group_id', groupId);
+    }
+  }, [groupId, setValue]);
+
   const handleFormSubmit = async (data: {
-    group_id: number;
+    group_id?: number;
     user_id: number;
     type: TransactionType;
     amount: string;
@@ -90,8 +97,16 @@ export default function AddTransactionForm({
   }) => {
     try {
       setError('');
+      
+      // Validate that a group is selected
+      if (!groupId) {
+        setError('Please select a group before adding a transaction.');
+        return;
+      }
+      
       const transactionData: TransactionCreate = {
         ...data,
+        group_id: groupId, // Use the actual selected group ID
         amount: parseFloat(data.amount)
       };
       await onSubmit(transactionData);
@@ -110,7 +125,14 @@ export default function AddTransactionForm({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Transaction</DialogTitle>
+      <DialogTitle>
+        Add Transaction
+        {!groupId && (
+          <Alert severity="warning" sx={{ mt: 1, fontSize: '0.875rem' }}>
+            Please select a group first
+          </Alert>
+        )}
+      </DialogTitle>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <DialogContent>
           {error && (
@@ -253,7 +275,7 @@ export default function AddTransactionForm({
           <Button 
             type="submit" 
             variant="contained" 
-            disabled={isLoading}
+            disabled={isLoading || !groupId}
           >
             {isLoading ? 'Adding...' : 'Add Transaction'}
           </Button>

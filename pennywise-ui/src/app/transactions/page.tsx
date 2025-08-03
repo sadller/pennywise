@@ -99,7 +99,6 @@ const TransactionsPage = observer(() => {
   return (
     <Transactions 
       currentUser={auth.user}
-      groupId={ui.selectedGroupId}
       groupMembers={groupMembers}
     />
   );

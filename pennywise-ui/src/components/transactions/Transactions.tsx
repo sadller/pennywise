@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import {
   Box,
@@ -22,15 +22,14 @@ import TransactionHeader from './TransactionHeader';
 import TransactionSummary from './TransactionSummary';
 import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
 import { GridPaginationModel } from '@mui/x-data-grid';
+import { Transaction } from '@/types/transaction';
 
 interface TransactionsProps {
-  groupId?: number;
   currentUser: User;
   groupMembers?: GroupMember[];
 }
 
 function Transactions({ 
-  groupId, 
   currentUser, 
   groupMembers = []
 }: TransactionsProps) {
@@ -40,63 +39,70 @@ function Transactions({
     page: 0,
     pageSize: 20,
   });
-  const queryClient = useQueryClient();
-  const { ui } = useStore();
-
-  // Calculate skip for pagination
-  const skip = paginationModel.page * paginationModel.pageSize;
-
-  // Get transactions from store and filter by group
-  const { data } = useStore();
-  const allTransactions = data.allTransactions;
   
-  // Filter transactions by group and apply pagination
-  const filteredTransactions = React.useMemo(() => {
-    if (!groupId || !allTransactions.length) return [];
-    
-    return allTransactions
-      .filter(transaction => transaction.group_id === groupId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allTransactions, groupId]);
+  const queryClient = useQueryClient();
+  const { ui, data } = useStore();
 
-  // Apply pagination to filtered transactions
-  const paginatedTransactions = React.useMemo(() => {
-    const start = skip;
-    const end = start + paginationModel.pageSize;
-    return filteredTransactions.slice(start, end);
-  }, [filteredTransactions, skip, paginationModel.pageSize]);
-
-  const transactions = paginatedTransactions;
-  const totalCount = filteredTransactions.length;
+  // Fetch all transactions once (already done by DataProvider)
+  const allTransactions = data.allTransactions;
   const isLoading = data.transactionsLoading;
   const error = data.transactionsError;
 
+  // Filter transactions by selected group
+  const filteredTransactions = useMemo(() => {
+    if (!ui.selectedGroupId || !allTransactions.length) return [];
+    
+    return allTransactions
+      .filter(transaction => transaction.group_id === ui.selectedGroupId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allTransactions, ui.selectedGroupId]);
+
+  // Apply pagination
+  const paginatedTransactions = useMemo(() => {
+    const start = paginationModel.page * paginationModel.pageSize;
+    const end = start + paginationModel.pageSize;
+    return filteredTransactions.slice(start, end);
+  }, [filteredTransactions, paginationModel]);
+
+  // Calculate summary data
+  const summaryData = useMemo(() => {
+    return filteredTransactions.reduce((acc, transaction) => {
+      if (transaction.type === TransactionType.INCOME) {
+        acc.cashIn += transaction.amount;
+      } else {
+        acc.cashOut += transaction.amount;
+      }
+      acc.netBalance += transaction.type === TransactionType.INCOME ? transaction.amount : -transaction.amount;
+      return acc;
+    }, { cashIn: 0, cashOut: 0, netBalance: 0 });
+  }, [filteredTransactions]);
+
   // Fetch user groups for dropdown
-  const {
-    data: userGroups = [],
-  } = useQuery({
+  const { data: userGroups = [] } = useQuery({
     queryKey: ['user-groups'],
     queryFn: () => groupService.getUserGroups(),
   });
 
   // Create transaction mutation
   const createTransactionMutation = useMutation({
-    mutationFn: (data: TransactionCreate) => 
-      transactionService.createTransaction(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+    mutationFn: (data: TransactionCreate) => transactionService.createTransaction(data),
+    onSuccess: (newTransaction: Transaction) => {
+      // Update the store with the new transaction instead of refetching
+      const updatedTransactions = [newTransaction, ...data.allTransactions];
+      data.setAllTransactions(updatedTransactions);
+      
+      // Only invalidate groups stats since transaction count changed
       queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
     },
   });
 
+  // Event handlers
   const handleAddTransaction = async (data: TransactionCreate) => {
     await createTransactionMutation.mutateAsync(data);
   };
 
   const handleOpenAddForm = (type?: TransactionType) => {
-    if (type) {
-      setInitialTransactionType(type);
-    }
+    setInitialTransactionType(type || null);
     setIsAddFormOpen(true);
   };
 
@@ -106,17 +112,21 @@ function Transactions({
   };
 
   const handleGroupChange = (groupId: number) => {
-    const selectedGroup = (userGroups || []).find(g => g.id === groupId);
+    const selectedGroup = userGroups.find(g => g.id === groupId);
     ui.setSelectedGroup(groupId, selectedGroup?.name || null);
+    // Reset pagination when group changes
+    setPaginationModel({ page: 0, pageSize: 20 });
   };
 
   const handleTransactionDeleted = () => {
-    queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+    // The TransactionList component handles the deletion and updates the store
+    // We only need to invalidate groups stats since transaction count changed
     queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
   };
 
   const handleTransactionUpdated = () => {
-    queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+    // The TransactionList component handles the update and updates the store
+    // We only need to invalidate groups stats since transaction data changed
     queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
   };
 
@@ -124,6 +134,7 @@ function Transactions({
     setPaginationModel(newModel);
   };
 
+  // Error handling
   if (error) {
     const errorMessage = ErrorHandler.getErrorMessage(error);
     const isMembershipError = ErrorHandler.isPermissionError(error);
@@ -140,11 +151,7 @@ function Transactions({
           color="primary"
           aria-label="retry"
           onClick={() => window.location.reload()}
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-          }}
+          sx={{ position: 'fixed', bottom: 16, right: 16 }}
         >
           <RefreshIcon />
         </Fab>
@@ -152,6 +159,7 @@ function Transactions({
     );
   }
 
+  // Loading state
   if (isLoading) {
     return <TransactionLoadingSkeleton />;
   }
@@ -167,18 +175,18 @@ function Transactions({
 
       {/* Summary Section */}
       <TransactionSummary
-        cashIn={transactions.reduce((sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : 0), 0)}
-        cashOut={transactions.reduce((sum, t) => sum + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0)}
-        netBalance={transactions.reduce((sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : -t.amount), 0)}
+        cashIn={summaryData.cashIn}
+        cashOut={summaryData.cashOut}
+        netBalance={summaryData.netBalance}
       />
 
       {/* Transactions List */}
       <TransactionList 
-        transactions={transactions} 
+        transactions={paginatedTransactions} 
         isLoading={isLoading}
         onTransactionDeleted={handleTransactionDeleted}
         onTransactionUpdated={handleTransactionUpdated}
-        rowCount={totalCount}
+        rowCount={filteredTransactions.length}
         paginationModel={paginationModel}
         onPaginationModelChange={handlePaginationModelChange}
         onAddTransaction={handleOpenAddForm}
@@ -186,11 +194,12 @@ function Transactions({
         groupMembers={groupMembers}
       />
 
+      {/* Add Transaction Form */}
       <AddTransactionForm
         open={isAddFormOpen}
         onClose={handleCloseAddForm}
         onSubmit={handleAddTransaction}
-        groupId={groupId || 1}
+        groupId={ui.selectedGroupId}
         currentUser={currentUser}
         groupMembers={groupMembers}
         isLoading={createTransactionMutation.isPending}
@@ -208,7 +217,7 @@ function Transactions({
           display: { xs: 'flex', sm: 'none' }
         }}
         onClick={() => handleOpenAddForm()}
-        disabled={!groupId}
+        disabled={!ui.selectedGroupId}
       >
         <AddIcon />
       </Fab>

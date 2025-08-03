@@ -20,6 +20,7 @@ import DeleteTransactionDialog from './DeleteTransactionDialog';
 import { VoiceTransaction } from '@/components/transactions';
 import { GridPaginationModel } from '@mui/x-data-grid';
 import { GroupMember } from '@/types/group';
+import { useStore } from '@/stores/StoreProvider';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -50,6 +51,7 @@ export default function TransactionList({
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
+  const { data } = useStore();
 
   const handleDeleteClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -61,12 +63,28 @@ export default function TransactionList({
     
     setIsDeleting(true);
     try {
-      await transactionService.deleteTransaction(selectedTransaction.id);
+      // Optimistically remove the transaction from the store
+      const updatedTransactions = data.allTransactions.filter(
+        t => t.id !== selectedTransaction.id
+      );
+      data.setAllTransactions(updatedTransactions);
+      
+      // Close dialog immediately for better UX
       setDeleteDialogOpen(false);
       setSelectedTransaction(null);
+      
+      // Call the API to actually delete
+      await transactionService.deleteTransaction(selectedTransaction.id);
+      
+      // Notify parent component
       onTransactionDeleted?.();
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      
+      // Revert the optimistic update on error
+      const revertedTransactions = [selectedTransaction, ...data.allTransactions];
+      data.setAllTransactions(revertedTransactions);
+      
       alert('Failed to delete transaction');
     } finally {
       setIsDeleting(false);
