@@ -3,14 +3,15 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { observer } from 'mobx-react-lite';
+import { useQueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import {
   ImportStepper,
   StepOneContent,
   StepTwoContent,
+  StepThreeContent,
   FileListSection,
   InstructionsSection,
   FileUploadHandler,
@@ -25,6 +26,7 @@ const MAX_FILES = 20;
 
 const CashbookImportContent: React.FC = observer(() => {
   const { cashbookImport, data } = useStore();
+  const queryClient = useQueryClient();
 
   // Use centralized groups data from store
   const userGroups = data.groupsWithStats;
@@ -54,7 +56,7 @@ const CashbookImportContent: React.FC = observer(() => {
   };
 
   const handleUpload = () => {
-    cashbookImport.uploadFiles();
+    cashbookImport.uploadFiles(queryClient);
   };
 
   const handleBulkMappingRequest = () => {
@@ -72,7 +74,7 @@ const CashbookImportContent: React.FC = observer(() => {
         subtitle="Import your transactions from Cashbook application"
       />
       
-      <ImportStepper activeStep={cashbookImport.activeStep} steps={['Select Group & Files', 'Review & Import']} />
+      <ImportStepper activeStep={cashbookImport.activeStep} steps={['Select Group & Files', 'Review & Import', 'Import Results']} />
 
       <Box sx={{ 
         mt: 4,
@@ -133,6 +135,12 @@ const CashbookImportContent: React.FC = observer(() => {
             onBack={handleBack}
             onUpload={handleUpload}
             onBulkMappingRequest={handleBulkMappingRequest}
+          />
+        )}
+
+        {cashbookImport.activeStep === 2 && (
+          <StepThreeContent
+            importResults={cashbookImport.importResults}
           />
         )}
       </Box>

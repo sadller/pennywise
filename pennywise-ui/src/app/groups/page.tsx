@@ -44,6 +44,7 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useStore } from '@/stores/StoreProvider';
 import { queryClient } from '@/lib/queryClient';
 import { LoadingSpinner, ErrorAlert } from '@/components/common';
+import { Transaction } from '@/types/transaction';
 
 const GroupsContent = observer(() => {
   const router = useRouter();
@@ -131,13 +132,28 @@ const GroupsContent = observer(() => {
   // Mutation for clearing all transactions in a group
   const clearTransactionsMutation = useMutation({
     mutationFn: (groupId: number) => groupService.clearGroupTransactions(groupId),
+    onMutate: async (groupId: number) => {
+      // Optimistically remove transactions for this group from the store
+      const previousTransactions = [...data.allTransactions];
+      data.removeTransactionsForGroup(groupId);
+      
+      // Return the previous state for rollback
+      return { previousTransactions };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] });
       queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
       handleClearClose();
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, groupId: number, context: { previousTransactions: Transaction[] } | undefined) => {
       console.error('Failed to clear transactions:', error);
+      
+      // Revert the optimistic update on error
+      if (context?.previousTransactions) {
+        data.setAllTransactions(context.previousTransactions);
+      }
+      
       const errorMessage = error && typeof error === 'object' && 'response' in error
         ? (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to clear transactions'
         : 'Failed to clear transactions';

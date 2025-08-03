@@ -61,6 +61,12 @@ class DataStore {
     this.transactionsError = null;
   }
 
+  removeTransactionsForGroup(groupId: number) {
+    this.allTransactions = this.allTransactions.filter(
+      transaction => transaction.group_id !== groupId
+    );
+  }
+
   setTransactionsLoading(loading: boolean) {
     this.transactionsLoading = loading;
   }

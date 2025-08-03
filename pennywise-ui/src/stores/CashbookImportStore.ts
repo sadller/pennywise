@@ -51,6 +51,12 @@ class CashbookImportStore {
   activeStep = 0;
   mappingModalOpen = false;
   notification: Notification | null = null;
+  importResults: {
+    totalImported: number;
+    totalFiles: number;
+    errors: string[];
+    success: boolean;
+  } | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -131,6 +137,15 @@ class CashbookImportStore {
     );
   }
 
+  setImportResults(results: {
+    totalImported: number;
+    totalFiles: number;
+    errors: string[];
+    success: boolean;
+  }) {
+    this.importResults = results;
+  }
+
   // Modal actions
   openMappingModal() {
     this.mappingModalOpen = true;
@@ -145,7 +160,7 @@ class CashbookImportStore {
 
 
   // Upload actions
-  async uploadFiles() {
+  async uploadFiles(queryClient?: { invalidateQueries: (options: { queryKey: string[] }) => void }) {
     if (this.files.length === 0 || !this.selectedGroupId) return;
 
     this.isUploading = true;
@@ -209,11 +224,37 @@ class CashbookImportStore {
           message: `Successfully imported ${totalImported} transactions from ${this.files.length} files`,
           type: 'success'
         });
+        
+        // Invalidate transaction queries to refresh data
+        if (queryClient) {
+          queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['groups-with-stats'] });
+        }
+        
+        // Store import results for step 3
+        this.setImportResults({
+          totalImported,
+          totalFiles: this.files.length,
+          errors: totalErrors,
+          success: true
+        });
+        
+        this.activeStep = 2; // Set active step to 2 for results display
       } else {
         this.setNotification({
           message: 'No transactions were imported. Please check your files and mapping configuration.',
           type: 'error'
         });
+        
+        // Store import results for step 3 (even for failed imports)
+        this.setImportResults({
+          totalImported: 0,
+          totalFiles: this.files.length,
+          errors: totalErrors,
+          success: false
+        });
+        
+        this.activeStep = 2; // Set active step to 2 for results display
       }
 
       if (totalErrors.length > 0) {
@@ -352,6 +393,7 @@ class CashbookImportStore {
     this.activeStep = 0;
     this.mappingModalOpen = false;
     this.notification = null;
+    this.importResults = null;
   }
 }
 
