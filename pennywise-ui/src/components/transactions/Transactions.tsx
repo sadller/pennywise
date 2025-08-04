@@ -7,7 +7,7 @@ import {
   Fab,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
 import { groupService } from '@/services/groupService';
@@ -18,6 +18,8 @@ import { ErrorHandler } from '@/utils/errorHandler';
 import { useStore } from '@/stores/StoreProvider';
 import TransactionList from './TransactionList';
 import AddTransactionForm from './AddTransactionForm';
+import VoiceTransaction from './VoiceTransaction';
+import ExpandableFab from './ExpandableFab';
 import TransactionHeader from './TransactionHeader';
 import TransactionSummary from './TransactionSummary';
 import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
@@ -34,6 +36,7 @@ function Transactions({
   groupMembers = []
 }: TransactionsProps) {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [isVoiceTransactionOpen, setIsVoiceTransactionOpen] = useState(false);
   const [initialTransactionType, setInitialTransactionType] = useState<TransactionType | null>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -109,6 +112,14 @@ function Transactions({
   const handleCloseAddForm = () => {
     setIsAddFormOpen(false);
     setInitialTransactionType(null);
+  };
+
+  const handleOpenVoiceTransaction = () => {
+    setIsVoiceTransactionOpen(true);
+  };
+
+  const handleCloseVoiceTransaction = () => {
+    setIsVoiceTransactionOpen(false);
   };
 
   const handleGroupChange = (groupId: number) => {
@@ -206,21 +217,18 @@ function Transactions({
         initialTransactionType={initialTransactionType}
       />
 
-      {/* Floating Action Button for mobile */}
-      <Fab
-        color="primary"
-        aria-label="add transaction"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          display: { xs: 'flex', sm: 'none' }
-        }}
-        onClick={() => handleOpenAddForm()}
+      {/* Voice Transaction Modal */}
+      <VoiceTransaction
+        open={isVoiceTransactionOpen}
+        onClose={handleCloseVoiceTransaction}
+      />
+
+      {/* Expandable Floating Action Button for mobile */}
+      <ExpandableFab
+        onAddTransaction={() => handleOpenAddForm()}
+        onOpenVoiceTransaction={handleOpenVoiceTransaction}
         disabled={!ui.selectedGroupId}
-      >
-        <AddIcon />
-      </Fab>
+      />
     </Box>
   );
 }
