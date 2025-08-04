@@ -21,7 +21,6 @@ interface UpdateNotificationProps {
 
 export default function UpdateNotification({ onUpdate }: UpdateNotificationProps) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {

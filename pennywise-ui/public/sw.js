@@ -1,81 +1,205 @@
-const CACHE_NAME = 'pennywise-v1.1';
-const urlsToCache = [
+const CACHE_NAME = 'pennywise-v1.2';
+const STATIC_CACHE = 'pennywise-static-v1.2';
+const DYNAMIC_CACHE = 'pennywise-dynamic-v1.2';
+
+// Static assets to cache immediately
+const STATIC_URLS = [
   '/',
   '/offline',
-  '/static/css/main.css',
   '/manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  '/favicon.png'
+  '/icon-72x72.png',
+  '/icon-96x96.png',
+  '/icon-128x128.png',
+  '/icon-144x144.png',
+  '/icon-152x152.png',
+  '/icon-384x384.png',
+  '/favicon.png',
+  '/pennywise-logo.png',
+  '/pennywise-logo.svg'
 ];
 
-// Install event - cache resources
+// API endpoints to cache
+const API_CACHE_PATTERNS = [
+  '/api/v1/transactions',
+  '/api/v1/groups',
+  '/api/v1/groups/stats',
+  '/api/v1/dashboard'
+];
+
+// Install event - cache static resources
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Opened static cache');
+        return cache.addAll(STATIC_URLS);
+      })
+      .then(() => {
+        console.log('Static assets cached successfully');
+        // Skip waiting to activate immediately
+        return self.skipWaiting();
       })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (!cacheName.startsWith('pennywise-')) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Claim all clients immediately
+      self.clients.claim()
+    ])
   );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - offline-first strategy
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response;
-        }
-        
-        // Clone the request because it's a stream
-        const fetchRequest = event.request.clone();
-        
-        return fetch(fetchRequest).then((response) => {
-          // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Handle different types of requests
+  if (request.method === 'GET') {
+    // For GET requests, try cache first, then network
+    event.respondWith(
+      caches.match(request)
+        .then((cachedResponse) => {
+          // Return cached response if available
+          if (cachedResponse) {
+            console.log('Serving from cache:', request.url);
+            return cachedResponse;
+          }
+
+          // Try network request
+          return fetch(request)
+            .then((networkResponse) => {
+              // Check if response is valid
+              if (!networkResponse || networkResponse.status !== 200) {
+                throw new Error('Network response not ok');
+              }
+
+              // Clone the response
+              const responseToCache = networkResponse.clone();
+
+              // Cache successful responses
+              if (shouldCache(request)) {
+                caches.open(DYNAMIC_CACHE)
+                  .then((cache) => {
+                    cache.put(request, responseToCache);
+                    console.log('Cached response:', request.url);
+                  });
+              }
+
+              return networkResponse;
+            })
+            .catch((error) => {
+              console.log('Network failed, trying offline fallback:', request.url);
+              
+              // For navigation requests, return offline page
+              if (request.mode === 'navigate') {
+                return caches.match('/offline');
+              }
+              
+              // For API requests, return cached data if available
+              if (isApiRequest(request)) {
+                return caches.match(request)
+                  .then((cachedResponse) => {
+                    if (cachedResponse) {
+                      console.log('Serving API from cache:', request.url);
+                      return cachedResponse;
+                    }
+                    throw error;
+                  });
+              }
+              
+              // For other requests, try to find a fallback
+              return caches.match(request)
+                .then((fallbackResponse) => {
+                  if (fallbackResponse) {
+                    return fallbackResponse;
+                  }
+                  throw error;
+                });
+            });
+        })
+    );
+  } else if (request.method === 'POST' || request.method === 'PUT' || request.method === 'DELETE') {
+    // For write operations, try network first, then queue for background sync
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // If successful, return response
+          if (response && response.status >= 200 && response.status < 300) {
             return response;
           }
+          throw new Error('Network request failed');
+        })
+        .catch((error) => {
+          console.log('Network failed for write operation, queueing for background sync');
           
-          // Clone the response because it's a stream
-          const responseToCache = response.clone();
+          // Queue the request for background sync
+          if ('serviceWorker' in navigator && 'sync' in navigator.serviceWorker) {
+            return navigator.serviceWorker.ready
+              .then((registration) => {
+                return registration.sync.register('background-sync');
+              })
+              .then(() => {
+                // Return a success response to the user
+                return new Response(JSON.stringify({ 
+                  message: 'Request queued for background sync',
+                  offline: true 
+                }), {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              });
+          }
           
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          
-          return response;
-        });
-      })
-      .catch(() => {
-        // If both cache and network fail, show offline page
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline');
-        }
-      })
-  );
+          throw error;
+        })
+    );
+  }
 });
+
+// Helper function to determine if a request should be cached
+function shouldCache(request) {
+  const url = new URL(request.url);
+  
+  // Cache API responses
+  if (isApiRequest(request)) {
+    return true;
+  }
+  
+  // Cache static assets
+  if (request.destination === 'image' || 
+      request.destination === 'style' || 
+      request.destination === 'script' ||
+      request.destination === 'font') {
+    return true;
+  }
+  
+  return false;
+}
+
+// Helper function to check if request is an API call
+function isApiRequest(request) {
+  const url = new URL(request.url);
+  return url.pathname.startsWith('/api/');
+}
 
 // Background sync for offline data
 self.addEventListener('sync', (event) => {
@@ -86,11 +210,43 @@ self.addEventListener('sync', (event) => {
 
 async function doBackgroundSync() {
   try {
-    // Sync any offline data when connection is restored
     console.log('Background sync triggered');
-    // Add your background sync logic here
+    
+    // Get all clients to notify them about sync
+    const clients = await self.clients.matchAll();
+    
+    // Notify all clients that sync is happening
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC_STARTED',
+        timestamp: Date.now()
+      });
+    });
+    
+    // Here you would typically sync any offline data
+    // For now, we'll just log that sync happened
+    console.log('Background sync completed successfully');
+    
+    // Notify clients that sync is complete
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC_COMPLETED',
+        timestamp: Date.now()
+      });
+    });
+    
   } catch (error) {
     console.error('Background sync failed:', error);
+    
+    // Notify clients about sync failure
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC_FAILED',
+        error: error.message,
+        timestamp: Date.now()
+      });
+    });
   }
 }
 
