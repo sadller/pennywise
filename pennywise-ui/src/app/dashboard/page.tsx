@@ -88,10 +88,6 @@ const DashboardContent = observer(() => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
-      
       {/* Dashboard Filters */}
       <DashboardFilters 
         transactions={data.allTransactions}

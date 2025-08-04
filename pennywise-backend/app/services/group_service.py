@@ -73,7 +73,7 @@ class GroupService:
         if not member:
             return None
 
-        # Get group with stats using raw SQL
+        # Get group with stats using raw SQL - fixed to avoid cartesian product
         query = text("""
             SELECT 
                 g.id,
@@ -81,17 +81,14 @@ class GroupService:
                 g.owner_id,
                 g.created_at,
                 u.full_name as owner_name,
-                COUNT(DISTINCT gm_all.user_id) as member_count,
-                COUNT(t.id) as transaction_count,
-                COALESCE(SUM(t.amount), 0) as total_amount,
-                MAX(t.date) as last_transaction_at
+                (SELECT COUNT(DISTINCT gm_all.user_id) FROM group_members gm_all WHERE gm_all.group_id = g.id) as member_count,
+                (SELECT COUNT(t.id) FROM transactions t WHERE t.group_id = g.id) as transaction_count,
+                COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.group_id = g.id), 0) as total_amount,
+                (SELECT MAX(t.date) FROM transactions t WHERE t.group_id = g.id) as last_transaction_at
             FROM groups g
             JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = :user_id
             JOIN users u ON g.owner_id = u.id
-            LEFT JOIN group_members gm_all ON g.id = gm_all.group_id
-            LEFT JOIN transactions t ON g.id = t.group_id
             WHERE g.id = :group_id
-            GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
         """)
         
         result = self.db.execute(query, {"group_id": group_id, "user_id": user_id})
@@ -114,7 +111,7 @@ class GroupService:
 
     def get_user_groups_with_stats(self, user_id: int) -> List[GroupStats]:
         """Get all groups with statistics where user is a member."""
-        # Get groups with stats using raw SQL
+        # Get groups with stats using raw SQL - fixed to avoid cartesian product
         query = text("""
             SELECT 
                 g.id,
@@ -122,16 +119,13 @@ class GroupService:
                 g.owner_id,
                 g.created_at,
                 u.full_name as owner_name,
-                COUNT(DISTINCT gm_all.user_id) as member_count,
-                COUNT(t.id) as transaction_count,
-                COALESCE(SUM(t.amount), 0) as total_amount,
-                MAX(t.date) as last_transaction_at
+                (SELECT COUNT(DISTINCT gm_all.user_id) FROM group_members gm_all WHERE gm_all.group_id = g.id) as member_count,
+                (SELECT COUNT(t.id) FROM transactions t WHERE t.group_id = g.id) as transaction_count,
+                COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.group_id = g.id), 0) as total_amount,
+                (SELECT MAX(t.date) FROM transactions t WHERE t.group_id = g.id) as last_transaction_at
             FROM groups g
             JOIN group_members gm ON g.id = gm.group_id AND gm.user_id = :user_id
             JOIN users u ON g.owner_id = u.id
-            LEFT JOIN group_members gm_all ON g.id = gm_all.group_id
-            LEFT JOIN transactions t ON g.id = t.group_id
-            GROUP BY g.id, g.name, g.owner_id, g.created_at, u.full_name
         """)
         
         result = self.db.execute(query, {"user_id": user_id})
