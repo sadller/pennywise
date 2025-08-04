@@ -17,8 +17,8 @@ export default function ServiceWorkerRegistration() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New content is available, show update prompt
-                  console.log('New content is available; please refresh.');
+                  // New content is available, but we'll let UpdateNotification handle the UI
+                  console.log('New content is available; UpdateNotification will handle the UI.');
                 }
               });
             }

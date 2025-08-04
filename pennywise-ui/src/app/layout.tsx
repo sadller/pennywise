@@ -5,6 +5,7 @@ import { StoreProvider } from "@/stores/StoreProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
 import PWAInstallPrompt from "@/components/common/PWAInstallPrompt";
 import ServiceWorkerRegistration from "@/components/common/ServiceWorkerRegistration";
+import UpdateNotification from "@/components/common/UpdateNotification";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -116,6 +117,7 @@ export default function RootLayout({
             {children}
             <PWAInstallPrompt />
             <ServiceWorkerRegistration />
+            <UpdateNotification />
           </StoreProvider>
         </ThemeRegistry>
       </body>

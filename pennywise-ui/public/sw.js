@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pennywise-v1';
+const CACHE_NAME = 'pennywise-v1.1';
 const urlsToCache = [
   '/',
   '/offline',
@@ -122,4 +122,11 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.openWindow('/')
   );
+});
+
+// Handle skip waiting message from main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 }); 
