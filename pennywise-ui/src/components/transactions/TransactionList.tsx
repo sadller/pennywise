@@ -33,6 +33,7 @@ interface TransactionListProps {
   onAddTransaction?: (type: TransactionType) => void;
   selectedGroupId: number | null;
   groupMembers: GroupMember[];
+  onEditStateChange?: (isEditing: boolean) => void;
 }
 
 export default function TransactionList({ 
@@ -45,7 +46,8 @@ export default function TransactionList({
   onPaginationModelChange,
   onAddTransaction,
   selectedGroupId,
-  groupMembers
+  groupMembers,
+  onEditStateChange
 }: TransactionListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -158,6 +160,7 @@ export default function TransactionList({
         onDeleteTransaction={handleDeleteClick}
         onTransactionUpdated={onTransactionUpdated}
         groupMembers={groupMembers}
+        onEditStateChange={onEditStateChange}
       />
 
       <DeleteTransactionDialog

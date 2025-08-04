@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel, GridRowModel, GridRowId, GridRowModes, GridRowModesModel, GridRowEditStopReasons, GridActionsCellItem, GridRowEditStopParams, MuiEvent, MuiBaseEvent } from '@mui/x-data-grid';
-import { Box, Typography, Avatar, Chip } from '@mui/material';
+import { Box, Typography, Avatar, Chip, Fab, useMediaQuery, useTheme } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Cancel';
+import ClearIcon from '@mui/icons-material/Clear';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 import { transactionService } from '@/services/transactionService';
@@ -30,6 +30,7 @@ interface TransactionDataGridProps {
   onDeleteTransaction?: (transaction: Transaction) => void;
   onTransactionUpdated?: () => void;
   groupMembers: GroupMember[]; // Add this line
+  onEditStateChange?: (isEditing: boolean) => void;
 }
 
 export default function TransactionDataGrid({
@@ -41,10 +42,21 @@ export default function TransactionDataGrid({
   onDeleteTransaction,
   onTransactionUpdated,
   groupMembers, // Add this line
+  onEditStateChange,
 }: TransactionDataGridProps) {
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [updatingTransactionId, setUpdatingTransactionId] = useState<number | null>(null);
+  const [editingRowId, setEditingRowId] = useState<GridRowId | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalRowData, setOriginalRowData] = useState<Record<string, unknown> | null>(null);
   const { data } = useStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Notify parent component about edit state changes
+  useEffect(() => {
+    onEditStateChange?.(editingRowId !== null);
+  }, [editingRowId, onEditStateChange]);
 
   // Calculate cumulative balance
   const transactionsWithBalance = useMemo(() => {
@@ -86,11 +98,28 @@ export default function TransactionDataGrid({
         ...prevModel,
         [params.id]: { mode: GridRowModes.View, ignoreModifications: true },
       }));
+      setEditingRowId(null);
     }
+  };
+
+  const handleRowDoubleClick = (params: { id: GridRowId }) => {
+    const originalTransaction = transactionsWithBalance.find(t => t.id === params.id);
+    if (originalTransaction) {
+      setOriginalRowData(originalTransaction);
+    }
+    setRowModesModel((prevModel) => ({
+      ...prevModel,
+      [params.id]: { mode: GridRowModes.Edit },
+    }));
+    setEditingRowId(params.id);
+    setHasChanges(false);
   };
 
   const handleSaveClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+    setEditingRowId(null);
+    setHasChanges(false);
+    setOriginalRowData(null);
   };
 
   const handleCancelClick = (id: GridRowId) => () => {
@@ -98,7 +127,55 @@ export default function TransactionDataGrid({
       ...rowModesModel,
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
     });
+    setEditingRowId(null);
+    setHasChanges(false);
+    setOriginalRowData(null);
   };
+
+  // Mobile floating button handlers
+  const handleMobileSave = () => {
+    if (editingRowId) {
+      handleSaveClick(editingRowId)();
+    }
+  };
+
+  const handleMobileCancel = () => {
+    if (editingRowId) {
+      handleCancelClick(editingRowId)();
+    }
+  };
+
+  // Track changes by comparing current row data with original data
+  const checkForChanges = useCallback((rowId: GridRowId) => {
+    if (!originalRowData || editingRowId !== rowId) return;
+    
+    const currentRow = transactionsWithBalance.find(t => t.id === rowId);
+    if (!currentRow) return;
+    
+    const hasAnyChanges = Object.keys(currentRow).some(key => {
+      if (key === 'id' || key === 'balance') return false;
+      return (originalRowData as Record<string, unknown>)[key] !== (currentRow as Record<string, unknown>)[key];
+    });
+    
+    setHasChanges(hasAnyChanges);
+  }, [originalRowData, editingRowId, transactionsWithBalance]);
+
+  // Check for changes whenever the row modes model changes
+  useEffect(() => {
+    if (editingRowId) {
+      checkForChanges(editingRowId);
+    }
+  }, [rowModesModel, editingRowId, originalRowData, transactionsWithBalance, checkForChanges]);
+
+  // Set hasChanges to true immediately when editing starts
+  useEffect(() => {
+    if (editingRowId && originalRowData) {
+      // Set hasChanges to true when we start editing to show save button immediately
+      setHasChanges(true);
+    }
+  }, [editingRowId, originalRowData]);
+
+
 
   const processRowUpdate = async (newRow: GridRowModel) => {
     const updatedTransaction = newRow as Transaction;
@@ -134,6 +211,7 @@ export default function TransactionDataGrid({
       data.setAllTransactions(finalUpdatedTransactions);
       
       onTransactionUpdated?.();
+      setEditingRowId(null);
       return updatedTransaction;
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -152,6 +230,25 @@ export default function TransactionDataGrid({
 
   const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
     setRowModesModel(newRowModesModel);
+    
+    // Check if any row is in edit mode
+    const editingRow = Object.entries(newRowModesModel).find(([, mode]) => mode.mode === GridRowModes.Edit);
+    if (editingRow) {
+      const rowId = Number(editingRow[0]);
+      if (editingRowId !== rowId) {
+        setEditingRowId(rowId);
+        setHasChanges(false);
+        // Store original data when entering edit mode
+        const originalTransaction = transactionsWithBalance.find(t => t.id === rowId);
+        if (originalTransaction) {
+          setOriginalRowData(originalTransaction);
+        }
+      }
+    } else {
+      setEditingRowId(null);
+      setHasChanges(false);
+      setOriginalRowData(null);
+    }
   };
 
   const columns: GridColDef[] = [
@@ -360,7 +457,7 @@ export default function TransactionDataGrid({
             />,
             <GridActionsCellItem
               key="cancel"
-              icon={<CancelIcon />}
+              icon={<ClearIcon />}
               label="Cancel"
               onClick={handleCancelClick(id)}
               disabled={isUpdating}
@@ -386,7 +483,7 @@ export default function TransactionDataGrid({
   ];
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 600, width: '100%', position: 'relative' }}>
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}
@@ -394,6 +491,7 @@ export default function TransactionDataGrid({
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
         onRowEditStop={handleRowEditStop}
+        onRowDoubleClick={handleRowDoubleClick}
         processRowUpdate={processRowUpdate}
         showColumnVerticalBorder={true}
         disableRowSelectionOnClick
@@ -449,6 +547,64 @@ export default function TransactionDataGrid({
           },
         }}
       />
+
+      {/* Mobile Floating Action Buttons */}
+      {isMobile && editingRowId && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 20,
+            right: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            zIndex: 1000,
+          }}
+        >
+          {hasChanges && (
+            <Fab
+              color="primary"
+              size="large"
+              onClick={handleMobileSave}
+              disabled={updatingTransactionId === editingRowId}
+              sx={{
+                bgcolor: 'success.main',
+                '&:hover': {
+                  bgcolor: 'success.dark',
+                },
+                animation: 'pulse 2s infinite',
+                '@keyframes pulse': {
+                  '0%': {
+                    boxShadow: '0 0 0 0 rgba(76, 175, 80, 0.7)',
+                  },
+                  '70%': {
+                    boxShadow: '0 0 0 10px rgba(76, 175, 80, 0)',
+                  },
+                  '100%': {
+                    boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)',
+                  },
+                },
+              }}
+            >
+              <SaveIcon />
+            </Fab>
+          )}
+          <Fab
+            size="large"
+            onClick={handleMobileCancel}
+            disabled={updatingTransactionId === editingRowId}
+            sx={{
+              bgcolor: 'error.main',
+              color: 'white',
+              '&:hover': {
+                bgcolor: 'error.dark',
+              },
+            }}
+          >
+            <ClearIcon />
+          </Fab>
+        </Box>
+      )}
     </Box>
   );
 } 

@@ -42,6 +42,7 @@ function Transactions({
     page: 0,
     pageSize: 20,
   });
+  const [isEditing, setIsEditing] = useState(false);
   
   const queryClient = useQueryClient();
   const { ui, data } = useStore();
@@ -203,6 +204,7 @@ function Transactions({
         onAddTransaction={handleOpenAddForm}
         selectedGroupId={ui.selectedGroupId}
         groupMembers={groupMembers}
+        onEditStateChange={setIsEditing}
       />
 
       {/* Add Transaction Form */}
@@ -227,7 +229,7 @@ function Transactions({
       <ExpandableFab
         onAddTransaction={() => handleOpenAddForm()}
         onOpenVoiceTransaction={handleOpenVoiceTransaction}
-        disabled={!ui.selectedGroupId}
+        disabled={!ui.selectedGroupId || isEditing}
       />
     </Box>
   );
