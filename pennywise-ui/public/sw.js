@@ -24,7 +24,7 @@ const EXTERNAL_HOSTS = [
   'www.googleapis.com',
 ];
 
-const BYPASS_PATH_PREFIXES = ['/__next', '/_next'];
+const BYPASS_PATH_PREFIXES = ['/__next'];
 
 const isExternalRequest = (url) =>
   EXTERNAL_PROTOCOLS.includes(url.protocol) ||
@@ -103,7 +103,15 @@ self.addEventListener('fetch', (event) => {
     // Network-first strategy for HTML navigation requests to avoid stale pages
     event.respondWith(
       fetch(request)
-        .catch(() => caches.match('/offline'))
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, responseClone));
+            return networkResponse;
+          }
+          throw new Error('Network fetch failed');
+        })
+        .catch(() => caches.match(request).then((res) => res || caches.match('/offline')))
     );
     return;
   }
