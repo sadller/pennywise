@@ -10,8 +10,11 @@ import { API_CONSTANTS } from '@/constants';
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
 
+  // Check if Google OAuth is configured (non-empty client ID)
+  const isGoogleOAuthConfigured: boolean = !!API_CONSTANTS.GOOGLE_CLIENT_ID;
+
   return (
-    <GoogleOAuthProvider clientId={API_CONSTANTS.GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={API_CONSTANTS.GOOGLE_CLIENT_ID || 'dummy-client-id'}>
       <Box
         sx={{
           minHeight: '100vh',
@@ -24,9 +27,15 @@ const AuthPage: React.FC = () => {
       >
         <Container maxWidth="sm">
           {isLogin ? (
-            <LoginForm onSwitchToRegister={() => setIsLogin(false)} />
+            <LoginForm 
+              onSwitchToRegister={() => setIsLogin(false)} 
+              isGoogleOAuthConfigured={isGoogleOAuthConfigured}
+            />
           ) : (
-            <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
+            <RegisterForm 
+              onSwitchToLogin={() => setIsLogin(true)} 
+              isGoogleOAuthConfigured={isGoogleOAuthConfigured}
+            />
           )}
         </Container>
       </Box>

@@ -20,9 +20,10 @@ import { useRouter } from 'next/navigation';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
+  isGoogleOAuthConfigured?: boolean;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin }) => {
+const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin, isGoogleOAuthConfigured = true }) => {
   const { auth } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -147,23 +148,27 @@ const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin })
           </Button>
         </Box>
 
-        <Divider sx={{ my: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Or continue with
-          </Typography>
-        </Divider>
+        {isGoogleOAuthConfigured && (
+          <>
+            <Divider sx={{ my: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Or continue with
+              </Typography>
+            </Divider>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            useOneTap
-            theme="outline"
-            size="large"
-            text="signup_with"
-            shape="rectangular"
-          />
-        </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap
+                theme="outline"
+                size="large"
+                text="signup_with"
+                shape="rectangular"
+              />
+            </Box>
+          </>
+        )}
 
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">

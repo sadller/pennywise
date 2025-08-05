@@ -1,10 +1,39 @@
-const CACHE_NAME = 'pennywise-v1.2';
-const STATIC_CACHE = 'pennywise-static-v1.2';
-const DYNAMIC_CACHE = 'pennywise-dynamic-v1.2';
+const CACHE_VERSION = 'v1.3';
+const STATIC_CACHE = `pennywise-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `pennywise-dynamic-${CACHE_VERSION}`;
+
+// Set to true for verbose logging during development
+const DEBUG = false;
+const log = (...args) => {
+  if (DEBUG) {
+    console.log('[SW]', ...args);
+  }
+};
+
+// External protocols & hosts we never want to cache or proxy
+const EXTERNAL_PROTOCOLS = [
+  'chrome-extension:',
+  'moz-extension:',
+  'safari-extension:',
+];
+
+const EXTERNAL_HOSTS = [
+  'accounts.google.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'www.googleapis.com',
+];
+
+const BYPASS_PATH_PREFIXES = ['/__next', '/_next'];
+
+const isExternalRequest = (url) =>
+  EXTERNAL_PROTOCOLS.includes(url.protocol) ||
+  EXTERNAL_HOSTS.includes(url.hostname) ||
+  BYPASS_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+
 
 // Static assets to cache immediately
 const STATIC_URLS = [
-  '/',
   '/offline',
   '/manifest.json',
   '/icon-192x192.png',
@@ -20,25 +49,17 @@ const STATIC_URLS = [
   '/pennywise-logo.svg'
 ];
 
-// API endpoints to cache
-const API_CACHE_PATTERNS = [
-  '/api/v1/transactions',
-  '/api/v1/groups',
-  '/api/v1/groups/stats',
-  '/api/v1/dashboard'
-];
-
 // Install event - cache static resources
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+  log('Service Worker installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Opened static cache');
+        log('Opened static cache');
         return cache.addAll(STATIC_URLS);
       })
       .then(() => {
-        console.log('Static assets cached successfully');
+        log('Static assets cached successfully');
         // Skip waiting to activate immediately
         return self.skipWaiting();
       })
@@ -47,15 +68,15 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  log('Service Worker activating...');
   event.waitUntil(
     Promise.all([
       // Clean up old caches
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (!cacheName.startsWith('pennywise-')) {
-              console.log('Deleting old cache:', cacheName);
+            if (![STATIC_CACHE, DYNAMIC_CACHE].includes(cacheName)) {
+              log('Deleting outdated cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
@@ -72,7 +93,21 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Bypass external / third-party requests
+  if (isExternalRequest(url)) {
+    return; // Let the request go straight to the network
+  }
+
   // Handle different types of requests
+  if (request.method === 'GET' && request.mode === 'navigate') {
+    // Network-first strategy for HTML navigation requests to avoid stale pages
+    event.respondWith(
+      fetch(request)
+        .catch(() => caches.match('/offline'))
+    );
+    return;
+  }
+
   if (request.method === 'GET') {
     // For GET requests, try cache first, then network
     event.respondWith(
@@ -80,7 +115,6 @@ self.addEventListener('fetch', (event) => {
         .then((cachedResponse) => {
           // Return cached response if available
           if (cachedResponse) {
-            console.log('Serving from cache:', request.url);
             return cachedResponse;
           }
 
@@ -89,7 +123,7 @@ self.addEventListener('fetch', (event) => {
             .then((networkResponse) => {
               // Check if response is valid
               if (!networkResponse || networkResponse.status !== 200) {
-                throw new Error('Network response not ok');
+                throw new Error(`Network response not ok: ${networkResponse?.status}`);
               }
 
               // Clone the response
@@ -100,15 +134,12 @@ self.addEventListener('fetch', (event) => {
                 caches.open(DYNAMIC_CACHE)
                   .then((cache) => {
                     cache.put(request, responseToCache);
-                    console.log('Cached response:', request.url);
                   });
               }
 
               return networkResponse;
             })
-            .catch((error) => {
-              console.log('Network failed, trying offline fallback:', request.url);
-              
+          .catch(() => {
               // For navigation requests, return offline page
               if (request.mode === 'navigate') {
                 return caches.match('/offline');
@@ -119,10 +150,16 @@ self.addEventListener('fetch', (event) => {
                 return caches.match(request)
                   .then((cachedResponse) => {
                     if (cachedResponse) {
-                      console.log('Serving API from cache:', request.url);
                       return cachedResponse;
                     }
-                    throw error;
+                    // Return a fallback response for API requests
+                    return new Response(JSON.stringify({ 
+                      error: 'Network unavailable',
+                      offline: true 
+                    }), {
+                      status: 503,
+                      headers: { 'Content-Type': 'application/json' }
+                    });
                   });
               }
               
@@ -132,7 +169,11 @@ self.addEventListener('fetch', (event) => {
                   if (fallbackResponse) {
                     return fallbackResponse;
                   }
-                  throw error;
+                  // Return a simple offline response
+                  return new Response('Offline', {
+                    status: 503,
+                    headers: { 'Content-Type': 'text/plain' }
+                  });
                 });
             });
         })
@@ -148,28 +189,15 @@ self.addEventListener('fetch', (event) => {
           }
           throw new Error('Network request failed');
         })
-        .catch((error) => {
-          console.log('Network failed for write operation, queueing for background sync');
-          
-          // Queue the request for background sync
-          if ('serviceWorker' in navigator && 'sync' in navigator.serviceWorker) {
-            return navigator.serviceWorker.ready
-              .then((registration) => {
-                return registration.sync.register('background-sync');
-              })
-              .then(() => {
-                // Return a success response to the user
-                return new Response(JSON.stringify({ 
-                  message: 'Request queued for background sync',
-                  offline: true 
-                }), {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              });
-          }
-          
-          throw error;
+                 .catch(() => {
+          // Return a success response to the user for offline operations
+          return new Response(JSON.stringify({ 
+            message: 'Request queued for background sync',
+            offline: true 
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
         })
     );
   }
@@ -178,6 +206,11 @@ self.addEventListener('fetch', (event) => {
 // Helper function to determine if a request should be cached
 function shouldCache(request) {
   const url = new URL(request.url);
+  
+  // Never cache requests we purposely bypass
+  if (isExternalRequest(url)) {
+    return false;
+  }
   
   // Cache API responses
   if (isApiRequest(request)) {
@@ -210,7 +243,7 @@ self.addEventListener('sync', (event) => {
 
 async function doBackgroundSync() {
   try {
-    console.log('Background sync triggered');
+    log('Background sync triggered');
     
     // Get all clients to notify them about sync
     const clients = await self.clients.matchAll();
@@ -225,7 +258,7 @@ async function doBackgroundSync() {
     
     // Here you would typically sync any offline data
     // For now, we'll just log that sync happened
-    console.log('Background sync completed successfully');
+    log('Background sync completed successfully');
     
     // Notify clients that sync is complete
     clients.forEach(client => {
