@@ -1,45 +1,89 @@
-"""Generic AI service using OpenRouter for secure API calls.
+"""AI service for calling the AI Hub API.
 
-This service provides a generic interface for AI-powered features using OpenRouter API calls
-from the backend to keep API keys secure.
+This service provides AI-powered features using the AI Hub API.
 """
 import json
-import re
-from typing import Dict, List
+import requests
+from typing import Dict, Any, List
+from fastapi import HTTPException
 from app.core.config import settings
-from app.constants.ai_models import AI_MODELS, DEFAULT_MODELS
 
 
 class AIService:
-    """Generic service for AI-powered features using OpenRouter API."""
+    """Service for calling AI Hub API."""
     
     def __init__(self):
-        self.api_key = settings.OPENROUTER_API_KEY
-        self.base_url = "https://openrouter.ai/api/v1"
+        self.base_url = settings.AI_API_URL
     
-    def _clean_json_with_comments(self, json_string: str) -> str:
+    def chat_completion(self, message: str, auth_token: str = None) -> Dict[str, Any]:
         """
-        Clean JSON string by removing comments and fixing common issues.
+        Make a chat completion request to AI Hub API.
         
         Args:
-            json_string: JSON string that may contain comments
+            message: The message/prompt to send to the AI
+            auth_token: Authorization token to forward from the UI
             
         Returns:
-            Cleaned JSON string without comments
+            Dictionary containing the AI response with response, provider, and model
         """
-        # Remove single-line comments (// ...)
-        json_string = re.sub(r'//.*?$', '', json_string, flags=re.MULTILINE)
+        try:
+            headers = {
+                "Content-Type": "application/json",
+            }
+            
+            # Forward the authorization token if provided
+            if auth_token:
+                headers["Authorization"] = auth_token
+            
+            payload = {
+                "message": message
+            }
+            
+            response = requests.post(
+                self.base_url,
+                headers=headers,
+                json=payload,
+                timeout=120
+            )
+            
+            if response.status_code not in [200, 201]:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"AI API error: {response.status_code} - {response.text}"
+                )
+            
+            data = response.json()
+            return data
+            
+        except requests.exceptions.RequestException as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to connect to AI service: {str(e)}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI API call failed: {str(e)}"
+            )
+    
+    def extract_transaction_json(self, message: str, auth_token: str = None) -> str:
+        """
+        Extract JSON response from AI completion for transaction extraction.
         
-        # Remove multi-line comments (/* ... */)
-        json_string = re.sub(r'/\*.*?\*/', '', json_string, flags=re.DOTALL)
+        Args:
+            message: The message/prompt to send to the AI
+            auth_token: Authorization token to forward from the UI
+            
+        Returns:
+            Clean JSON string containing the AI response
+        """
+        ai_response = self.chat_completion(message, auth_token)
         
-        # Remove trailing commas before closing brackets/braces
-        json_string = re.sub(r',(\s*[}\]])', r'\1', json_string)
+        # Extract only the response field from the AI API response
+        content = ai_response.get("response", "")
         
-        # Remove leading/trailing whitespace
-        json_string = json_string.strip()
-        
-        return json_string
+        # Try to extract and clean JSON from the response content
+        return self._extract_and_clean_json(content)
     
     def _extract_and_clean_json(self, content: str) -> str:
         """
@@ -51,6 +95,8 @@ class AIService:
         Returns:
             Cleaned JSON string
         """
+        import re
+        
         # Try to extract JSON from markdown code blocks first
         json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
         if json_match:
@@ -66,86 +112,32 @@ class AIService:
         # If no JSON found, return the original content
         return content
     
-    def chat_completion(self, messages: List[Dict[str, str]], model: str = AI_MODELS["DEFAULT"]) -> str:
+    def _clean_json_with_comments(self, json_string: str) -> str:
         """
-        Make a chat completion request to OpenRouter API.
+        Clean JSON string by removing comments and fixing common issues.
         
         Args:
-            messages: List of message objects with role and content
-            model: AI model to use (defaults to DEFAULT model)
+            json_string: JSON string that may contain comments
             
         Returns:
-            Generated content from the AI model
+            Cleaned JSON string without comments
         """
-        if not self.api_key:
-            raise ValueError("OpenRouter API key not configured")
+        import re
         
-        try:
-            import requests
-            
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            }
-            
-            payload = {
-                "model": model,
-                "messages": messages,
-            }
-            
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-            
-            if response.status_code != 200:
-                raise Exception(f"OpenRouter API error: {response.status_code}")
-            
-            # Log the raw AI response for debugging
-            print(f"AI response: {response.text}")
-            
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
-            
-            # Extract and clean JSON from the content
-            cleaned_json = self._extract_and_clean_json(content)
-            
-            # Validate the cleaned JSON
-            try:
-                json.loads(cleaned_json)  # Validate JSON
-                return cleaned_json
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse cleaned JSON: {e}")
-                print(f"Cleaned JSON: {cleaned_json}")
-                # Return original content if JSON parsing fails
-                return content
-            
-        except Exception as e:
-            raise Exception(f"OpenRouter API call failed: {str(e)}")
-    
-    def get_model_for_feature(self, feature: str) -> str:
-        """
-        Get the appropriate model for a specific feature.
+        # Remove single-line comments (// ...)
+        json_string = re.sub(r'//.*?$', '', json_string, flags=re.MULTILINE)
         
-        Args:
-            feature: The feature type (TEXT_GENERATION, CODE_GENERATION, etc.)
-            
-        Returns:
-            Model name for the feature
-        """
-        return DEFAULT_MODELS.get(feature, AI_MODELS["DEFAULT"])
-    
-    def get_available_models(self) -> Dict[str, str]:
-        """
-        Get all available models.
+        # Remove multi-line comments (/* ... */)
+        json_string = re.sub(r'/\*.*?\*/', '', json_string, flags=re.DOTALL)
         
-        Returns:
-            Dictionary of model names and their identifiers
-        """
-        return AI_MODELS.copy()
+        # Remove trailing commas before closing brackets/braces
+        json_string = re.sub(r',(\s*[}\]])', r'\1', json_string)
+        
+        # Remove leading/trailing whitespace
+        json_string = json_string.strip()
+        
+        return json_string
 
 
 # Create singleton instance
-ai_service = AIService() 
+ai_service = AIService()

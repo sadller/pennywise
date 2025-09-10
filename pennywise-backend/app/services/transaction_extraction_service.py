@@ -1,7 +1,7 @@
-"""Transaction extraction service using AI.
+"""Transaction extraction service using AI API.
 
 This service specializes in extracting transaction details from natural language text
-using the generic AI service.
+using the AI Hub API.
 """
 import json
 from datetime import datetime, date, timedelta
@@ -14,24 +14,26 @@ from app.constants.transactions import (
     validate_category,
     validate_payment_mode
 )
-from app.constants.ai_models import AI_MODELS
 
 class TransactionExtractionService:
     """Service for extracting transaction details from natural language text."""
     
-    def extract_transactions(self, text: str) -> List[Dict[str, Any]]:
+    def extract_transactions(self, text: str, auth_token: str = None) -> List[Dict[str, Any]]:
         """
         Extract transaction details from natural language text.
         
         Args:
             text: Natural language description of transactions
+            auth_token: Authorization token to forward to AI API
             
         Returns:
             List of dictionaries containing extracted transaction details
         """
         prompt = f"""Extract all transaction details from this text: "{text}"
 
-Return only a JSON array of objects with these fields:
+IMPORTANT: Return ONLY a clean JSON array without any markdown formatting, code blocks, or explanatory text. Do not wrap the JSON in ```json``` or any other formatting.
+
+Return a JSON array of objects with these fields:
 - amount: number (required)
 - note: string (description/remark of the transaction, required)
 - category: string (MUST be exactly one of: {', '.join(TRANSACTION_CATEGORIES)})
@@ -51,7 +53,7 @@ Guidelines:
    - If no date mentioned, use today: {date.today().isoformat()}
 6. Type defaults to "EXPENSE" unless clearly income-related (salary, payment received, etc.)
 
-Example response:
+Example response format (return EXACTLY this format without any additional text or formatting):
 [
   {{
     "amount": 50.0,
@@ -71,17 +73,14 @@ Example response:
   }}
 ]
 
-IMPORTANT: Use EXACT category and payment mode names from the lists above. Do not create new ones.
-
-If no transactions are found, return an empty array []."""
+CRITICAL RULES:
+1. Return ONLY the JSON array - no markdown, no explanations, no code blocks
+2. Use EXACT category and payment mode names from the lists above
+3. If no transactions are found, return exactly: []
+4. Do not include ```json``` or any other formatting around the JSON"""
 
         try:
-            response = ai_service.chat_completion([
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ], model = AI_MODELS["DOLPHIN_MISTRAL"])
+            response = ai_service.extract_transaction_json(prompt, auth_token)
             
             # Parse the JSON response
             try:

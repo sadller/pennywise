@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = Field(env="GOOGLE_REDIRECT_URI", default="http://localhost:8000/api/v1/auth/google/callback")
     
     # AI settings
-    OPENROUTER_API_KEY: str = Field(env="OPENROUTER_API_KEY", default="")
+    AI_API_URL: str = Field(env="AI_API_URL", default="https://ai-hub-flct.onrender.com/api/ai/chat")
     
     @field_validator("ALLOWED_ORIGINS", mode="before")
     def split_origins(cls, v):

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from app.schemas.ai import OpenRouterRequest, OpenRouterResponse
+from fastapi import APIRouter, HTTPException, Header
+from typing import Optional
+from app.schemas.ai import ExternalAIRequest, ExternalAIResponse
 from app.schemas.transaction import TransactionExtractRequest, TransactionExtractResponse
 from app.services.transaction_extraction_service import transaction_extraction_service
 from app.services.ai_service import ai_service
@@ -7,36 +8,49 @@ from app.services.ai_service import ai_service
 router = APIRouter()
 
 
-@router.post("/chat-completion", response_model=OpenRouterResponse)
-async def chat_completion(request: OpenRouterRequest):
+@router.post("/chat-completion", response_model=ExternalAIResponse)
+async def chat_completion(
+    request: ExternalAIRequest,
+    authorization: Optional[str] = Header(None)
+):
     """
-    Generic AI chat completion endpoint.
+    AI chat completion endpoint using AI Hub API.
     
-    This endpoint provides a generic interface for AI interactions
-    using OpenRouter API, keeping the API key secure on the backend.
+    This endpoint provides an interface for AI interactions using the AI Hub API.
     """
     try:
         # Make AI chat completion request
-        content = ai_service.chat_completion(request.messages, request.model)
+        response_data = ai_service.chat_completion(request.message, authorization)
         
-        response = OpenRouterResponse(content=content)
-        return response
+        return ExternalAIResponse(
+            response=response_data.get("response", ""),
+            provider=response_data.get("provider", ""),
+            model=response_data.get("model", "")
+        )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
 
 
 @router.post("/extract-transactions", response_model=TransactionExtractResponse)
-async def extract_transactions(request: TransactionExtractRequest):
+async def extract_transactions(
+    request: TransactionExtractRequest,
+    authorization: Optional[str] = Header(None)
+):
     """
-    Extract transaction details from natural language text using AI.
+    Extract transaction details from natural language text using AI Hub API.
     
-    This endpoint uses OpenRouter API to intelligently parse transactions
-    from free-form text input, keeping the API key secure on the backend.
+    This endpoint uses the AI Hub API to intelligently parse transactions
+    from free-form text input.
     """
     try:
-        # Extract transaction details using AI
-        extracted_transactions = transaction_extraction_service.extract_transactions(request.text)
+        # Extract transaction details using AI service
+        extracted_transactions = transaction_extraction_service.extract_transactions(
+            request.text, 
+            authorization
+        )
         
         response = TransactionExtractResponse(
             transactions=extracted_transactions,
