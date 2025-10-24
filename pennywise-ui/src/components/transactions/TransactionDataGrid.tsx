@@ -483,7 +483,13 @@ export default function TransactionDataGrid({
   ];
 
   return (
-    <Box sx={{ height: 600, width: '100%', position: 'relative' }}>
+    <Box sx={{ 
+      height: { xs: 'calc(100vh - 200px)', sm: 600 }, 
+      width: '100%', 
+      position: 'relative',
+      flex: 1,
+      minHeight: 0
+    }}>
       <DataGrid
         rows={transactionsWithBalance}
         columns={columns}

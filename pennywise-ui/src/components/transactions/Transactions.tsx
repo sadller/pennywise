@@ -21,7 +21,6 @@ import AddTransactionForm from './AddTransactionForm';
 import VoiceTransaction from './VoiceTransaction';
 import ExpandableFab from './ExpandableFab';
 import TransactionHeader from './TransactionHeader';
-import TransactionSummary from './TransactionSummary';
 import TransactionLoadingSkeleton from './TransactionLoadingSkeleton';
 import { GridPaginationModel } from '@mui/x-data-grid';
 import { Transaction } from '@/types/transaction';
@@ -177,7 +176,13 @@ function Transactions({
   }
 
   return (
-    <Box sx={{ p: 2, maxWidth: '100%' }}>
+    <Box sx={{ 
+      p: { xs: 1, sm: 2 }, 
+      maxWidth: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       {/* Header with Group Selector */}
       <TransactionHeader
         userGroups={userGroups}
@@ -185,27 +190,23 @@ function Transactions({
         onGroupChange={handleGroupChange}
       />
 
-      {/* Summary Section */}
-      <TransactionSummary
-        cashIn={summaryData.cashIn}
-        cashOut={summaryData.cashOut}
-        netBalance={summaryData.netBalance}
-      />
 
       {/* Transactions List */}
-      <TransactionList 
-        transactions={paginatedTransactions} 
-        isLoading={isLoading}
-        onTransactionDeleted={handleTransactionDeleted}
-        onTransactionUpdated={handleTransactionUpdated}
-        rowCount={filteredTransactions.length}
-        paginationModel={paginationModel}
-        onPaginationModelChange={handlePaginationModelChange}
-        onAddTransaction={handleOpenAddForm}
-        selectedGroupId={ui.selectedGroupId}
-        groupMembers={groupMembers}
-        onEditStateChange={setIsEditing}
-      />
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <TransactionList 
+          transactions={paginatedTransactions} 
+          isLoading={isLoading}
+          onTransactionDeleted={handleTransactionDeleted}
+          onTransactionUpdated={handleTransactionUpdated}
+          rowCount={filteredTransactions.length}
+          paginationModel={paginationModel}
+          onPaginationModelChange={handlePaginationModelChange}
+          onAddTransaction={handleOpenAddForm}
+          selectedGroupId={ui.selectedGroupId}
+          groupMembers={groupMembers}
+          onEditStateChange={setIsEditing}
+        />
+      </Box>
 
       {/* Add Transaction Form */}
       <AddTransactionForm

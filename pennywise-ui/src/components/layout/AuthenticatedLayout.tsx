@@ -79,7 +79,7 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
               component="main"
               sx={{
                 flex: 1,
-                p: 3,
+                p: { xs: 1, sm: 2, md: 3 },
                 overflow: 'auto', // Independent scroll for main content
                 height: '100%',
                 marginTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,

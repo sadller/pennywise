@@ -107,13 +107,14 @@ export default function TransactionList({
   }
 
   return (
-    <>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        mb: 2 
+        mb: { xs: 1, sm: 2 },
+        flex: '0 0 auto'
       }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Transactions ({rowCount ?? transactions.length})
@@ -151,17 +152,19 @@ export default function TransactionList({
       </Box>
 
       {/* Transaction Data Grid */}
-      <TransactionDataGrid
-        transactions={transactions}
-        isLoading={isLoading}
-        rowCount={rowCount}
-        paginationModel={paginationModel}
-        onPaginationModelChange={onPaginationModelChange}
-        onDeleteTransaction={handleDeleteClick}
-        onTransactionUpdated={onTransactionUpdated}
-        groupMembers={groupMembers}
-        onEditStateChange={onEditStateChange}
-      />
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <TransactionDataGrid
+          transactions={transactions}
+          isLoading={isLoading}
+          rowCount={rowCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={onPaginationModelChange}
+          onDeleteTransaction={handleDeleteClick}
+          onTransactionUpdated={onTransactionUpdated}
+          groupMembers={groupMembers}
+          onEditStateChange={onEditStateChange}
+        />
+      </Box>
 
       <DeleteTransactionDialog
         open={deleteDialogOpen}
@@ -173,6 +176,6 @@ export default function TransactionList({
 
       {/* Voice Transaction Dialog */}
       <VoiceTransaction open={showRecorder} onClose={() => setShowRecorder(false)} />
-    </>
+    </Box>
   );
 } 
