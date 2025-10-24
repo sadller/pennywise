@@ -1,20 +1,18 @@
 import { AppBar, Toolbar, Box, Typography, Button, Container, IconButton, Menu, MenuItem, useMediaQuery, useTheme } from "@mui/material";
-import { Menu as MenuIcon } from "@mui/icons-material";
+import { Menu as MenuIcon, GetApp as InstallIcon } from "@mui/icons-material";
 import Image from "next/image";
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/StoreProvider";
-import { useRouter } from "next/navigation";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useState } from "react";
 
 const LandingSiteHeader = observer(() => {
-  const { auth } = useStore();
-  const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { triggerInstallPrompt, isInstalled } = usePWAInstall();
 
-  const handleLogin = () => {
-    router.push('/auth');
+  const handleInstall = () => {
+    triggerInstallPrompt();
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -53,13 +51,14 @@ const LandingSiteHeader = observer(() => {
               <Button color="inherit" sx={{ textTransform: 'none' }}>Features</Button>
               <Button color="inherit" sx={{ textTransform: 'none' }}>About</Button>
               <Button color="inherit" sx={{ textTransform: 'none' }}>Contact</Button>
-              {!auth.user && (
+              {!isInstalled && (
                 <Button 
                   variant="contained"
+                  startIcon={<InstallIcon />}
                   sx={{ textTransform: 'none', borderRadius: 2 }}
-                  onClick={handleLogin}
+                  onClick={handleInstall}
                 >
-                  Login
+                  Install App
                 </Button>
               )}
             </Box>
@@ -68,10 +67,11 @@ const LandingSiteHeader = observer(() => {
           {/* Mobile Navigation */}
           {isMobile && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {!auth.user && (
+              {!isInstalled && (
                 <Button 
                   variant="contained"
                   size="small"
+                  startIcon={<InstallIcon />}
                   sx={{ 
                     textTransform: 'none', 
                     borderRadius: 2,
@@ -79,9 +79,9 @@ const LandingSiteHeader = observer(() => {
                     py: 0.5,
                     fontSize: '0.75rem'
                   }}
-                  onClick={handleLogin}
+                  onClick={handleInstall}
                 >
-                  Login
+                  Install
                 </Button>
               )}
               <IconButton
