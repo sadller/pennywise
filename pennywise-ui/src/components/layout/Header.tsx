@@ -18,10 +18,14 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import Person from '@mui/icons-material/Person';
+import Logout from '@mui/icons-material/Logout';
+import { GetApp as InstallIcon } from '@mui/icons-material';
 import Image from 'next/image';
 import NotificationIcon from './NotificationIcon';
 import NotificationCenter from './NotificationCenter';
 import { UI_CONSTANTS } from '@/constants';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -32,6 +36,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const theme = useTheme();
+  const { triggerInstallPrompt, isInstalled } = usePWAInstall();
   
   // Use window size instead of useMediaQuery to avoid function passing
   const [isMobile, setIsMobile] = React.useState(false);
@@ -215,10 +220,24 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
               }}
             >
               <MenuItem onClick={() => { handleProfile(); handleMenuClose(); }}>
-                Profile
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person fontSize="small" />
+                  Profile
+                </Box>
               </MenuItem>
+              {!isInstalled && (
+                <MenuItem onClick={() => { triggerInstallPrompt(); handleMenuClose(); }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <InstallIcon fontSize="small" />
+                    Install App
+                  </Box>
+                </MenuItem>
+              )}
               <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>
-                Logout
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Logout fontSize="small" />
+                  Logout
+                </Box>
               </MenuItem>
             </Menu>
           </Box>

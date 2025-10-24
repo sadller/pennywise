@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 interface PWAInstallState {
   showPrompt: boolean;
   isInstallable: boolean;
@@ -12,6 +17,7 @@ export const usePWAInstall = () => {
     isInstallable: false,
     isInstalled: false,
   });
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     // Check if app is already installed
@@ -24,33 +30,22 @@ export const usePWAInstall = () => {
       return isStandalone || isIOSStandalone;
     };
 
-    // Check if user has already dismissed the prompt
-    const hasUserDismissed = () => {
-      return localStorage.getItem('pwa-install-dismissed') === 'true';
-    };
-
-    // Check if user has already installed the app
-    const hasUserInstalled = () => {
-      return localStorage.getItem('pwa-install-completed') === 'true';
-    };
-
     const isInstalled = checkIfInstalled();
-    const userDismissed = hasUserDismissed();
-    const userInstalled = hasUserInstalled();
 
     setState(prev => ({
       ...prev,
       isInstalled,
-      showPrompt: !isInstalled && !userDismissed && !userInstalled,
+      showPrompt: false, // Disabled automatic popup - users can install manually from profile menu
     }));
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setState(prev => ({
         ...prev,
         isInstallable: true,
-        showPrompt: !isInstalled && !userDismissed && !userInstalled,
+        showPrompt: false, // Disabled automatic popup - users can install manually from profile menu
       }));
     };
 
@@ -75,6 +70,7 @@ export const usePWAInstall = () => {
 
   const dismissPrompt = () => {
     localStorage.setItem('pwa-install-dismissed', 'true');
+    sessionStorage.setItem('pwa-prompt-shown-this-session', 'true');
     setState(prev => ({
       ...prev,
       showPrompt: false,
@@ -83,19 +79,36 @@ export const usePWAInstall = () => {
 
   const handleInstall = () => {
     localStorage.setItem('pwa-install-completed', 'true');
+    sessionStorage.setItem('pwa-prompt-shown-this-session', 'true');
     setState(prev => ({
       ...prev,
       showPrompt: false,
     }));
   };
 
-  const triggerInstallPrompt = () => {
-    if (state.isInstallable) {
-      // Trigger the native install prompt
-      const event = new CustomEvent('beforeinstallprompt');
-      window.dispatchEvent(event);
+  const triggerInstallPrompt = async () => {
+    if (deferredPrompt) {
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        localStorage.setItem('pwa-install-completed', 'true');
+        setState(prev => ({
+          ...prev,
+          isInstalled: true,
+        }));
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      
+      // Clear the deferred prompt
+      setDeferredPrompt(null);
     } else {
-      // Show manual install instructions
+      // Show manual install instructions popup
       setState(prev => ({
         ...prev,
         showPrompt: true,
