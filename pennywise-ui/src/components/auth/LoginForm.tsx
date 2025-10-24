@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/stores/StoreProvider';
 import { GoogleLogin } from '@react-oauth/google';
+import { useNavigationLoading } from '@/hooks/useNavigationLoading';
 import {
   Box,
   Button,
@@ -28,13 +29,15 @@ const LoginForm: React.FC<LoginFormProps> = observer(({ onSwitchToRegister, isGo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const { startNavigation } = useNavigationLoading();
 
   // Redirect to transactions if user is logged in
   React.useEffect(() => {
     if (auth.user) {
+      startNavigation();
       router.replace('/transactions');
     }
-  }, [auth.user, router]);
+  }, [auth.user, router, startNavigation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

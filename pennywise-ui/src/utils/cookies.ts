@@ -23,7 +23,7 @@ export class CookieManager {
       `${name}=${value}`,
       `expires=${expires.toUTCString()}`,
       `path=${this.COOKIE_OPTIONS.path}`,
-      `samesite=${this.COOKIE_OPTIONS.sameSite}`,
+      `SameSite=${this.COOKIE_OPTIONS.sameSite}`,
       ...(this.COOKIE_OPTIONS.secure ? ['secure'] : []),
     ].join('; ');
 

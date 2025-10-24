@@ -1,8 +1,6 @@
 import { apiClient } from './apiClient';
 import { NotificationListResponse, UnreadCountResponse } from '@/types/notification';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
 export const notificationService = {
   // Get notifications with pagination
   getNotifications: async (skip = 0, limit = 50, unreadOnly = false): Promise<NotificationListResponse> => {
@@ -17,7 +15,7 @@ export const notificationService = {
 
   // Get unread count
   getUnreadCount: async (): Promise<UnreadCountResponse> => {
-    return await apiClient.get<UnreadCountResponse>(`${API_BASE_URL}/notifications/unread-count`);
+    return await apiClient.get<UnreadCountResponse>('/notifications/unread-count');
   },
 
   // Mark notification as read

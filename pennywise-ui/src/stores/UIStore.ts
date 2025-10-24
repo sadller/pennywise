@@ -20,6 +20,9 @@ class UIStore {
   
   // Sidebar state
   sidebarCollapsed = false;
+  
+  // Navigation loading state
+  isNavigating = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -97,6 +100,11 @@ class UIStore {
   // Sidebar actions
   toggleSidebar() {
     this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  // Navigation loading actions
+  setNavigating(isNavigating: boolean) {
+    this.isNavigating = isNavigating;
   }
 }
 

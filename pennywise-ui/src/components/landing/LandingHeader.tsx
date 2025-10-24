@@ -2,12 +2,15 @@ import { Box, Typography, Button } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/StoreProvider";
 import { useRouter } from "next/navigation";
+import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 
 const LandingHeader = observer(() => {
   const { auth } = useStore();
   const router = useRouter();
+  const { startNavigation } = useNavigationLoading();
 
   const handleGetStarted = () => {
+    startNavigation();
     if (auth.user) {
       router.push('/transactions');
     } else {

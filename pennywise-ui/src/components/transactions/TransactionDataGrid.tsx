@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { DataGrid, GridColDef, GridPaginationModel, GridRowModel, GridRowId, GridRowModes, GridRowModesModel, GridRowEditStopReasons, GridActionsCellItem, GridRowEditStopParams, MuiEvent, MuiBaseEvent } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridPaginationModel, GridRowModel, GridRowId, GridRowModes, GridRowModesModel, GridRowEditStopReasons, GridActionsCellItem, GridRowEditStopParams, MuiEvent, MuiBaseEvent, GridRenderCellParams, GridPreProcessEditCellProps } from '@mui/x-data-grid';
 import { Box, Typography, Avatar, Chip, Fab, useMediaQuery, useTheme } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -267,7 +267,7 @@ export default function TransactionDataGrid({
         const date = new Date(value);
         return { ...row, date: date.toISOString() };
       },
-      renderCell: (params) => {
+      renderCell: (params: GridRenderCellParams) => {
         const date = new Date(params.value);
         const isTodayDate = isToday(date);
         const formattedDate = isTodayDate ? 'Today' : format(date, 'dd MMM, yyyy');
@@ -315,7 +315,7 @@ export default function TransactionDataGrid({
       editable: true,
       type: 'singleSelect',
       valueOptions: TRANSACTION_CATEGORIES,
-      renderCell: (params) => {
+      renderCell: (params: GridRenderCellParams) => {
         const category = params.value || 'Unknown';
         return (
           <Chip
@@ -358,7 +358,7 @@ export default function TransactionDataGrid({
         value: member.user_id,
         label: member.full_name || member.email
       })),
-      renderCell: (params) => {
+      renderCell: (params: GridRenderCellParams) => {
         const transaction = params.row;
         const paidByName = getPaidByName(transaction);
         return (
@@ -397,7 +397,7 @@ export default function TransactionDataGrid({
       flex: 0.6,
       maxWidth: 150,
       editable: true,
-      preProcessEditCellProps: (params) => {
+      preProcessEditCellProps: (params: GridPreProcessEditCellProps) => {
         const hasError = params.props.value <= 0;
         return { ...params.props, error: hasError };
       },
@@ -411,7 +411,7 @@ export default function TransactionDataGrid({
       editable: true,
       type: 'singleSelect',
       valueOptions: TRANSACTION_TYPES,
-      renderCell: (params) => {
+      renderCell: (params: GridRenderCellParams) => {
         const type = params.value;
         return (
           <Chip

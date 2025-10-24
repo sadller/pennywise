@@ -27,7 +27,7 @@ export default function SpeechToTextRecorder({
       setEditableTranscript(transcript);
       onTranscriptChange?.(transcript);
     }
-  }, [transcript]);
+  }, [transcript, onTranscriptChange]);
 
   if (!browserSupportsSpeechRecognition) {
     return (

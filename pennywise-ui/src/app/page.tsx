@@ -5,6 +5,7 @@ import { Box, Container } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/StoreProvider";
 import { useRouter } from "next/navigation";
+import { useNavigationLoading } from "@/hooks/useNavigationLoading";
 import LandingSiteHeader from "@/components/landing/LandingSiteHeader";
 import LandingHeader from "@/components/landing/LandingHeader";
 import LandingFeatureList from "@/components/landing/LandingFeatureList";
@@ -14,13 +15,15 @@ import LandingSiteFooter from "@/components/landing/LandingSiteFooter";
 const Home = observer(() => {
   const { auth } = useStore();
   const router = useRouter();
+  const { startNavigation } = useNavigationLoading();
 
   // Redirect authenticated users to transactions page
   useEffect(() => {
     if (auth.user && !auth.isLoading) {
+      startNavigation();
       router.replace('/transactions');
     }
-  }, [auth.user, auth.isLoading, router]);
+  }, [auth.user, auth.isLoading, router, startNavigation]);
 
   // Show loading or nothing while checking auth status
   if (auth.isLoading) {

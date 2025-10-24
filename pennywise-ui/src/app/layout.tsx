@@ -4,6 +4,7 @@ import "./globals.css";
 import { StoreProvider } from "@/stores/StoreProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
 import ServiceWorkerRegistration from "@/components/common/ServiceWorkerRegistration";
+import NavigationLoader from "../components/common/NavigationLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -112,6 +113,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeRegistry>
           <StoreProvider>
+            <NavigationLoader />
             {children}
             <ServiceWorkerRegistration />
           </StoreProvider>
