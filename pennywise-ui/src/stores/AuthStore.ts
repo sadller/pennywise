@@ -1,8 +1,9 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { jwtDecode } from 'jwt-decode';
 import { apiClient } from '@/services/apiClient';
-import { API_CONSTANTS, STORAGE_KEYS, ERROR_MESSAGES } from '@/constants';
+import { API_CONSTANTS, ERROR_MESSAGES } from '@/constants';
 import { User } from '@/types/user';
+import { CookieManager } from '@/utils/cookies';
 
 class AuthStore {
   user: User | null = null;
@@ -39,7 +40,7 @@ class AuthStore {
       });
       return;
     }
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const refreshToken = CookieManager.getRefreshToken();
     if (!refreshToken) {
       runInAction(() => {
         this.isLoading = false;
@@ -54,14 +55,12 @@ class AuthStore {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials: 'include', // Include cookies in requests
       });
 
       if (response.ok) {
         const tokens = await response.json();
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokens.access_token);
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token);
-        }
+        CookieManager.setAuthTokens(tokens.access_token, tokens.refresh_token);
         runInAction(() => {
           this.token = tokens.access_token;
         });
@@ -80,8 +79,7 @@ class AuthStore {
 
   private clearAuth() {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      CookieManager.clearAuthTokens();
     }
     runInAction(() => {
       this.token = null;
@@ -105,7 +103,7 @@ class AuthStore {
     });
     
     // Check for existing token on app load
-    const storedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const storedToken = CookieManager.getAuthToken();
     if (storedToken) {
       try {
         const decoded = jwtDecode(storedToken);
@@ -160,8 +158,7 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+        CookieManager.setAuthTokens(data.access_token, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
@@ -209,8 +206,7 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+        CookieManager.setAuthTokens(data.access_token, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
@@ -254,8 +250,7 @@ class AuthStore {
         };
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.access_token);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+        CookieManager.setAuthTokens(data.access_token, data.refresh_token);
       }
     } catch (error) {
       runInAction(() => {
@@ -272,8 +267,16 @@ class AuthStore {
     }
   }
 
-  logout() {
-    this.clearAuth();
+  async logout() {
+    try {
+      // Call logout endpoint to clear server-side cookies
+      await apiClient.post(API_CONSTANTS.ENDPOINTS.AUTH.LOGOUT);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Always clear local auth state
+      this.clearAuth();
+    }
   }
 
   get isAuthenticated() {

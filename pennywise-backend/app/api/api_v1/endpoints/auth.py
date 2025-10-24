@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.services.auth_service import AuthService
 from app.schemas.auth import UserCreate, UserLogin, Token, UserResponse, GoogleAuthRequest, TokenRefresh
 from app.utils.auth import verify_token, verify_refresh_token
+from app.utils.cookies import CookieManager
 from typing import Optional
 
 router = APIRouter()
@@ -13,11 +14,27 @@ security = HTTPBearer()
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> Optional[UserResponse]:
     """Get current authenticated user."""
-    token = credentials.credentials
+    token = None
+    
+    # First try to get token from Authorization header
+    if credentials:
+        token = credentials.credentials
+    else:
+        # Fallback to cookie
+        token = request.cookies.get(CookieManager.AUTH_TOKEN_COOKIE)
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(
@@ -54,7 +71,7 @@ def get_current_user(
 
 
 @router.post("/register", response_model=Token)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+def register(user_data: UserCreate, response: Response, db: Session = Depends(get_db)):
     """Register a new user with email and password."""
     auth_service = AuthService(db)
     
@@ -70,11 +87,18 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     user = auth_service.create_user(user_data)
     token_data = auth_service.create_user_token(user)
     
+    # Set authentication cookies
+    CookieManager.set_auth_cookies(
+        response=response,
+        access_token=token_data["access_token"],
+        refresh_token=token_data["refresh_token"]
+    )
+    
     return Token(**token_data)
 
 
 @router.post("/login", response_model=Token)
-async def login(request: Request, user_credentials: UserLogin, db: Session = Depends(get_db)):
+async def login(request: Request, user_credentials: UserLogin, response: Response, db: Session = Depends(get_db)):
     """Login with email and password."""
     # Debug: Print the raw request body
     body = await request.body()
@@ -90,11 +114,19 @@ async def login(request: Request, user_credentials: UserLogin, db: Session = Dep
         )
     
     token_data = auth_service.create_user_token(user)
+    
+    # Set authentication cookies
+    CookieManager.set_auth_cookies(
+        response=response,
+        access_token=token_data["access_token"],
+        refresh_token=token_data["refresh_token"]
+    )
+    
     return Token(**token_data)
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
+def refresh_token(token_data: TokenRefresh, response: Response, db: Session = Depends(get_db)):
     """Refresh access token using refresh token."""
     auth_service = AuthService(db)
     
@@ -135,6 +167,14 @@ def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db)):
     
     # Create new tokens
     token_data = auth_service.create_user_token(user)
+    
+    # Set authentication cookies
+    CookieManager.set_auth_cookies(
+        response=response,
+        access_token=token_data["access_token"],
+        refresh_token=token_data["refresh_token"]
+    )
+    
     return Token(**token_data)
 
 
@@ -145,7 +185,7 @@ def get_current_user_info(current_user: UserResponse = Depends(get_current_user)
 
 
 @router.post("/google/callback", response_model=Token)
-async def google_auth_callback(auth_request: GoogleAuthRequest, db: Session = Depends(get_db)):
+async def google_auth_callback(auth_request: GoogleAuthRequest, response: Response, db: Session = Depends(get_db)):
     """Handle Google OAuth callback with ID token."""
     auth_service = AuthService(db)
     
@@ -161,7 +201,23 @@ async def google_auth_callback(auth_request: GoogleAuthRequest, db: Session = De
     user = auth_service.create_google_user(google_user_info)
     token_data = auth_service.create_user_token(user)
     
+    # Set authentication cookies
+    CookieManager.set_auth_cookies(
+        response=response,
+        access_token=token_data["access_token"],
+        refresh_token=token_data["refresh_token"]
+    )
+    
     return Token(**token_data)
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """Logout user and clear authentication cookies."""
+    # Clear authentication cookies
+    CookieManager.clear_auth_cookies(response)
+    
+    return {"message": "Successfully logged out"}
 
 
 @router.get("/google/url")

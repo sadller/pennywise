@@ -3,10 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/stores/StoreProvider";
 import ThemeRegistry from "@/components/providers/ThemeRegistry";
-import PWAInstallPrompt from "@/components/common/PWAInstallPrompt";
 import ServiceWorkerRegistration from "@/components/common/ServiceWorkerRegistration";
-import UpdateNotification from "@/components/common/UpdateNotification";
-import NetworkStatus from "@/components/common/NetworkStatus";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -116,10 +113,7 @@ export default function RootLayout({
         <ThemeRegistry>
           <StoreProvider>
             {children}
-            <PWAInstallPrompt />
             <ServiceWorkerRegistration />
-            <UpdateNotification />
-            <NetworkStatus />
           </StoreProvider>
         </ThemeRegistry>
       </body>

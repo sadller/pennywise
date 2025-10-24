@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = Field(default=["http://localhost:3000"], env="ALLOWED_ORIGINS")
     ALLOWED_HOSTS: List[str] = Field(default=["*"], env="ALLOWED_HOSTS")
     
+    # Cookie settings
+    COOKIE_SECURE: bool = Field(default=False, env="COOKIE_SECURE")  # Set to True in production with HTTPS
+    COOKIE_HTTPONLY: bool = Field(default=False, env="COOKIE_HTTPONLY")  # Set to True for better security
+    COOKIE_SAMESITE: str = Field(default="lax", env="COOKIE_SAMESITE")  # lax, strict, or none
+    
     # JWT settings
     SECRET_KEY: str = Field(env="SECRET_KEY", default="your-secret-key-change-in-production")
     ALGORITHM: str = "HS256"

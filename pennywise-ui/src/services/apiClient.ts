@@ -1,5 +1,6 @@
 import { jwtDecode } from 'jwt-decode';
-import { API_CONSTANTS, STORAGE_KEYS, HTTP_STATUS } from '@/constants';
+import { API_CONSTANTS, HTTP_STATUS } from '@/constants';
+import { CookieManager } from '@/utils/cookies';
 
 interface TokenPayload {
   exp: number;
@@ -36,7 +37,7 @@ class ApiClient {
     if (typeof window === 'undefined') {
       return null;
     }
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const refreshToken = CookieManager.getRefreshToken();
     if (!refreshToken) {
       return null;
     }
@@ -48,28 +49,26 @@ class ApiClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials: 'include', // Include cookies in requests
       });
 
       if (response.ok) {
         const tokens = await response.json();
         if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, tokens.access_token);
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token);
+          CookieManager.setAuthTokens(tokens.access_token, tokens.refresh_token);
         }
         return tokens;
       } else {
         // Refresh token is invalid, clear storage
         if (typeof window !== 'undefined') {
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          CookieManager.clearAuthTokens();
         }
         return null;
       }
     } catch (error) {
       console.error('Error refreshing token:', error);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        CookieManager.clearAuthTokens();
       }
       return null;
     }
@@ -89,7 +88,7 @@ class ApiClient {
     if (typeof window === 'undefined') {
       return {};
     }
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const token = CookieManager.getAuthToken();
     if (!token) {
       return {};
     }
@@ -133,6 +132,7 @@ class ApiClient {
     const config: RequestInit = {
       ...options,
       headers,
+      credentials: 'include', // Include cookies in requests
     };
 
     // Construct the full URL

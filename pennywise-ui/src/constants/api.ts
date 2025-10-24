@@ -7,6 +7,7 @@ export const API_CONSTANTS = {
       REGISTER: '/auth/register',
       REFRESH: '/auth/refresh',
       ME: '/auth/me',
+      LOGOUT: '/auth/logout',
       GOOGLE_CALLBACK: '/auth/google/callback',
     },
     TRANSACTIONS: {
@@ -29,11 +30,7 @@ export const API_CONSTANTS = {
   GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
 } as const;
 
-// Local storage keys
-export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'auth_token',
-  REFRESH_TOKEN: 'refresh_token',
-} as const;
+// Note: Authentication tokens are now stored in cookies, not localStorage
 
 // HTTP status codes
 export const HTTP_STATUS = {

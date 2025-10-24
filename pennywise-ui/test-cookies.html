@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cookie Test</title>
+</head>
+<body>
+    <h1>Cookie Test</h1>
+    <button onclick="testCookies()">Test Cookies</button>
+    <div id="result"></div>
+
+    <script>
+        // Cookie utility functions for managing authentication tokens
+        class CookieManager {
+            static readonly COOKIE_OPTIONS = {
+                httpOnly: false, // We need to access from JavaScript
+                secure: false, // Use secure cookies in production
+                sameSite: 'lax', // CSRF protection
+                path: '/', // Available across the entire site
+            };
+
+            static readonly TOKEN_COOKIE_NAME = 'auth_token';
+            static readonly REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
+
+            /**
+             * Set a cookie with the given name and value
+             */
+            static setCookie(name, value, days = 7) {
+                const expires = new Date();
+                expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+
+                const cookieString = [
+                    `${name}=${value}`,
+                    `expires=${expires.toUTCString()}`,
+                    `path=${this.COOKIE_OPTIONS.path}`,
+                    `samesite=${this.COOKIE_OPTIONS.sameSite}`,
+                    ...(this.COOKIE_OPTIONS.secure ? ['secure'] : []),
+                ].join('; ');
+
+                document.cookie = cookieString;
+            }
+
+            /**
+             * Get a cookie value by name
+             */
+            static getCookie(name) {
+                const nameEQ = name + '=';
+                const ca = document.cookie.split(';');
+                
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+                }
+                return null;
+            }
+
+            /**
+             * Set authentication token cookie
+             */
+            static setAuthToken(token) {
+                this.setCookie(this.TOKEN_COOKIE_NAME, token, 1); // 1 day for access token
+            }
+
+            /**
+             * Get authentication token from cookie
+             */
+            static getAuthToken() {
+                return this.getCookie(this.TOKEN_COOKIE_NAME);
+            }
+
+            /**
+             * Set both authentication tokens
+             */
+            static setAuthTokens(accessToken, refreshToken) {
+                this.setAuthToken(accessToken);
+                this.setRefreshToken(refreshToken);
+            }
+
+            /**
+             * Set refresh token cookie
+             */
+            static setRefreshToken(token) {
+                this.setCookie(this.REFRESH_TOKEN_COOKIE_NAME, token, 7); // 7 days for refresh token
+            }
+
+            /**
+             * Get refresh token from cookie
+             */
+            static getRefreshToken() {
+                return this.getCookie(this.REFRESH_TOKEN_COOKIE_NAME);
+            }
+        }
+
+        function testCookies() {
+            try {
+                // Test setting cookies
+                CookieManager.setAuthTokens('test-access-token', 'test-refresh-token');
+                
+                // Test getting cookies
+                const accessToken = CookieManager.getAuthToken();
+                const refreshToken = CookieManager.getRefreshToken();
+                
+                document.getElementById('result').innerHTML = `
+                    <p>Access Token: ${accessToken}</p>
+                    <p>Refresh Token: ${refreshToken}</p>
+                    <p>All Cookies: ${document.cookie}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
