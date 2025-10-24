@@ -9,7 +9,7 @@ const LandingHeader = observer(() => {
 
   const handleGetStarted = () => {
     if (auth.user) {
-      router.push('/dashboard');
+      router.push('/transactions');
     } else {
       router.push('/auth');
     }
@@ -57,7 +57,7 @@ const LandingHeader = observer(() => {
           }}
           onClick={handleGetStarted}
         >
-          {auth.user ? 'Dashboard' : 'Get Started'}
+          {auth.user ? 'Continue' : 'Get Started'}
         </Button>
         <Button 
           variant="outlined" 

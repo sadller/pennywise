@@ -1,14 +1,37 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Container } from "@mui/material";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/StoreProvider";
+import { useRouter } from "next/navigation";
 import LandingSiteHeader from "@/components/landing/LandingSiteHeader";
 import LandingHeader from "@/components/landing/LandingHeader";
 import LandingFeatureList from "@/components/landing/LandingFeatureList";
 import LandingDashboardPreview from "@/components/landing/LandingDashboardPreview";
 import LandingSiteFooter from "@/components/landing/LandingSiteFooter";
 
-export default function Home() {
+const Home = observer(() => {
+  const { auth } = useStore();
+  const router = useRouter();
+
+  // Redirect authenticated users to transactions page
+  useEffect(() => {
+    if (auth.user && !auth.isLoading) {
+      router.replace('/transactions');
+    }
+  }, [auth.user, auth.isLoading, router]);
+
+  // Show loading or nothing while checking auth status
+  if (auth.isLoading) {
+    return null; // or a loading spinner
+  }
+
+  // If user is authenticated, don't render the landing page
+  if (auth.user) {
+    return null;
+  }
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafbfc" }}>
       <LandingSiteHeader />
@@ -41,4 +64,6 @@ export default function Home() {
       <LandingSiteFooter />
     </Box>
   );
-}
+});
+
+export default Home;

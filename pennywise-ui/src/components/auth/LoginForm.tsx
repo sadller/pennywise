@@ -29,10 +29,10 @@ const LoginForm: React.FC<LoginFormProps> = observer(({ onSwitchToRegister, isGo
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  // Redirect to dashboard if user is logged in
+  // Redirect to transactions if user is logged in
   React.useEffect(() => {
     if (auth.user) {
-      router.replace('/dashboard');
+      router.replace('/transactions');
     }
   }, [auth.user, router]);
 

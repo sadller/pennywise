@@ -31,10 +31,10 @@ const RegisterForm: React.FC<RegisterFormProps> = observer(({ onSwitchToLogin, i
   const [fullName, setFullName] = useState('');
   const router = useRouter();
 
-  // Redirect to dashboard if user is registered and logged in
+  // Redirect to transactions if user is registered and logged in
   React.useEffect(() => {
     if (auth.user) {
-      router.replace('/dashboard');
+      router.replace('/transactions');
     }
   }, [auth.user, router]);
 
