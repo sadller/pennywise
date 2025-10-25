@@ -241,7 +241,7 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
   const [editFormOpen, setEditFormOpen] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const open = Boolean(anchorEl);
-  const { data } = useStore();
+  const { data, auth } = useStore();
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   // Group transactions by date
@@ -522,6 +522,7 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
         onSubmit={handleTransactionUpdate}
         transaction={selectedTransaction}
         groupMembers={groupMembers}
+        currentUser={auth.user!}
         isLoading={isUpdating}
       />
 

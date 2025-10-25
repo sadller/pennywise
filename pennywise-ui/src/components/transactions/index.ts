@@ -3,6 +3,7 @@ export { default as TransactionList } from './TransactionList';
 export { default as DeleteTransactionDialog } from './DeleteTransactionDialog';
 export { default as AddTransactionForm } from './AddTransactionForm';
 export { default as EditTransactionForm } from './EditTransactionForm';
+export { default as TransactionForm } from './TransactionForm';
 export { default as VoiceTransaction } from './VoiceTransaction';
 export { default as ExpandableFab } from './ExpandableFab';
 export { default as TransactionHeader } from './TransactionHeader';
