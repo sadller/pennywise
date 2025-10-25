@@ -12,10 +12,13 @@ import {
   Add as AddIcon,
   Remove as RemoveIcon,
   Mic as MicIcon,
+  ViewModule as GridViewIcon,
+  ViewList as CardViewIcon,
 } from '@mui/icons-material';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { transactionService } from '@/services/transactionService';
 import TransactionDataGrid from './TransactionDataGrid';
+import TransactionCardView from './TransactionCardView';
 import DeleteTransactionDialog from './DeleteTransactionDialog';
 import { VoiceTransaction } from '@/components/transactions';
 import { GridPaginationModel } from '@mui/x-data-grid';
@@ -53,6 +56,7 @@ export default function TransactionList({
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'card'>('card'); // Default to card view for mobile
   const { data } = useStore();
 
   const handleDeleteClick = (transaction: Transaction) => {
@@ -116,10 +120,32 @@ export default function TransactionList({
         mb: { xs: 1, sm: 2 },
         flex: '0 0 auto'
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
           Transactions ({rowCount ?? transactions.length})
         </Typography>
-        <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* View Toggle */}
+          <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+            <IconButton
+              size="small"
+              onClick={() => setViewMode('grid')}
+              color={viewMode === 'grid' ? 'primary' : 'default'}
+              aria-label="grid view"
+            >
+              <GridViewIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => setViewMode('card')}
+              color={viewMode === 'card' ? 'primary' : 'default'}
+              aria-label="card view"
+            >
+              <CardViewIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          
+          {/* Action Buttons */}
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, alignItems: 'center' }}>
           <IconButton
             size="small"
             onClick={() => setShowRecorder(prev => !prev)}
@@ -148,22 +174,37 @@ export default function TransactionList({
           >
             Cash Out
           </Button>
+          </Box>
         </Box>
       </Box>
 
-      {/* Transaction Data Grid */}
+      {/* Transaction View */}
       <Box sx={{ flex: 1, minHeight: 0 }}>
-        <TransactionDataGrid
-          transactions={transactions}
-          isLoading={isLoading}
-          rowCount={rowCount}
-          paginationModel={paginationModel}
-          onPaginationModelChange={onPaginationModelChange}
-          onDeleteTransaction={handleDeleteClick}
-          onTransactionUpdated={onTransactionUpdated}
-          groupMembers={groupMembers}
-          onEditStateChange={onEditStateChange}
-        />
+        {viewMode === 'grid' ? (
+          <TransactionDataGrid
+            transactions={transactions}
+            isLoading={isLoading}
+            rowCount={rowCount}
+            paginationModel={paginationModel}
+            onPaginationModelChange={onPaginationModelChange}
+            onDeleteTransaction={handleDeleteClick}
+            onTransactionUpdated={onTransactionUpdated}
+            groupMembers={groupMembers}
+            onEditStateChange={onEditStateChange}
+          />
+        ) : (
+          <TransactionCardView
+            transactions={transactions}
+            isLoading={isLoading}
+            onDeleteTransaction={handleDeleteClick}
+            onEditTransaction={() => {
+              // Edit is now handled internally by TransactionCardView
+              // This callback is just for notification
+            }}
+            groupMembers={groupMembers}
+            onEditStateChange={onEditStateChange}
+          />
+        )}
       </Box>
 
       <DeleteTransactionDialog

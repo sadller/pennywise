@@ -67,18 +67,18 @@ function Transactions({
     return filteredTransactions.slice(start, end);
   }, [filteredTransactions, paginationModel]);
 
-  // Calculate summary data
-  const summaryData = useMemo(() => {
-    return filteredTransactions.reduce((acc, transaction) => {
-      if (transaction.type === TransactionType.INCOME) {
-        acc.cashIn += transaction.amount;
-      } else {
-        acc.cashOut += transaction.amount;
-      }
-      acc.netBalance += transaction.type === TransactionType.INCOME ? transaction.amount : -transaction.amount;
-      return acc;
-    }, { cashIn: 0, cashOut: 0, netBalance: 0 });
-  }, [filteredTransactions]);
+  // Calculate summary data (keeping for potential future use)
+  // const summaryData = useMemo(() => {
+  //   return filteredTransactions.reduce((acc, transaction) => {
+  //     if (transaction.type === TransactionType.INCOME) {
+  //       acc.cashIn += transaction.amount;
+  //     } else {
+  //       acc.cashOut += transaction.amount;
+  //     }
+  //     acc.netBalance += transaction.type === TransactionType.INCOME ? transaction.amount : -transaction.amount;
+  //     return acc;
+  //   }, { cashIn: 0, cashOut: 0, netBalance: 0 });
+  // }, [filteredTransactions]);
 
   // Fetch user groups for dropdown
   const { data: userGroups = [] } = useQuery({
