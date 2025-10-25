@@ -106,7 +106,10 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
         elevation={0}
         sx={{ 
           zIndex: theme.zIndex.drawer + 1,
-          height: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,
+          height: { 
+            xs: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT_MOBILE}px`,
+            sm: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`
+          },
           bgcolor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider',
@@ -116,9 +119,12 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
           display: 'flex', 
           justifyContent: 'space-between', 
           width: '100%', 
-          height: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`, 
+          height: { 
+            xs: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT_MOBILE}px`,
+            sm: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`
+          }, 
           alignItems: 'center',
-          px: 3
+          px: { xs: 1, sm: 2, md: 3 }
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Menu Button for Mobile */}
@@ -128,7 +134,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
                 color="inherit"
                 aria-label="menu"
                 onClick={onMenuClick}
-                sx={{ mr: 2 }}
+                sx={{ mr: { xs: 1, sm: 2 } }}
               >
                 <MenuIcon />
               </IconButton>
@@ -139,7 +145,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
               sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: 2, 
+                gap: { xs: 1, sm: 2 }, 
                 cursor: 'pointer',
                 '&:hover': { opacity: 0.8 }
               }}
@@ -148,15 +154,23 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
               <Image 
                 src="/pennywise-logo.svg" 
                 alt="Pennywise Logo" 
-                width={40} 
-                height={40} 
+                width={isMobile ? 32 : 40} 
+                height={isMobile ? 32 : 40} 
                 priority 
               />
               <Box>
-                <Typography variant="h5" fontWeight="bold" color="primary.main">
+                <Typography 
+                  variant={isMobile ? "h6" : "h5"} 
+                  fontWeight="bold" 
+                  color="primary.main"
+                >
                   Pennywise
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ display: { xs: 'none', sm: 'block' } }}
+                >
                   Smart Expense Tracking
                 </Typography>
               </Box>
@@ -164,7 +178,7 @@ const Header = observer(({ onMenuClick }: HeaderProps) => {
           </Box>
           
           {/* Right side - Notification and User Profile */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
             {/* Notification Icon */}
             <NotificationIcon onOpenNotifications={handleOpenNotifications} />
             

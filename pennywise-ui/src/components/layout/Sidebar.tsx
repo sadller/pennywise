@@ -102,8 +102,14 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           borderRight: '1px solid',
           borderColor: 'divider',
           backgroundColor: 'background.paper',
-          top: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,
-          height: `calc(100vh - ${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px)`,
+          top: { 
+            xs: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT_MOBILE}px`,
+            sm: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`
+          },
+          height: { 
+            xs: `calc(100vh - ${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT_MOBILE}px)`,
+            sm: `calc(100vh - ${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px)`
+          },
           transition: `width ${UI_CONSTANTS.ANIMATION.TRANSITION_DURATION}ms ${UI_CONSTANTS.ANIMATION.TRANSITION_EASING}`,
           overflow: 'visible',
           position: 'relative',

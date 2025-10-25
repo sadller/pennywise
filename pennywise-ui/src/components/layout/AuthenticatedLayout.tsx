@@ -82,7 +82,10 @@ const AuthenticatedLayout = observer(({ children }: AuthenticatedLayoutProps) =>
                 p: { xs: 1, sm: 2, md: 3 },
                 overflow: 'auto', // Independent scroll for main content
                 height: '100%',
-                marginTop: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`,
+                marginTop: { 
+                  xs: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT_MOBILE}px`,
+                  sm: `${UI_CONSTANTS.LAYOUT.HEADER_HEIGHT}px`
+                },
               }}
             >
               {/* Content Transition Wrapper */}
