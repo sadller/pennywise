@@ -58,7 +58,7 @@ export default function ExpandableFab({
         ariaLabel="Transaction actions"
         sx={{
           position: 'fixed',
-          bottom: 16,
+          bottom: 80,
           right: 16,
           '& .MuiFab-primary': {
             width: 56,

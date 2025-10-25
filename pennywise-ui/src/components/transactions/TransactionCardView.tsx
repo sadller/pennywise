@@ -14,6 +14,7 @@ import {
   ListItemIcon,
   ListItemText,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -41,6 +42,9 @@ interface TransactionCardViewProps {
   onEditTransaction?: () => void;
   groupMembers: GroupMember[];
   onEditStateChange?: (isEditing: boolean) => void;
+  onLoadMore?: () => void;
+  hasMoreTransactions?: boolean;
+  isLoadingMore?: boolean;
 }
 
 interface TransactionCardProps {
@@ -226,6 +230,9 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
   onEditTransaction,
   groupMembers,
   onEditStateChange,
+  onLoadMore,
+  hasMoreTransactions = false,
+  isLoadingMore = false,
 }) => {
   const [selectedTransactions, setSelectedTransactions] = React.useState<Set<number>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = React.useState(false);
@@ -235,6 +242,7 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
   const open = Boolean(anchorEl);
   const { data } = useStore();
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   // Group transactions by date
   const dateGroups = React.useMemo(() => {
@@ -244,6 +252,29 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
   const sortedDateKeys = React.useMemo(() => {
     return getSortedDateKeys(dateGroups);
   }, [dateGroups]);
+
+  // Infinite scroll logic
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreTransactions && !isLoadingMore && onLoadMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMoreTransactions, isLoadingMore, onLoadMore]);
 
   const handleTransactionLongPress = (transaction: Transaction) => {
     setIsMultiSelectMode(true);
@@ -493,6 +524,33 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
         groupMembers={groupMembers}
         isLoading={isUpdating}
       />
+
+      {/* Infinite Scroll Load More Trigger */}
+      {hasMoreTransactions && (
+        <Box
+          ref={loadMoreRef}
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            py: 2,
+            minHeight: 60,
+          }}
+        >
+          {isLoadingMore ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2" color="text.secondary">
+                Loading more transactions...
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Scroll down to load more
+            </Typography>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

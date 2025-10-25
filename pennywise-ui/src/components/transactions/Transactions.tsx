@@ -39,9 +39,11 @@ function Transactions({
   const [initialTransactionType, setInitialTransactionType] = useState<TransactionType | null>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 20,
+    pageSize: 100,
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [cardViewPage, setCardViewPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const queryClient = useQueryClient();
   const { ui, data } = useStore();
@@ -60,12 +62,25 @@ function Transactions({
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allTransactions, ui.selectedGroupId]);
 
-  // Apply pagination
+  // Apply pagination for grid view
   const paginatedTransactions = useMemo(() => {
     const start = paginationModel.page * paginationModel.pageSize;
     const end = start + paginationModel.pageSize;
     return filteredTransactions.slice(start, end);
   }, [filteredTransactions, paginationModel]);
+
+  // Apply infinite scroll for card view
+  const cardViewTransactions = useMemo(() => {
+    const pageSize = 100;
+    const end = (cardViewPage + 1) * pageSize;
+    return filteredTransactions.slice(0, end);
+  }, [filteredTransactions, cardViewPage]);
+
+  const hasMoreTransactions = useMemo(() => {
+    const pageSize = 100;
+    const totalLoaded = (cardViewPage + 1) * pageSize;
+    return totalLoaded < filteredTransactions.length;
+  }, [filteredTransactions.length, cardViewPage]);
 
   // Calculate summary data (keeping for potential future use)
   // const summaryData = useMemo(() => {
@@ -126,7 +141,18 @@ function Transactions({
     const selectedGroup = userGroups.find(g => g.id === groupId);
     ui.setSelectedGroup(groupId, selectedGroup?.name || null);
     // Reset pagination when group changes
-    setPaginationModel({ page: 0, pageSize: 20 });
+    setPaginationModel({ page: 0, pageSize: 100 });
+    setCardViewPage(0);
+  };
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMoreTransactions) return;
+    
+    setIsLoadingMore(true);
+    // Simulate loading delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setCardViewPage(prev => prev + 1);
+    setIsLoadingMore(false);
   };
 
   const handleTransactionDeleted = () => {
@@ -195,6 +221,7 @@ function Transactions({
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <TransactionList 
           transactions={paginatedTransactions} 
+          cardViewTransactions={cardViewTransactions}
           isLoading={isLoading}
           onTransactionDeleted={handleTransactionDeleted}
           onTransactionUpdated={handleTransactionUpdated}
@@ -205,6 +232,9 @@ function Transactions({
           selectedGroupId={ui.selectedGroupId}
           groupMembers={groupMembers}
           onEditStateChange={setIsEditing}
+          onLoadMore={handleLoadMore}
+          hasMoreTransactions={hasMoreTransactions}
+          isLoadingMore={isLoadingMore}
         />
       </Box>
 

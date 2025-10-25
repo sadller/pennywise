@@ -27,6 +27,7 @@ import { useStore } from '@/stores/StoreProvider';
 
 interface TransactionListProps {
   transactions: Transaction[];
+  cardViewTransactions?: Transaction[];
   isLoading?: boolean;
   onTransactionDeleted?: () => void;
   onTransactionUpdated?: () => void;
@@ -37,10 +38,14 @@ interface TransactionListProps {
   selectedGroupId: number | null;
   groupMembers: GroupMember[];
   onEditStateChange?: (isEditing: boolean) => void;
+  onLoadMore?: () => void;
+  hasMoreTransactions?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export default function TransactionList({ 
   transactions, 
+  cardViewTransactions,
   isLoading, 
   onTransactionDeleted,
   onTransactionUpdated,
@@ -50,7 +55,10 @@ export default function TransactionList({
   onAddTransaction,
   selectedGroupId,
   groupMembers,
-  onEditStateChange
+  onEditStateChange,
+  onLoadMore,
+  hasMoreTransactions,
+  isLoadingMore
 }: TransactionListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -194,7 +202,7 @@ export default function TransactionList({
           />
         ) : (
           <TransactionCardView
-            transactions={transactions}
+            transactions={cardViewTransactions || transactions}
             isLoading={isLoading}
             onDeleteTransaction={handleDeleteClick}
             onEditTransaction={() => {
@@ -203,6 +211,9 @@ export default function TransactionList({
             }}
             groupMembers={groupMembers}
             onEditStateChange={onEditStateChange}
+            onLoadMore={onLoadMore}
+            hasMoreTransactions={hasMoreTransactions}
+            isLoadingMore={isLoadingMore}
           />
         )}
       </Box>
