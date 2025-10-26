@@ -6,7 +6,9 @@ import {
   Typography,
   Alert,
   Button,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -64,8 +66,12 @@ export default function TransactionList({
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'card'>('card'); // Default to card view for mobile
   const { data } = useStore();
+
+  // Detect screen size for default view mode - grid for desktop, card for mobile
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [viewMode, setViewMode] = useState<'grid' | 'card'>(isDesktop ? 'grid' : 'card');
 
   const handleDeleteClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);

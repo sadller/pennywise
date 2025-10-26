@@ -62,12 +62,8 @@ function Transactions({
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allTransactions, ui.selectedGroupId]);
 
-  // Apply pagination for grid view
-  const paginatedTransactions = useMemo(() => {
-    const start = paginationModel.page * paginationModel.pageSize;
-    const end = start + paginationModel.pageSize;
-    return filteredTransactions.slice(start, end);
-  }, [filteredTransactions, paginationModel]);
+  // Note: Removed paginatedTransactions - now passing filteredTransactions directly to DataGrid
+  // DataGrid will handle pagination internally, ensuring exports include all transactions
 
   // Apply infinite scroll for card view
   const cardViewTransactions = useMemo(() => {
@@ -219,8 +215,8 @@ function Transactions({
 
       {/* Transactions List */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <TransactionList 
-          transactions={paginatedTransactions} 
+        <TransactionList
+          transactions={filteredTransactions}
           cardViewTransactions={cardViewTransactions}
           isLoading={isLoading}
           onTransactionDeleted={handleTransactionDeleted}
