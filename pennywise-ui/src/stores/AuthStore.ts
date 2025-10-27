@@ -17,12 +17,12 @@ class AuthStore {
   }
 
   private async fetchUserProfile() {
-    const { dataStore } = await import('@/stores/RootStore');
+    const { rootStore } = await import('@/stores/RootStore');
     try {
       const userData = await apiClient.get<User>(API_CONSTANTS.ENDPOINTS.AUTH.ME);
       runInAction(() => {
         this.user = userData;
-        dataStore.setCurrentUser(userData);
+        rootStore.data.setCurrentUser(userData);
       });
     } catch {
       console.error('Error fetching user profile');
@@ -84,12 +84,12 @@ class AuthStore {
       CookieManager.clearAuthTokens();
     }
     runInAction(async () => {
-      const { dataStore } = await import('@/stores/RootStore');
+      const { rootStore } = await import('@/stores/RootStore');
       this.token = null;
       this.user = null;
       this.error = null;
       this.isLoading = false;
-      dataStore.setCurrentUser(null);
+      rootStore.data.setCurrentUser(null);
     });
   }
 
