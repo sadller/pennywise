@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { Transaction, TransactionCreate, PaginatedTransactionResponse } from '@/types/transaction';
+import { Transaction, TransactionCreate, PaginatedTransactionResponse, ImportCsvResponse } from '@/types/transaction';
 import { API_CONSTANTS } from '@/constants';
 
 export const transactionService = {
@@ -38,5 +38,14 @@ export const transactionService = {
 
   async updateTransaction(id: number, transaction: TransactionCreate): Promise<Transaction> {
     return apiClient.put<Transaction>(`${API_CONSTANTS.ENDPOINTS.TRANSACTIONS.BASE}/${id}`, transaction);
+  },
+
+  async importPennywiseCsv(file: File, groupId: number, mapping: Record<string, number | 'ignore'>): Promise<ImportCsvResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('group_id', groupId.toString());
+    formData.append('user_mapping', JSON.stringify(mapping));
+
+    return apiClient.post('/transactions/import-pennywise-csv', formData);
   }
 }; 

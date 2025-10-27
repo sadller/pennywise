@@ -16,6 +16,10 @@ const UtilitiesContent = () => {
     router.push('/utilities/cashbook-import');
   };
   
+  const handlePennywiseImport = () => {
+    router.push('/utilities/pennywise-import');
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
@@ -46,6 +50,27 @@ const UtilitiesContent = () => {
               onClick={handleCashbookImport}
             >
               Import from Cashbook
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ height: '100%', cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <UploadIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Typography variant="h6" component="h3">
+                Import
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Import your transactions from a Pennywise CSV export file. This is a direct import with no field mapping required.
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={handlePennywiseImport}
+            >
+              Import CSV
             </Button>
           </CardContent>
         </Card>

@@ -199,14 +199,14 @@ class ApiClient {
 
   async post<T>(url: string, data?: unknown, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {};
-    if (data) {
+    if (data && !(data instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
     }
     
     return this.request<T>(url, {
       method: 'POST',
       headers,
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
       ...options,
     });
   }

@@ -1,6 +1,7 @@
 import { authStore } from './AuthStore';
 import { uiStore } from './UIStore';
 import { cashbookImportStore } from './CashbookImportStore';
+import { pennywiseImportStore } from './PennywiseImportStore';
 import { dataStore } from './DataStore';
 import { queryClient } from '@/lib/queryClient';
 
@@ -8,6 +9,7 @@ class RootStore {
   auth = authStore;
   ui = uiStore;
   cashbookImport = cashbookImportStore;
+  pennywiseImport = pennywiseImportStore;
   data = dataStore;
 
   constructor() {

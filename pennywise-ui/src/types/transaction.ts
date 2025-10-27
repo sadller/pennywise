@@ -45,3 +45,8 @@ export interface PaginatedTransactionResponse {
   limit: number;
   has_more: boolean;
 }
+
+export interface ImportCsvResponse {
+  message: string;
+  count: number;
+}

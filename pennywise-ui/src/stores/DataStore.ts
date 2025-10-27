@@ -1,6 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 import { GroupStats } from '@/services/groupService';
 import { Transaction } from '@/types/transaction';
+import { User } from '@/types/user';
 
 class DataStore {
   // Group data
@@ -18,8 +19,15 @@ class DataStore {
   transactionsLoading = false;
   transactionsError: string | null = null;
 
+  // Current user
+  currentUser: User | null = null;
+
   constructor() {
     makeAutoObservable(this);
+  }
+
+  setCurrentUser(user: User | null) {
+    this.currentUser = user;
   }
 
   // Group actions
@@ -87,6 +95,7 @@ class DataStore {
     this.allTransactions = [];
     this.transactionsLoading = false;
     this.transactionsError = null;
+    this.currentUser = null;
   }
 
   // Helper methods

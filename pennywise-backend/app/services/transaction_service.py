@@ -5,7 +5,10 @@ from app.models.transaction import Transaction
 from app.models.group_member import GroupMember
 from app.models.user import User
 from app.schemas.transaction import TransactionCreate, BulkTransactionCreate, TransactionUpdate
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
+import csv
+import io
+from datetime import datetime
 
 
 class TransactionService:
@@ -76,7 +79,75 @@ class TransactionService:
         
         return db_transaction
 
-    def create_bulk_transactions(self, bulk_data: BulkTransactionCreate, user_id: int) -> List[Transaction]:
+    def import_pennywise_csv(self, file: UploadFile, group_id: int, user_id: int, mapping: dict):
+        # 1. User Authorization
+        member = self.db.query(GroupMember).filter(
+            GroupMember.user_id == user_id,
+            GroupMember.group_id == group_id
+        ).first()
+
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this group"
+            )
+
+        # 2. CSV Parsing
+        try:
+            content = file.file.read().decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(content))
+            transactions_to_create = []
+            
+            # No longer need to fetch all users, mapping is provided
+            
+            for i, row in enumerate(csv_reader):
+                try:
+                    paid_by_username = row.get('Paid By')
+                    paid_by_id = None
+                    if paid_by_username and paid_by_username in mapping:
+                        mapped_id = mapping[paid_by_username]
+                        if mapped_id != 'ignore':
+                            paid_by_id = int(mapped_id)
+
+                    transaction_type = row.get('Type', 'expense').lower()
+
+                    transaction_data = TransactionCreate(
+                        date=datetime.strptime(row['Date'], '%m/%d/%Y').date(),
+                        note=row['Description'],
+                        amount=abs(float(row['Amount'].replace(',', ''))),
+                        type=transaction_type.upper(),
+                        category=row.get('Category'),
+                        payment_mode=row.get('Payment Mode'),
+                        group_id=group_id,
+                        user_id=user_id,
+                        paid_by=paid_by_id
+                    )
+                    transactions_to_create.append(transaction_data)
+                except KeyError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Missing required column in CSV file on row {i+2}: {e}"
+                    )
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid data format in CSV file on row {i+2}: {e}"
+                    )
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error processing CSV file: {e}"
+            )
+
+        # 3. Bulk Creation
+        if transactions_to_create:
+            bulk_data = BulkTransactionCreate(transactions=transactions_to_create)
+            return self.create_bulk_transactions(bulk_data, user_id)
+        
+        return 0
+
+    def create_bulk_transactions(self, bulk_data: BulkTransactionCreate, user_id: int) -> int:
         """Create multiple transactions in bulk with validation."""
         if not bulk_data.transactions:
             raise HTTPException(
@@ -124,46 +195,12 @@ class TransactionService:
         db_transactions = []
         for transaction_data in bulk_data.transactions:
             db_transaction = Transaction(**transaction_data.dict())
-            self.db.add(db_transaction)
             db_transactions.append(db_transaction)
         
+        self.db.add_all(db_transactions)
         self.db.commit()
-        
-        # Get all created transaction IDs
-        transaction_ids = [t.id for t in db_transactions]
-        
-        # Get transactions with user information
-        PaidByUser = aliased(User)
-        results = self.db.query(
-            Transaction,
-            User.full_name.label('user_full_name'),
-            User.email.label('user_email'),
-            User.username.label('user_username'),
-            PaidByUser.full_name.label('paid_by_full_name'),
-            PaidByUser.email.label('paid_by_email'),
-            PaidByUser.username.label('paid_by_username')
-        ).join(
-            User, Transaction.user_id == User.id
-        ).outerjoin(
-            PaidByUser, Transaction.paid_by == PaidByUser.id
-        ).filter(
-            Transaction.id.in_(transaction_ids)
-        ).all()
-        
-        # Convert results to Transaction objects with user information
-        transactions_with_user_info = []
-        for result in results:
-            transaction = result[0]  # The Transaction object
-            # Add user information to the transaction object
-            transaction.user_full_name = result[1]
-            transaction.user_email = result[2]
-            transaction.user_username = result[3]
-            transaction.paid_by_full_name = result[4]
-            transaction.paid_by_email = result[5]
-            transaction.paid_by_username = result[6]
-            transactions_with_user_info.append(transaction)
-        
-        return transactions_with_user_info
+
+        return len(db_transactions)
 
     def get_user_transactions(
         self, 

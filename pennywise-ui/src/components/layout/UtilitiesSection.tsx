@@ -37,6 +37,12 @@ const UtilitiesSection: React.FC<UtilitiesSectionProps> = ({
       path: '/utilities/cashbook-import',
       description: 'Import from Cashbook'
     },
+    {
+      text: 'Import',
+      icon: <UploadIcon />,
+      path: '/utilities/pennywise-import',
+      description: 'Import from Pennywise CSV'
+    },
   ];
 
   return (

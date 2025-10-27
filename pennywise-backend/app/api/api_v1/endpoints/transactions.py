@@ -6,6 +6,7 @@ from app.schemas.transaction import TransactionCreate, TransactionResponse, Bulk
 from app.services.transaction_service import TransactionService
 from app.api.api_v1.endpoints.auth import get_current_user
 from typing import List, Optional
+from fastapi import File, UploadFile, Form
 
 router = APIRouter()
 
@@ -30,6 +31,26 @@ def create_bulk_transactions(
     """Create multiple transactions in bulk (for CSV import)."""
     transaction_service = TransactionService(db)
     return transaction_service.create_bulk_transactions(bulk_data, current_user.id)
+
+
+@router.post("/import-pennywise-csv", status_code=status.HTTP_200_OK)
+def import_pennywise_csv(
+    file: UploadFile = File(...),
+    group_id: int = Form(...),
+    user_mapping: str = Form(...), # JSON string
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Import transactions from a Pennywise CSV export."""
+    import json
+    try:
+        mapping = json.loads(user_mapping)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user_mapping JSON")
+
+    transaction_service = TransactionService(db)
+    imported_count = transaction_service.import_pennywise_csv(file, group_id, current_user.id, mapping)
+    return {"message": f"Successfully imported {imported_count} transactions.", "count": imported_count}
 
 
 @router.get("/", response_model=PaginatedTransactionResponse)
