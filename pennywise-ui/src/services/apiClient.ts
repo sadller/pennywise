@@ -177,8 +177,28 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Request failed: ${response.status}`);
+        let message = `Request failed: ${response.status}`;
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const errorData: any = await response.json();
+            if (typeof errorData?.detail === 'string') {
+              message = errorData.detail;
+            } else if (Array.isArray(errorData?.detail)) {
+              // FastAPI validation error list -> join messages
+              const msgs = errorData.detail.map((d: any) => d?.msg || JSON.stringify(d));
+              message = msgs.join('; ');
+            } else if (typeof errorData?.message === 'string') {
+              message = errorData.message;
+            }
+          } else {
+            const text = await response.text();
+            if (text) message = text;
+          }
+        } catch (_) {
+          // Fallback to default message
+        }
+        throw new Error(message);
       }
 
       return response.json();

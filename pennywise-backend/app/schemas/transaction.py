@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from pydantic import field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.constants.transactions import TransactionType
@@ -15,7 +16,23 @@ class TransactionBase(BaseModel):
     paid_by: Optional[int] = None  # User ID who paid
 
 class TransactionCreate(TransactionBase):
-    pass
+    # For creation, enforce all fields are required and non-empty
+    amount: float = Field(..., gt=0)
+    note: str = Field(..., min_length=1)
+    category: str = Field(..., min_length=1)
+    payment_mode: str = Field(..., min_length=1)
+    date: datetime = Field(...)
+    paid_by: int = Field(...)
+    
+    @field_validator('note', 'category', 'payment_mode')
+    @classmethod
+    def strip_and_require_non_empty(cls, v: str) -> str:
+        if v is None:
+            raise ValueError('Field is required')
+        trimmed = v.strip()
+        if trimmed == '':
+            raise ValueError('Field cannot be empty')
+        return trimmed
 
 class TransactionUpdate(BaseModel):
     """Complete transaction object for updates - includes all fields"""

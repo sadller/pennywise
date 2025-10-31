@@ -8,6 +8,7 @@ import {
   DialogActions,
   TextField,
   Button,
+  IconButton,
   FormControl,
   InputLabel,
   Select,
@@ -16,6 +17,7 @@ import {
   Alert,
   Typography,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useForm, Controller } from 'react-hook-form';
 import { TransactionType, TransactionCreate, Transaction } from '@/types/transaction';
 import { User } from '@/types/user';
@@ -50,6 +52,15 @@ function TransactionForm({
 }: TransactionFormProps) {
   const { util } = useStore();
   const [error, setError] = useState<string>('');
+ 
+  // Formats today's local date as yyyy-mm-dd for date inputs
+  const getLocalDateString = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   
   const {
     control,
@@ -78,9 +89,9 @@ function TransactionForm({
       amount: '',
       note: '',
       category: '',
-      payment_mode: '',
+      payment_mode: util.paymentModes[0] || '',
       paid_by: currentUser.id,
-      date: new Date().toISOString().split('T')[0], // Default to today
+      date: getLocalDateString(), // Default to today
     }
   });
 
@@ -99,7 +110,7 @@ function TransactionForm({
         category: transaction.category || '',
         payment_mode: transaction.payment_mode || '',
         paid_by: transaction.paid_by || transaction.user_id,
-        date: transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0],
+        date: transaction.date ? transaction.date.split('T')[0] : getLocalDateString(),
       });
       setError('');
     } else if (mode === 'add' && open) {
@@ -112,13 +123,13 @@ function TransactionForm({
         amount: '',
         note: '',
         category: '',
-        payment_mode: '',
+        payment_mode: util.paymentModes[0] || '',
         paid_by: currentUser.id,
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
       });
       setError('');
     }
-  }, [transaction, open, mode, reset, groupId, currentUser.id, initialTransactionType]);
+  }, [transaction, open, mode, reset, groupId, currentUser.id, initialTransactionType, util.paymentModes]);
 
   // Update form when groupId changes
   useEffect(() => {
@@ -170,6 +181,52 @@ function TransactionForm({
     }
   };
 
+  const handleSaveAndAddAnother = async (data: {
+    id?: number;
+    group_id?: number;
+    user_id: number;
+    type: TransactionType;
+    amount: string;
+    note?: string;
+    category?: string;
+    payment_mode?: string;
+    paid_by?: number;
+    date: string;
+  }) => {
+    try {
+      setError('');
+
+      if (mode === 'add' && !groupId) {
+        setError('Please select a group before adding a transaction.');
+        return;
+      }
+
+      const transactionData: TransactionCreate = {
+        ...data,
+        group_id: groupId || data.group_id!,
+        amount: parseFloat(data.amount),
+      };
+
+      await onSubmit(transactionData);
+
+      // Reset form for next entry, keeping defaults
+      reset({
+        id: undefined,
+        group_id: groupId || undefined,
+        user_id: currentUser.id,
+        type: initialTransactionType || TransactionType.EXPENSE,
+        amount: '',
+        note: '',
+        category: '',
+        payment_mode: util.paymentModes[0] || '',
+        paid_by: currentUser.id,
+        date: getLocalDateString(),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add transaction');
+    }
+  };
+
   const handleClose = () => {
     reset();
     setError('');
@@ -179,6 +236,7 @@ function TransactionForm({
   const isEditMode = mode === 'edit';
   const title = isEditMode ? 'Edit Transaction' : 'Add Transaction';
   const submitText = isLoading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update' : 'Add');
+  const saveAndAddAnotherText = isLoading ? 'Saving...' : 'Add next';
 
   return (
     <Dialog 
@@ -194,6 +252,14 @@ function TransactionForm({
         <Typography variant="h6" component="div" sx={{ fontSize: '1rem', fontWeight: 500 }}>
           {title}
         </Typography>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          disabled={isLoading}
+          sx={{ position: 'absolute', right: 8, top: 8 }}
+        >
+          <CloseIcon />
+        </IconButton>
         {/* {isEditMode && (
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
             Update transaction details
@@ -298,6 +364,7 @@ function TransactionForm({
           <Controller
             name="note"
             control={control}
+            rules={{ required: 'Note/Remark is required' }}
             render={({ field }) => (
               <TextField
                 {...field}
@@ -306,6 +373,8 @@ function TransactionForm({
                 multiline
                 rows={2}
                 size="small"
+                error={!!errors.note}
+                helperText={errors.note?.message}
                 sx={{ mb: 1.5, '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
               />
             )}
@@ -316,8 +385,9 @@ function TransactionForm({
             <Controller
               name="category"
               control={control}
+              rules={{ required: 'Category is required' }}
               render={({ field }) => (
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="small" error={!!errors.category}>
                   <InputLabel sx={{ fontSize: '0.875rem' }}>Category</InputLabel>
                   <Select 
                     {...field} 
@@ -330,6 +400,11 @@ function TransactionForm({
                       </MenuItem>
                     ))}
                   </Select>
+                  {errors.category && (
+                    <Box sx={{ color: 'error.main', fontSize: '0.7rem', mt: 0.5, ml: 2 }}>
+                      {errors.category.message}
+                    </Box>
+                  )}
                 </FormControl>
               )}
             />
@@ -337,8 +412,9 @@ function TransactionForm({
             <Controller
               name="payment_mode"
               control={control}
+              rules={{ required: 'Payment mode is required' }}
               render={({ field }) => (
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="small" error={!!errors.payment_mode}>
                   <InputLabel sx={{ fontSize: '0.875rem' }}>Payment Mode</InputLabel>
                   <Select 
                     {...field} 
@@ -351,6 +427,11 @@ function TransactionForm({
                       </MenuItem>
                     ))}
                   </Select>
+                  {errors.payment_mode && (
+                    <Box sx={{ color: 'error.main', fontSize: '0.7rem', mt: 0.5, ml: 2 }}>
+                      {errors.payment_mode.message}
+                    </Box>
+                  )}
                 </FormControl>
               )}
             />
@@ -393,14 +474,16 @@ function TransactionForm({
       </DialogContent>
       
       <DialogActions sx={{ p: 2, pt: 1 }}>
-        <Button 
-          onClick={handleClose}
-          disabled={isLoading}
-          color="inherit"
-          sx={{ fontSize: '0.875rem' }}
-        >
-          Cancel
-        </Button>
+        {mode === 'add' && (
+          <Button
+            onClick={handleSubmit(handleSaveAndAddAnother)}
+            variant="outlined"
+            disabled={isLoading || !groupId}
+            sx={{ minWidth: 100, fontSize: '0.875rem' }}
+          >
+            {saveAndAddAnotherText}
+          </Button>
+        )}
         <Button 
           onClick={handleSubmit(handleFormSubmit)}
           variant="contained"
