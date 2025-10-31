@@ -181,21 +181,29 @@ class ApiClient {
         try {
           const contentType = response.headers.get('content-type') || '';
           if (contentType.includes('application/json')) {
-            const errorData: any = await response.json();
-            if (typeof errorData?.detail === 'string') {
-              message = errorData.detail;
-            } else if (Array.isArray(errorData?.detail)) {
+            const errorData: unknown = await response.json();
+            const errorObj = (errorData ?? {}) as Record<string, unknown>;
+            const detail = errorObj.detail;
+            if (typeof detail === 'string') {
+              message = detail;
+            } else if (Array.isArray(detail)) {
               // FastAPI validation error list -> join messages
-              const msgs = errorData.detail.map((d: any) => d?.msg || JSON.stringify(d));
+              const msgs = detail.map((d: unknown) => {
+                if (d && typeof d === 'object') {
+                  const dObj = d as Record<string, unknown>;
+                  if (typeof dObj.msg === 'string') return dObj.msg;
+                }
+                return JSON.stringify(d);
+              });
               message = msgs.join('; ');
-            } else if (typeof errorData?.message === 'string') {
-              message = errorData.message;
+            } else if (typeof errorObj.message === 'string') {
+              message = errorObj.message;
             }
           } else {
             const text = await response.text();
             if (text) message = text;
           }
-        } catch (_) {
+        } catch {
           // Fallback to default message
         }
         throw new Error(message);
