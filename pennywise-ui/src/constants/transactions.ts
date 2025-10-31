@@ -6,37 +6,30 @@ export const CURRENCY_SYMBOL = '₹';
 
 // Category colors for charts and UI
 export const CATEGORY_COLORS: { [key: string]: string } = {
+  bills: '#45B7D1',
   food: '#FF6B6B',
-  travel: '#4ECDC4',
-  utilities: '#45B7D1',
-  entertainment: '#96CEB4',
-  shopping: '#FFEAA7',
+  grocery: '#8BC34A',
   health: '#DDA0DD',
-  other: '#A8E6CF',
-  'food & dining': '#FF6B6B',
-  transportation: '#4ECDC4',
-  education: '#45B7D1',
+  household: '#795548',
   rent: '#96CEB4',
-  salary: '#FFEAA7',
-  freelance: '#DDA0DD',
-  investment: '#A8E6CF',
-  healthcare: '#FF6B6B',
+  shopping: '#FFEAA7',
+  travel: '#4ECDC4',
+  entertainment: '#96CEB4',
+  others: '#A8E6CF',
 };
 
-// Transaction Categories
+// Transaction Categories (matching backend)
 export const TRANSACTION_CATEGORIES = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Healthcare',
-  'Education',
-  'Utilities',
+  'Bills',
+  'Food',
+  'Grocery',
+  'Health',
+  'Household',
   'Rent',
-  'Salary',
-  'Freelance',
-  'Investment',
-  'Other'
+  'Shopping',
+  'Travel',
+  'Entertainment',
+  'Others'
 ];
 
 export type TransactionCategory = typeof TRANSACTION_CATEGORIES[number];
@@ -78,7 +71,9 @@ export const generateColor = (text: string): string => {
 };
 
 export const getCategoryColor = (category: string): string => {
-  return generateColor(category || 'Unknown');
+  if (!category) return CATEGORY_COLORS.others || generateColor('Unknown');
+  const key = category.toLowerCase();
+  return CATEGORY_COLORS[key] || generateColor(category);
 };
 
 export const getUserColor = (userName: string): string => {

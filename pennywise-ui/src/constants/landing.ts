@@ -10,9 +10,9 @@ export const LANDING_CONSTANTS = {
 
   // Demo transactions for recent activity
   DEMO_TRANSACTIONS: [
-    { name: "Pizza Delivery", category: "Food & Dining", amount: "₹24.50", icon: "🍕" },
-    { name: "Gas Station", category: "Transportation", amount: "₹45.00", icon: "⛽" },
-    { name: "Grocery Store", category: "Shopping", amount: "₹87.30", icon: "🛒" },
+    { name: "Pizza Delivery", category: "Food", amount: "₹24.50", icon: "🍕" },
+    { name: "Gas Station", category: "Travel", amount: "₹45.00", icon: "⛽" },
+    { name: "Grocery Store", category: "Grocery", amount: "₹87.30", icon: "🛒" },
   ] as const,
 
   // Feature highlights

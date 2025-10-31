@@ -37,7 +37,9 @@ export interface DashboardDateRange {
 }
 
 const getCategoryColor = (category: string): string => {
-  return CATEGORY_COLORS[category.toLowerCase()] || CATEGORY_COLORS.other;
+  if (!category) return CATEGORY_COLORS.others || '#A8E6CF';
+  const key = category.toLowerCase();
+  return CATEGORY_COLORS[key] || CATEGORY_COLORS.others || '#A8E6CF';
 };
 
 const processTransactionData = (

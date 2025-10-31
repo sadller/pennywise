@@ -54,6 +54,7 @@ export default function TransactionForm({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors }
   } = useForm<{
     id?: number;
@@ -80,6 +81,8 @@ export default function TransactionForm({
       date: new Date().toISOString().split('T')[0], // Default to today
     }
   });
+
+  const type = watch('type');
 
   // Reset form when transaction changes (for edit mode)
   useEffect(() => {
@@ -209,8 +212,31 @@ export default function TransactionForm({
         )}
 
         <Box component="form" onSubmit={handleSubmit(handleFormSubmit)}>
-          {/* Amount and Type Row */}
+          {/* Type and Amount Row */}
           <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, mt: 1 }}>
+            <Controller
+              name="type"
+              control={control}
+              rules={{ required: 'Transaction type is required' }}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.type} size="small">
+                  <InputLabel sx={{ fontSize: '0.875rem' }}>Type</InputLabel>
+                  <Select 
+                    {...field} 
+                    label="Type"
+                    sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
+                  >
+                    <MenuItem value={TransactionType.EXPENSE} sx={{ fontSize: '0.875rem' }}>
+                      Expense
+                    </MenuItem>
+                    <MenuItem value={TransactionType.INCOME} sx={{ fontSize: '0.875rem' }}>
+                      Income
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+            />
+            
             <Controller
               name="amount"
               control={control}
@@ -237,31 +263,11 @@ export default function TransactionForm({
                   helperText={errors.amount?.message}
                   inputProps={{ step: 0.01, min: 0 }}
                   size="small"
-                  sx={{ '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
+                  sx={{ '& .MuiInputBase-input': { 
+                    fontSize: '0.875rem',
+                    color: type === TransactionType.EXPENSE ? 'error.main' : 'success.main',
+                  } }}
                 />
-              )}
-            />
-            
-            <Controller
-              name="type"
-              control={control}
-              rules={{ required: 'Transaction type is required' }}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.type} size="small">
-                  <InputLabel sx={{ fontSize: '0.875rem' }}>Type</InputLabel>
-                  <Select 
-                    {...field} 
-                    label="Type"
-                    sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
-                  >
-                    <MenuItem value={TransactionType.EXPENSE} sx={{ fontSize: '0.875rem' }}>
-                      Cash Out (Expense)
-                    </MenuItem>
-                    <MenuItem value={TransactionType.INCOME} sx={{ fontSize: '0.875rem' }}>
-                      Cash In (Income)
-                    </MenuItem>
-                  </Select>
-                </FormControl>
               )}
             />
           </Box>
@@ -299,7 +305,6 @@ export default function TransactionForm({
                 rows={2}
                 size="small"
                 sx={{ mb: 1.5, '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
-                placeholder="Enter transaction description..."
               />
             )}
           />
