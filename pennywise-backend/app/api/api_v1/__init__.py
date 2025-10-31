@@ -6,6 +6,7 @@ from .endpoints.groups import router as groups
 from .endpoints.dashboard import router as dashboard
 from .endpoints.notifications import router as notifications
 from .endpoints.ai import router as ai_router
+from .endpoints.utils import router as utils_router
 
 api_router = APIRouter()
 
@@ -29,4 +30,7 @@ api_router.include_router(notifications, prefix="/notifications", tags=["notific
 
 # AI endpoints (no extra prefix)
 api_router.include_router(ai_router, tags=["ai"])
+
+# Include utils endpoints
+api_router.include_router(utils_router, prefix="/utils", tags=["utils"])
  

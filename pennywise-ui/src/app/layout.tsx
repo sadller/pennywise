@@ -6,6 +6,7 @@ import ThemeRegistry from "@/components/providers/ThemeRegistry";
 import ServiceWorkerRegistration from "@/components/common/ServiceWorkerRegistration";
 import NavigationLoader from "../components/common/NavigationLoader";
 import PWAProvider from "@/components/providers/PWAProvider";
+import AppInitializer from "@/components/providers/AppInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -114,10 +115,12 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeRegistry>
           <StoreProvider>
-            <NavigationLoader />
-            <PWAProvider />
-            {children}
-            <ServiceWorkerRegistration />
+            <AppInitializer>
+              <NavigationLoader />
+              <PWAProvider />
+              {children}
+              <ServiceWorkerRegistration />
+            </AppInitializer>
           </StoreProvider>
         </ThemeRegistry>
       </body>

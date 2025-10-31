@@ -18,34 +18,9 @@ export const CATEGORY_COLORS: { [key: string]: string } = {
   others: '#A8E6CF',
 };
 
-// Transaction Categories (matching backend)
-export const TRANSACTION_CATEGORIES = [
-  'Bills',
-  'Food',
-  'Grocery',
-  'Health',
-  'Household',
-  'Rent',
-  'Shopping',
-  'Travel',
-  'Entertainment',
-  'Others'
-];
+export type TransactionCategory = string;
 
-export type TransactionCategory = typeof TRANSACTION_CATEGORIES[number];
-
-// Payment Modes
-export const PAYMENT_MODES = [
-  'Cash',
-  'UPI',
-  'Credit Card',
-  'Debit Card',
-  'Bank Transfer',
-  'Digital Wallet',
-  'Other'
-];
-
-export type PaymentMode = typeof PAYMENT_MODES[number];
+export type PaymentMode = string;
 
 // Transaction Types
 export const TRANSACTION_TYPES = [

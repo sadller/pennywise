@@ -10,8 +10,6 @@ import { Transaction, TransactionType } from '@/types/transaction';
 import { format, isToday } from 'date-fns';
 import { transactionService } from '@/services/transactionService';
 import { 
-  TRANSACTION_CATEGORIES, 
-  PAYMENT_MODES, 
   TRANSACTION_TYPES,
   getCategoryColor,
   getUserColor,
@@ -20,6 +18,7 @@ import {
 } from '@/constants/transactions';
 import { GroupMember } from '@/types/group';
 import { useStore } from '@/stores/StoreProvider';
+import { observer } from 'mobx-react-lite';
 
 interface TransactionDataGridProps {
   transactions: Transaction[];
@@ -33,7 +32,7 @@ interface TransactionDataGridProps {
   onEditStateChange?: (isEditing: boolean) => void;
 }
 
-export default function TransactionDataGrid({
+function TransactionDataGrid({
   transactions,
   isLoading,
   rowCount,
@@ -49,7 +48,7 @@ export default function TransactionDataGrid({
   const [editingRowId, setEditingRowId] = useState<GridRowId | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalRowData, setOriginalRowData] = useState<Record<string, unknown> | null>(null);
-  const { data } = useStore();
+  const { data, util } = useStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -314,7 +313,7 @@ export default function TransactionDataGrid({
       maxWidth: 180,
       editable: true,
       type: 'singleSelect',
-      valueOptions: TRANSACTION_CATEGORIES,
+      valueOptions: util.categories,
       renderCell: (params: GridRenderCellParams) => {
         const category = params.value || 'Unknown';
         return (
@@ -344,7 +343,7 @@ export default function TransactionDataGrid({
       maxWidth: 180,
       editable: true,
       type: 'singleSelect',
-      valueOptions: PAYMENT_MODES,
+      valueOptions: util.paymentModes,
     },
     {
       field: 'paid_by',
@@ -614,3 +613,5 @@ export default function TransactionDataGrid({
     </Box>
   );
 } 
+
+export default observer(TransactionDataGrid); 

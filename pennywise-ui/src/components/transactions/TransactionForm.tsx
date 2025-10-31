@@ -20,7 +20,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { TransactionType, TransactionCreate, Transaction } from '@/types/transaction';
 import { User } from '@/types/user';
 import { GroupMember } from '@/types/group';
-import { TRANSACTION_CATEGORIES, PAYMENT_MODES } from '@/constants/transactions';
+import { useStore } from '@/stores/StoreProvider';
+import { observer } from 'mobx-react-lite';
 
 interface TransactionFormProps {
   open: boolean;
@@ -35,7 +36,7 @@ interface TransactionFormProps {
   initialTransactionType?: TransactionType | null;
 }
 
-export default function TransactionForm({
+function TransactionForm({
   open,
   onClose,
   onSubmit,
@@ -47,6 +48,7 @@ export default function TransactionForm({
   isLoading = false,
   initialTransactionType = null
 }: TransactionFormProps) {
+  const { util } = useStore();
   const [error, setError] = useState<string>('');
   
   const {
@@ -322,7 +324,7 @@ export default function TransactionForm({
                     label="Category"
                     sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
                   >
-                    {TRANSACTION_CATEGORIES.map((category) => (
+                    {util.categories.map((category) => (
                       <MenuItem key={category} value={category} sx={{ fontSize: '0.875rem' }}>
                         {category}
                       </MenuItem>
@@ -343,7 +345,7 @@ export default function TransactionForm({
                     label="Payment Mode"
                     sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
                   >
-                    {PAYMENT_MODES.map((mode) => (
+                    {util.paymentModes.map((mode) => (
                       <MenuItem key={mode} value={mode} sx={{ fontSize: '0.875rem' }}>
                         {mode}
                       </MenuItem>
@@ -411,3 +413,5 @@ export default function TransactionForm({
     </Dialog>
   );
 }
+
+export default observer(TransactionForm);
