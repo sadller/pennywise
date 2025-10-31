@@ -297,16 +297,30 @@ const TransactionCardView: React.FC<TransactionCardViewProps> = ({
     }
   };
 
-  const handleDeleteSelected = () => {
-    selectedTransactions.forEach(id => {
-      const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        onDeleteTransaction?.(transaction);
-      }
-    });
-    setSelectedTransactions(new Set());
-    setIsMultiSelectMode(false);
-    onEditStateChange?.(false);
+  const handleDeleteSelected = async () => {
+    if (selectedTransactions.size === 0) return;
+
+    setIsUpdating(true);
+    const idsToDelete = Array.from(selectedTransactions);
+
+    // Optimistically update UI
+    const previousTransactions = data.allTransactions;
+    const updatedTransactions = previousTransactions.filter(t => !idsToDelete.includes(t.id));
+    data.setAllTransactions(updatedTransactions);
+
+    try {
+      await Promise.all(idsToDelete.map(id => transactionService.deleteTransaction(id)));
+    } catch (error) {
+      console.error('Error deleting selected transactions:', error);
+      // Revert on error
+      data.setAllTransactions(previousTransactions);
+      alert('Failed to delete one or more transactions');
+    } finally {
+      setIsUpdating(false);
+      setSelectedTransactions(new Set());
+      setIsMultiSelectMode(false);
+      onEditStateChange?.(false);
+    }
   };
 
   const exitMultiSelectMode = () => {
